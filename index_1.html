@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>富林組合屋案場地圖</title>
+<meta name="theme-color" content="#1F5C55">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ===== 設定 =====
+   SHEET_ID：Google 試算表網址中 /d/ 和 /edit 之間那一串。
+   試算表需設定「知道連結的任何人都可以檢視」。 */
+window.FULIN_CONFIG = {
+  SHEET_ID: "16aL7wXep_H1guH41lA7RGVShti2wLllZWSo2h1I6sU4",
+  GID: "0",
+  REFRESH_MINUTES: 5
+};
+</script>
+<style>
+:root{
+  --bg:#F3F4F1; --panel:#FFFFFF; --ink:#1E2A2C; --muted:#63706F; --line:#DCE0DA; --hover:#EEF2EB;
+  --accent:#1F5C55; --accent-ink:#FFFFFF;
+  --issue:#D23B2E; --active:#DC8612; --week:#2F6BD8; --later:#7C95C4; --done:#8C9695;
+  --issue-bg:#FBE9E6; --active-bg:#FCF1E0; --week-bg:#E6EEFB; --later-bg:#EEF1F7; --done-bg:#EEF0EF;
+  --shadow:0 6px 24px rgba(30,42,44,.14);
+  --sans:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 380px}
+#map{height:100%;width:100%;background:#E6EAE4}
+.mapwrap{position:relative;min-height:0}
+.legend{position:absolute;left:12px;bottom:24px;z-index:500;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);box-shadow:var(--shadow);max-width:calc(100% - 24px)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.fitbtn{position:absolute;right:10px;top:86px;z-index:500;width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);font-size:18px;display:grid;place-items:center}
+
+.pin{position:relative;width:0;height:0}
+.pin .dot{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--c);border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px;line-height:1}
+.pin.sel .dot{left:-12px;top:-12px;width:24px;height:24px;border-color:var(--ink)}
+.pin .halo{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;border:2px solid var(--issue);animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{from{transform:scale(1);opacity:.7}to{transform:scale(2.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pin .halo{animation:none;opacity:.35}}
+.pin .tag{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:var(--c);color:#fff;font-family:var(--mono);font-size:11px;padding:0 6px;border-radius:4px;border:1.5px solid #fff;white-space:nowrap;line-height:16px}
+.pin .lbl{position:absolute;left:14px;top:-9px;font-size:12px;font-weight:500;white-space:nowrap;color:var(--ink);text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff}
+
+.panel{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.phead{padding:16px 16px 12px;border-bottom:1px solid var(--line);display:grid;gap:12px}
+.titlerow{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.02em}
+.meta{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.meta button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:1px 8px;font-family:var(--sans);font-size:12px}
+.chips{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 7px;text-align:left;display:grid;opacity:.5;transition:opacity .15s}
+.chip[aria-pressed="true"]{opacity:1;border-color:var(--c);background:var(--cbg)}
+.chip b{font-family:var(--mono);font-size:20px;line-height:1.2;color:var(--c)}
+.chip span{font-size:11px;line-height:1.3}
+.tools input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 10px}
+.notice{font-size:12px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--week-bg)}
+.notice.err{background:var(--issue-bg);color:var(--issue)}
+.pbody{overflow:auto;flex:1;min-height:0}
+.group h2{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.08em;margin:0;padding:12px 16px 4px;position:sticky;top:0;background:var(--panel);z-index:1}
+.row{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:0 10px;padding:9px 16px 9px 12px;border:0;background:none;width:100%;text-align:left;border-bottom:1px solid var(--line)}
+.row:hover{background:var(--hover)}
+.row .stripe{grid-row:1/3;border-radius:2px;background:var(--c)}
+.row .nm{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .loc{font-size:12px;color:var(--muted);white-space:nowrap}
+.row .sub{grid-column:2/4;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .sub.issue{color:var(--issue)}
+.dbadge{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;background:var(--c);color:#fff}
+.empty{padding:24px 16px;color:var(--muted);font-size:13px}
+
+.detail{padding:16px;display:grid;gap:14px}
+.back{border:0;background:none;color:var(--accent);padding:0;justify-self:start;font-size:13px}
+.pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 10px;border-radius:999px;background:var(--cbg);color:var(--c);border:1px solid var(--c)}
+.detail h3{font-size:20px;margin:4px 0 0}
+.kv{display:grid;grid-template-columns:5em 1fr;gap:6px 10px;margin:0}
+.kv dt{color:var(--muted);font-size:12px;padding-top:2px}
+.kv dd{margin:0;word-break:break-word}
+.issuebox{background:var(--issue-bg);border:1px solid var(--issue);border-radius:8px;padding:10px 12px;white-space:pre-wrap}
+.note{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap}
+.mono{font-family:var(--mono);font-size:12px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--ink);display:inline-block}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+.leaflet-container{font-family:var(--sans)}
+
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto;min-height:100%}
+  .panel{border-left:0;border-top:1px solid var(--line)}
+  .pbody{overflow:visible}
+  .legend{font-size:11px;padding:6px 10px;bottom:20px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="mapwrap">
+    <div id="map"></div>
+    <button class="fitbtn" id="fit" title="顯示全部案場" aria-label="顯示全部案場">⤢</button>
+    <div class="legend">
+      <span><i style="background:var(--issue)"></i>問題件</span>
+      <span><i style="background:var(--active)"></i>施工中</span>
+      <span><i style="background:var(--week)"></i>7 天內進場</span>
+      <span><i style="background:var(--later)"></i>之後進場</span>
+      <span><i style="background:var(--done)"></i>已完工</span>
+    </div>
+  </div>
+  <aside class="panel">
+    <div class="phead">
+      <div class="titlerow"><h1>富林組合屋 案場地圖</h1>
+        <span class="meta"><span id="updated">載入中…</span><button id="reload">重新整理</button></span></div>
+      <div class="chips" id="chips"></div>
+      <div class="tools"><input id="q" type="search" placeholder="搜尋案名、地址、負責人"></div>
+    </div>
+    <div class="notice" id="notice" hidden></div>
+    <div class="pbody" id="pbody"></div>
+  </aside>
+</div>
+<script>
+(function(){
+const CFG=window.FULIN_CONFIG;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const BUCKETS=[
+  {k:'issue',label:'問題件',c:'--issue',bg:'--issue-bg'},
+  {k:'active',label:'施工中',c:'--active',bg:'--active-bg'},
+  {k:'week',label:'7 天內進場',c:'--week',bg:'--week-bg'},
+  {k:'later',label:'之後進場',c:'--later',bg:'--later-bg'},
+  {k:'done',label:'已完工',c:'--done',bg:'--done-bg'}
+];
+const BK=Object.fromEntries(BUCKETS.map(b=>[b.k,b]));
+
+// ---------- parsing ----------
+function parseStatus(v){v=String(v||'');
+  if(/問題|異常|客訴|維修/.test(v))return 'issue';
+  if(/完工|結案|完成/.test(v))return 'done';
+  if(/預定|進場|待/.test(v))return 'upcoming';
+  return 'active'}
+function pad(n){return String(n).padStart(2,'0')}
+function parseDate(cell){if(!cell)return '';const v=cell.v;
+  if(typeof v==='string'){let m=v.match(/^Date\((\d+),(\d+),(\d+)/);if(m)return m[1]+'-'+pad(+m[2]+1)+'-'+pad(m[3]);
+    m=v.match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);if(m)return m[1]+'-'+pad(m[2])+'-'+pad(m[3]);
+    m=v.match(/^(\d{1,2})\D(\d{1,2})$/);if(m)return new Date().getFullYear()+'-'+pad(m[1])+'-'+pad(m[2])}
+  if(cell.f){const m=cell.f.match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);if(m)return m[1]+'-'+pad(m[2])+'-'+pad(m[3])}
+  return ''}
+function parseCoord(v){v=String(v||'');let m=v.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||v.match(/(-?\d{1,3}\.\d+)\s*[,，\s]\s*(-?\d{1,3}\.\d+)/);
+  if(!m)return null;let a=+m[1],b=+m[2];if(a>90)[a,b]=[b,a];if(a<20||a>27||b<117||b>123)return null;return [a,b]}
+function cellText(c){if(!c)return '';if(c.f!=null&&typeof c.v!=='string')return String(c.f);return c.v==null?'':String(c.v)}
+
+const COLS={name:['案名','名稱','案場'],status:['狀態'],startDate:['進場日','進場日期','預定進場'],address:['地址'],coord:['座標','位置','經緯度'],
+  owner:['負責人'],contact:['聯絡人'],phone:['電話','聯絡電話'],issue:['問題描述','問題','備註']};
+function rowsFromTable(t){
+  const labels=t.cols.map(c=>String(c.label||'').trim());
+  const idx={};for(const k in COLS){idx[k]=labels.findIndex(l=>COLS[k].some(n=>l===n||l.startsWith(n)))}
+  const out=[];
+  t.rows.forEach((r,i)=>{const c=r.c||[];const g=k=>idx[k]>=0?c[idx[k]]:null;
+    const name=cellText(g('name')).trim();if(!name)return;
+    const co=parseCoord(cellText(g('coord')));
+    out.push({id:'r'+i,name,status:parseStatus(cellText(g('status'))),startDate:parseDate(g('startDate')),
+      address:cellText(g('address')).trim(),lat:co?co[0]:null,lng:co?co[1]:null,
+      owner:cellText(g('owner')).trim(),contact:cellText(g('contact')).trim(),phone:cellText(g('phone')).trim(),issue:cellText(g('issue')).trim()})});
+  return out}
+
+function daysUntil(ds){if(!ds)return null;const [y,m,d]=ds.split('-').map(Number);const t=new Date();return Math.round((Date.UTC(y,m-1,d)-Date.UTC(t.getFullYear(),t.getMonth(),t.getDate()))/864e5)}
+function bucket(s){if(s.status==='upcoming'){const n=daysUntil(s.startDate);return (n!==null&&n<=7)?'week':'later'}return s.status}
+function dLabel(n){if(n===null)return '';if(n===0)return '今天';if(n<0)return '逾'+(-n)+'天';return 'D-'+n}
+
+// ---------- state ----------
+let sites=[],selected=null,loaded=false;
+let filters=new Set(['issue','active','week','later']);
+try{const f=JSON.parse(localStorage.getItem('fulin-map-filters')||'null');if(Array.isArray(f))filters=new Set(f)}catch(e){}
+
+// ---------- map ----------
+const map=L.map('map',{zoomControl:true,attributionControl:true}).setView([23.1,120.6],8);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+  maxZoom:19,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
+map.zoomControl.setPosition('topright');
+const layer=L.layerGroup().addTo(map);
+function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
+function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>filters.has(bucket(s))&&(!q||matchQ(s,q)))}
+function drawPins(){layer.clearLayers();const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=map.getZoom()>=13;
+  visible().filter(s=>s.lat!=null).sort((a,b)=>order[bucket(a)]-order[bucket(b)]).forEach(s=>{
+    const b=bucket(s);const sel=selected===s.id;
+    let h='<div class="pin'+(sel?' sel':'')+'" style="--c:var('+BK[b].c+')">';
+    if(b==='issue')h+='<div class="halo"></div>';
+    h+='<div class="dot">'+(b==='issue'?'!':'')+'</div>';
+    if(b==='week')h+='<div class="tag">'+esc(dLabel(daysUntil(s.startDate)))+'</div>';
+    if(showLbl||sel)h+='<div class="lbl">'+esc(s.name)+'</div>';
+    h+='</div>';
+    const m=L.marker([s.lat,s.lng],{icon:L.divIcon({html:h,className:'',iconSize:[0,0]}),title:s.name,zIndexOffset:order[b]*100+(sel?1000:0)});
+    m.on('click',()=>openDetail(s.id,false));m.addTo(layer)})}
+map.on('zoomend',drawPins);
+function fitAll(){const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
+  if(!pts.length)return map.setView([23.1,120.6],8);
+  if(pts.length===1)return map.setView(pts[0],14);
+  map.fitBounds(pts,{padding:[40,40],maxZoom:14})}
+$('fit').onclick=fitAll;
+
+// ---------- panel ----------
+function renderChips(){const c={issue:0,active:0,week:0,later:0,done:0};sites.forEach(s=>c[bucket(s)]++);
+  $('chips').innerHTML=BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+filters.has(b.k)+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
+$('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const k=b.dataset.k;
+  filters.has(k)?filters.delete(k):filters.add(k);try{localStorage.setItem('fulin-map-filters',JSON.stringify([...filters]))}catch(e){}render()});
+$('q').addEventListener('input',render);
+
+function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];let any=false;
+  for(const b of BUCKETS){if(!filters.has(b.k))continue;
+    const items=sites.filter(s=>bucket(s)===b.k&&(!q||matchQ(s,q)));
+    if(b.k==='week'||b.k==='later')items.sort((a,c)=>String(a.startDate||'9').localeCompare(String(c.startDate||'9')));
+    if(!items.length)continue;any=true;
+    html.push('<div class="group"><h2>'+b.label+' · '+items.length+'</h2>');
+    for(const s of items){let sub,right='';
+      if(b.k==='issue')sub='<div class="sub issue">'+esc(s.issue||'（未填問題描述）')+'</div>';
+      else if(b.k==='week'||b.k==='later'){right='<span class="dbadge" style="--c:var('+b.c+')">'+esc(dLabel(daysUntil(s.startDate))||'日期未定')+'</span>';sub='<div class="sub">'+esc((s.startDate||'進場日未定')+(s.owner?' · '+s.owner:''))+'</div>'}
+      else sub='<div class="sub">'+esc([s.owner,s.address].filter(Boolean).join(' · '))+'</div>';
+      if(s.lat==null)right+=' <span class="loc">未定位</span>';
+      html.push('<button class="row" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm">'+esc(s.name)+'</span><span class="loc">'+right+'</span>'+sub+'</button>')}
+    html.push('</div>')}
+  if(!any)html.push('<div class="empty">'+(loaded?(sites.length?'沒有符合篩選條件的案場。點上方的分類可以切換顯示。':'試算表裡還沒有案場資料。'):'載入中…')+'</div>');
+  $('pbody').innerHTML=html.join('')}
+function navUrl(s){return s.lat!=null?'https://www.google.com/maps/search/?api=1&query='+s.lat+','+s.lng:(s.address?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address):'')}
+function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=null;return renderList()}
+  const b=BK[bucket(s)];const rows=[];
+  if(s.startDate)rows.push(['進場日','<span class="mono">'+esc(s.startDate)+'</span>'+(s.status==='upcoming'?'　'+esc(dLabel(daysUntil(s.startDate))):'')]);
+  rows.push(['地址',esc(s.address||'—')],['負責人',esc(s.owner||'—')],['聯絡人',esc(s.contact||'—')]);
+  rows.push(['電話',s.phone?'<a class="mono" href="tel:'+esc(s.phone.replace(/[^\d+]/g,''))+'">'+esc(s.phone)+'</a>':'—']);
+  if(s.lat==null)rows.push(['座標','尚未填寫，地圖上不會顯示']);
+  const nav=navUrl(s);
+  $('pbody').innerHTML='<div class="detail"><button class="back" data-act="back">← 返回列表</button>'+
+    '<div><span class="pill" style="--c:var('+b.c+');--cbg:var('+b.bg+')">'+b.label+'</span><h3>'+esc(s.name)+'</h3></div>'+
+    (s.issue?'<div><div class="mono" style="color:var(--muted);margin-bottom:4px">'+(s.status==='issue'?'問題描述':'備註')+'</div><div class="'+(s.status==='issue'?'issuebox':'note')+'">'+esc(s.issue)+'</div></div>':'')+
+    '<dl class="kv">'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('')+'</dl>'+
+    (nav?'<div class="actions"><a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a></div>':'')+'</div>'}
+$('pbody').addEventListener('click',e=>{const r=e.target.closest('.row');if(r)return openDetail(r.dataset.id,true);
+  if(e.target.closest('[data-act="back"]')){selected=null;render()}});
+function openDetail(id,fly){selected=id;const s=sites.find(x=>x.id===id);render();
+  if(fly&&s&&s.lat!=null)map.setView([s.lat,s.lng],Math.max(map.getZoom(),14));
+  if(!fly&&window.matchMedia('(max-width:760px)').matches)$('pbody').scrollIntoView({behavior:'smooth'})}
+function render(){renderChips();selected?renderDetail():renderList();drawPins()}
+
+// ---------- load (JSONP，不受跨網域限制) ----------
+let firstLoad=true;
+function load(){
+  const cb='__fulin'+Date.now();const s=document.createElement('script');
+  const timer=setTimeout(()=>fail('連不到試算表，請確認網路或稍後再試。'),15000);
+  window[cb]=resp=>{clearTimeout(timer);delete window[cb];s.remove();
+    if(!resp||resp.status==='error'){return fail('讀不到試算表。請確認試算表已設定「知道連結的任何人都可以檢視」。')}
+    sites=rowsFromTable(resp.table);loaded=true;
+    const noLoc=sites.filter(x=>x.lat==null).length;
+    const n=$('notice');n.className='notice';n.textContent=noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'';n.hidden=!noLoc;
+    const d=new Date();$('updated').textContent='更新 '+pad(d.getHours())+':'+pad(d.getMinutes());
+    render();if(firstLoad){firstLoad=false;fitAll()}};
+  s.onerror=()=>{clearTimeout(timer);fail('連不到試算表，請確認網路或稍後再試。')};
+  s.src='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID+'/gviz/tq?gid='+encodeURIComponent(CFG.GID)+'&headers=1&tqx=responseHandler:'+cb;
+  document.head.appendChild(s)}
+function fail(msg){const n=$('notice');n.className='notice err';n.textContent=msg;n.hidden=false;$('updated').textContent='未更新';loaded=true;render()}
+$('reload').onclick=load;
+render();load();
+setInterval(load,(CFG.REFRESH_MINUTES||5)*60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+})();
+</script>
+</body>
+</html>
