@@ -16,7 +16,7 @@
 window.FULIN_CONFIG = {
   SHEET_ID: "16aL7wXep_H1guH41lA7RGVShti2wLllZWSo2h1I6sU4",
   GID: "92069050",
-  GOOGLE_MAPS_KEY: "AIzaSyD-w7ehrTkTkAScYtZbRRYlYbrQiHn9dJM",   // 貼上 Google 地圖 API 金鑰；留空則使用 OpenStreetMap
+  GOOGLE_MAPS_KEY: "",   // 貼上 Google 地圖 API 金鑰；留空則使用備用底圖（Esri）
   REFRESH_MINUTES: 5
 };
 </script>
@@ -184,13 +184,13 @@ let filters=new Set(['issue','active','week','later']);
 try{const f=JSON.parse(localStorage.getItem('fulin-map-filters')||'null');if(Array.isArray(f))filters=new Set(f)}catch(e){}
 
 // ---------- map ----------
-// 有 GOOGLE_MAPS_KEY 就用 Google 地圖；沒有或金鑰失效則自動改用 OpenStreetMap。
+// 有 GOOGLE_MAPS_KEY 就用 Google 地圖；沒有或金鑰失效則自動改用備用底圖（Esri）。
 const CENTER={lat:23.1,lng:120.6};
 let M=null; // 地圖轉接層：setView / fit / zoom / clear / add
 function leafletAdapter(){
   const el=$('map');el.innerHTML='';
   const map=L.map(el,{zoomControl:true}).setView([CENTER.lat,CENTER.lng],8);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'}).addTo(map);
   map.zoomControl.setPosition('topright');
   const layer=L.layerGroup().addTo(map);
   map.on('zoomend',drawPins);
@@ -229,11 +229,11 @@ function useOSM(reason){$('fit').classList.remove('g');M=leafletAdapter();if(rea
 function initMap(){
   const key=(CFG.GOOGLE_MAPS_KEY||'').trim();
   if(!key)return useOSM();
-  window.gm_authFailure=()=>useOSM('Google 地圖金鑰無法使用（可能尚未啟用 Maps JavaScript API、未綁帳單，或網址限制設定錯誤），已暫時改用 OpenStreetMap。');
-  window.__gmReady=()=>googleAdapter().then(a=>{M=a;render();if(loaded)fitAll()}).catch(()=>useOSM('Google 地圖載入失敗，已暫時改用 OpenStreetMap。'));
+  window.gm_authFailure=()=>useOSM('Google 地圖金鑰無法使用（可能尚未啟用 Maps JavaScript API、未綁帳單，或網址限制設定錯誤），已暫時改用備用底圖。');
+  window.__gmReady=()=>googleAdapter().then(a=>{M=a;render();if(loaded)fitAll()}).catch(()=>useOSM('Google 地圖載入失敗，已暫時改用備用底圖。'));
   const sc=document.createElement('script');
   sc.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&callback=__gmReady&loading=async&language=zh-TW&region=TW';
-  sc.async=true;sc.onerror=()=>useOSM('連不到 Google 地圖，已暫時改用 OpenStreetMap。');
+  sc.async=true;sc.onerror=()=>useOSM('連不到 Google 地圖，已暫時改用備用底圖。');
   document.head.appendChild(sc);
 }
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
