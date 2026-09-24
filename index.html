@@ -54,6 +54,15 @@ button{cursor:pointer}
 @media (prefers-reduced-motion:reduce){.pin .halo{animation:none;opacity:.35}}
 .pin .tag{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:var(--c);color:#fff;font-family:var(--mono);font-size:11px;padding:0 6px;border-radius:4px;border:1.5px solid #fff;white-space:nowrap;line-height:16px}
 .pin .lbl{position:absolute;left:14px;top:-9px;font-size:12px;font-weight:500;white-space:nowrap;color:var(--ink);text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 3px #fff}
+.pin .lbl.hide{display:none}
+/* 滑到列表或標記時：放大、跳動、顯示名稱 */
+.pin.hl .lbl,.pin:hover .lbl{display:block;background:var(--ink);color:#fff;text-shadow:none;padding:2px 8px;border-radius:6px;top:-12px;left:18px;font-size:13px;box-shadow:var(--shadow)}
+.pin.hl .dot,.pin:hover .dot{transform:scale(1.5);box-shadow:0 0 0 4px rgba(255,255,255,.9),0 0 0 7px var(--c),0 4px 10px rgba(0,0,0,.4)}
+.pin.hl{animation:bounce .6s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.pin .dot{transition:transform .15s,box-shadow .15s}
+@media (prefers-reduced-motion:reduce){.pin.hl{animation:none}}
+.row.hl{background:var(--hover);box-shadow:inset 3px 0 0 var(--c)}
 
 .panel{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 .phead{padding:16px 16px 12px;border-bottom:1px solid var(--line);display:grid;gap:12px}
@@ -200,7 +209,7 @@ function leafletAdapter(){
     zoom:()=>map.getZoom(),
     fit:pts=>map.fitBounds(pts,{padding:[40,40],maxZoom:14}),
     clear:()=>layer.clearLayers(),
-    add:(lat,lng,html,z,title,onClick)=>{const m=L.marker([lat,lng],{icon:L.divIcon({html,className:'',iconSize:[0,0]}),title,zIndexOffset:z});m.on('click',onClick);m.addTo(layer)}};
+    add:(lat,lng,html,z,title,onClick)=>{const m=L.marker([lat,lng],{icon:L.divIcon({html,className:'',iconSize:[0,0]}),title,zIndexOffset:z});m.on('click',onClick);m.addTo(layer);return {front:on=>m.setZIndexOffset(on?100000:z)}}};
 }
 async function googleAdapter(){
   const {Map,OverlayView}=await google.maps.importLibrary('maps');
@@ -224,7 +233,7 @@ async function googleAdapter(){
     fit:pts=>{const b=new LatLngBounds();pts.forEach(p=>b.extend({lat:p[0],lng:p[1]}));map.fitBounds(b,40);
       google.maps.event.addListenerOnce(map,'idle',()=>{if(map.getZoom()>14)map.setZoom(14)})},
     clear:()=>{markers.forEach(m=>m.setMap(null));markers=[]},
-    add:(lat,lng,html,z,title,onClick)=>{const m=new HtmlMarker(lat,lng,html,z,title,onClick);m.setMap(map);markers.push(m)}};
+    add:(lat,lng,html,z,title,onClick)=>{const m=new HtmlMarker(lat,lng,html,z,title,onClick);m.setMap(map);markers.push(m);return {front:on=>{m.div.style.zIndex=on?100000:z}}}};
 }
 function useOSM(reason){$('fit').classList.remove('g');M=leafletAdapter();if(reason){const n=$('notice');n.className='notice err';n.textContent=reason;n.hidden=false}render();if(loaded)fitAll()}
 function initMap(){
@@ -239,16 +248,17 @@ function initMap(){
 }
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
 function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>filters.has(bucket(s))&&(!q||matchQ(s,q)))}
-function drawPins(){if(!M)return;M.clear();const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=M.zoom()>=13;
+function drawPins(){if(!M)return;M.clear();for(const k in pinHandles)delete pinHandles[k];const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=M.zoom()>=13;
   visible().filter(s=>s.lat!=null).sort((a,b)=>order[bucket(a)]-order[bucket(b)]).forEach(s=>{
     const b=bucket(s);const sel=selected===s.id;
-    let h='<div class="pin'+(sel?' sel':'')+'" style="--c:var('+BK[b].c+')">';
+    let h='<div class="pin'+(sel?' sel':'')+(hoverId===s.id?' hl':'')+'" data-id="'+s.id+'" style="--c:var('+BK[b].c+')">';
     if(b==='issue')h+='<div class="halo"></div>';
     h+='<div class="dot">'+(b==='issue'?'!':'')+'</div>';
     if(b==='week')h+='<div class="tag">'+esc(dLabel(daysUntil(s.startDate)))+'</div>';
-    if(showLbl||sel)h+='<div class="lbl">'+esc(s.name)+'</div>';
+    h+='<div class="lbl'+(showLbl||sel?'':' hide')+'">'+esc(s.name)+'</div>';
     h+='</div>';
-    M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0),s.name,()=>openDetail(s.id,false))})}
+    const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0),s.name,()=>openDetail(s.id,false));
+    if(hnd){pinHandles[s.id]=hnd;if(hoverId===s.id)hnd.front(true)}})}
 function fitAll(){if(!M)return;const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
   if(!pts.length)return M.setView(CENTER.lat,CENTER.lng,8);
   if(pts.length===1)return M.setView(pts[0][0],pts[0][1],14);
@@ -292,6 +302,20 @@ function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=n
     (s.issue?'<div><div class="mono" style="color:var(--muted);margin-bottom:4px">'+(s.status==='issue'?'問題描述':'備註')+'</div><div class="'+(s.status==='issue'?'issuebox':'note')+'">'+esc(s.issue)+'</div></div>':'')+
     '<dl class="kv">'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('')+'</dl>'+
     (nav?'<div class="actions"><a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a></div>':'')+'</div>'}
+// ---------- 滑鼠連動：列表 ↔ 地圖標記 ----------
+let hoverId=null;const pinHandles={};
+function setHover(id){
+  if(hoverId===id)return;
+  if(hoverId){document.querySelectorAll('.pin[data-id="'+hoverId+'"],.row[data-id="'+hoverId+'"]').forEach(el=>el.classList.remove('hl'));
+    if(pinHandles[hoverId])pinHandles[hoverId].front(false)}
+  hoverId=id;
+  if(id){document.querySelectorAll('.pin[data-id="'+id+'"],.row[data-id="'+id+'"]').forEach(el=>el.classList.add('hl'));
+    if(pinHandles[id])pinHandles[id].front(true)}
+}
+$('pbody').addEventListener('mouseover',e=>{const r=e.target.closest('.row');setHover(r?r.dataset.id:null)});
+$('pbody').addEventListener('mouseleave',()=>setHover(null));
+$('map').addEventListener('mouseover',e=>{const p=e.target.closest&&e.target.closest('.pin[data-id]');if(p)setHover(p.dataset.id)});
+$('map').addEventListener('mouseout',e=>{const p=e.target.closest&&e.target.closest('.pin[data-id]');if(p&&!(e.relatedTarget&&p.contains(e.relatedTarget)))setHover(null)});
 $('pbody').addEventListener('click',e=>{const r=e.target.closest('.row');if(r)return openDetail(r.dataset.id,true);
   if(e.target.closest('[data-act="back"]')){selected=null;render()}});
 function openDetail(id,fly){selected=id;const s=sites.find(x=>x.id===id);render();
