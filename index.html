@@ -265,7 +265,9 @@ $('q').addEventListener('input',render);
 function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];let any=false;
   for(const b of BUCKETS){if(!filters.has(b.k))continue;
     const items=sites.filter(s=>bucket(s)===b.k&&(!q||matchQ(s,q)));
-    if(b.k==='week'||b.k==='later')items.sort((a,c)=>String(a.startDate||'9').localeCompare(String(c.startDate||'9')));
+    // 7 天內進場依日期；其他分類由北到南（緯度高到低），沒座標的排最後
+    if(b.k==='week')items.sort((a,c)=>String(a.startDate||'9').localeCompare(String(c.startDate||'9')));
+    else items.sort((a,c)=>(c.lat??-99)-(a.lat??-99));
     if(!items.length)continue;any=true;
     html.push('<div class="group"><h2>'+b.label+' · '+items.length+'</h2>');
     for(const s of items){let sub,right='';
