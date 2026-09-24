@@ -105,6 +105,38 @@ h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.02em}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
 .leaflet-container{font-family:var(--sans)}
 .fitbtn.g{top:auto;bottom:120px}
+/* ---------- 排路線 ---------- */
+.tools{display:flex;gap:8px}
+.tools input{flex:1;min-width:0}
+.routebtn{border:1px solid var(--accent);color:var(--accent);background:var(--panel);border-radius:8px;padding:7px 12px;white-space:nowrap;font-weight:500}
+.routebtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.routebox{margin:12px 16px;border:1.5px solid var(--accent);border-radius:10px;padding:12px;display:grid;gap:10px;background:#F4FAF8}
+.rhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rhead b{font-size:15px}
+.rhead span{font-size:12px;color:var(--muted)}
+.fromme{display:flex;align-items:center;gap:6px;font-size:13px}
+.stops{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.stops li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:2px 8px;align-items:center;padding:6px 0;border-top:1px dashed var(--line)}
+.stops li:first-child{border-top:0}
+.stops .n{grid-row:1/3;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-family:var(--mono);font-size:12px;display:grid;place-items:center}
+.stops .n.me{background:#1F63E0}
+.stops .nm2{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stops .leg{grid-column:2/3;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.stops .ops{grid-row:1/3;grid-column:3;display:flex;gap:4px}
+.stops .ops button{border:1px solid var(--line);background:var(--panel);border-radius:6px;width:28px;height:28px;font-size:13px;line-height:1}
+.rtotal{font-size:13px;background:var(--panel);border-radius:8px;padding:8px 10px;border:1px solid var(--line)}
+.rtotal b{font-family:var(--mono);font-size:15px}
+.rempty{font-size:13px;color:var(--muted)}
+.ractions{display:flex;flex-wrap:wrap;gap:6px}
+.ractions .btn{padding:7px 12px;font-size:13px}
+.row.instop{background:#F4FAF8}
+.row .stopno{font-family:var(--mono);font-size:11px;background:var(--accent);color:#fff;border-radius:999px;padding:1px 7px}
+.pin .num{position:absolute;left:-11px;top:-11px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:grid;place-items:center;font-family:var(--mono);font-size:11px;font-weight:700;z-index:2}
+.pin.stop .lbl.hide{display:block}
+.mepin{position:relative;width:0;height:0}
+.mepin i{position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;background:#1F63E0;border:3px solid #fff;box-shadow:0 0 0 6px rgba(31,99,224,.25)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;z-index:2000;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+body.routing #map .leaflet-interactive{cursor:pointer}
 
 @media (max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto;min-height:100%}
@@ -132,12 +164,13 @@ h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.02em}
       <div class="titlerow"><h1>富林組合屋 案場地圖</h1>
         <span class="meta"><span id="updated">載入中…</span><button id="reload">重新整理</button></span></div>
       <div class="chips" id="chips"></div>
-      <div class="tools"><input id="q" type="search" placeholder="搜尋案名、地址、負責人"></div>
+      <div class="tools"><input id="q" type="search" placeholder="搜尋案名、地址、負責人"><button class="routebtn" id="routeBtn" aria-pressed="false">排路線</button></div>
     </div>
     <div class="notice" id="notice" hidden></div>
     <div class="pbody" id="pbody"></div>
   </aside>
 </div>
+<div class="toast" id="toast" hidden></div>
 <script>
 (function(){
 const CFG=window.FULIN_CONFIG;
@@ -203,12 +236,16 @@ function leafletAdapter(){
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'}).addTo(map);
   map.zoomControl.setPosition('topright');
   const layer=L.layerGroup().addTo(map);
+  const rlayer=L.layerGroup().addTo(map);
   map.on('zoomend',drawPins);
   return {kind:'osm',
     setView:(lat,lng,z)=>map.setView([lat,lng],z),
     zoom:()=>map.getZoom(),
     fit:pts=>map.fitBounds(pts,{padding:[40,40],maxZoom:14}),
     clear:()=>layer.clearLayers(),
+    line:(pts,me)=>{rlayer.clearLayers();
+      if(pts.length>1){L.polyline(pts,{color:'#FFFFFF',weight:7,opacity:.9}).addTo(rlayer);L.polyline(pts,{color:'#1F5C55',weight:4,dashArray:'8 8'}).addTo(rlayer)}
+      if(me)L.marker(me,{icon:L.divIcon({html:'<div class="mepin"><i></i></div>',className:'',iconSize:[0,0]}),zIndexOffset:-100,title:'目前位置'}).addTo(rlayer)},
     add:(lat,lng,html,z,title,onClick)=>{const m=L.marker([lat,lng],{icon:L.divIcon({html,className:'',iconSize:[0,0]}),title,zIndexOffset:z});m.on('click',onClick);m.addTo(layer);return {front:on=>m.setZIndexOffset(on?100000:z)}}};
 }
 async function googleAdapter(){
@@ -225,7 +262,7 @@ async function googleAdapter(){
     draw(){const p=this.getProjection().fromLatLngToDivPixel(this.pos);if(p){this.div.style.left=p.x+'px';this.div.style.top=p.y+'px'}}
     onRemove(){this.div.remove()}}
   $('fit').classList.add('g');
-  let markers=[],lastZ=map.getZoom();
+  let markers=[],lastZ=map.getZoom(),poly=[],meM=null;
   map.addListener('zoom_changed',()=>{const z=map.getZoom();if((z>=13)!==(lastZ>=13))drawPins();lastZ=z});
   return {kind:'google',
     setView:(lat,lng,z)=>{map.setCenter({lat,lng});map.setZoom(z)},
@@ -233,6 +270,10 @@ async function googleAdapter(){
     fit:pts=>{const b=new LatLngBounds();pts.forEach(p=>b.extend({lat:p[0],lng:p[1]}));map.fitBounds(b,40);
       google.maps.event.addListenerOnce(map,'idle',()=>{if(map.getZoom()>14)map.setZoom(14)})},
     clear:()=>{markers.forEach(m=>m.setMap(null));markers=[]},
+    line:(pts,me)=>{poly.forEach(p=>p.setMap(null));poly=[];if(meM){meM.setMap(null);meM=null}
+      const path=pts.map(p=>({lat:p[0],lng:p[1]}));
+      if(pts.length>1){poly.push(new google.maps.Polyline({path,map,strokeColor:'#1F5C55',strokeWeight:4,strokeOpacity:0,icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'14px'}]}))}
+      if(me){meM=new HtmlMarker(me[0],me[1],'<div class="mepin"><i></i></div>',1,'目前位置',()=>{});meM.setMap(map)}},
     add:(lat,lng,html,z,title,onClick)=>{const m=new HtmlMarker(lat,lng,html,z,title,onClick);m.setMap(map);markers.push(m);return {front:on=>{m.div.style.zIndex=on?100000:z}}}};
 }
 function useOSM(reason){$('fit').classList.remove('g');M=leafletAdapter();if(reason){const n=$('notice');n.className='notice err';n.textContent=reason;n.hidden=false}render();if(loaded)fitAll()}
@@ -249,16 +290,19 @@ function initMap(){
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
 function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>filters.has(bucket(s))&&(!q||matchQ(s,q)))}
 function drawPins(){if(!M)return;M.clear();for(const k in pinHandles)delete pinHandles[k];const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=M.zoom()>=13;
-  visible().filter(s=>s.lat!=null).sort((a,b)=>order[bucket(a)]-order[bucket(b)]).forEach(s=>{
-    const b=bucket(s);const sel=selected===s.id;
-    let h='<div class="pin'+(sel?' sel':'')+(hoverId===s.id?' hl':'')+'" data-id="'+s.id+'" style="--c:var('+BK[b].c+')">';
-    if(b==='issue')h+='<div class="halo"></div>';
-    h+='<div class="dot">'+(b==='issue'?'!':'')+'</div>';
+  const vis=visible();const inRoute=new Set(route);
+  sites.forEach(s=>{if(inRoute.has(s.id)&&!vis.includes(s))vis.push(s)});
+  vis.filter(s=>s.lat!=null).sort((a,b)=>order[bucket(a)]-order[bucket(b)]).forEach(s=>{
+    const b=bucket(s);const sel=selected===s.id;const no=route.indexOf(s.id)+1;
+    let h='<div class="pin'+(sel?' sel':'')+(no?' stop':'')+(hoverId===s.id?' hl':'')+'" data-id="'+s.id+'" style="--c:var('+BK[b].c+')">';
+    if(b==='issue'&&!no)h+='<div class="halo"></div>';
+    h+=no?'<div class="num">'+no+'</div>':'<div class="dot">'+(b==='issue'?'!':'')+'</div>';
     if(b==='week')h+='<div class="tag">'+esc(dLabel(daysUntil(s.startDate)))+'</div>';
     h+='<div class="lbl'+(showLbl||sel?'':' hide')+'">'+esc(s.name)+'</div>';
     h+='</div>';
-    const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0),s.name,()=>openDetail(s.id,false));
-    if(hnd){pinHandles[s.id]=hnd;if(hoverId===s.id)hnd.front(true)}})}
+    const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0)+(no?5000:0),s.name,()=>routeMode?toggleStop(s.id):openDetail(s.id,false));
+    if(hnd){pinHandles[s.id]=hnd;if(hoverId===s.id)hnd.front(true)}});
+  drawRouteLine()}
 function fitAll(){if(!M)return;const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
   if(!pts.length)return M.setView(CENTER.lat,CENTER.lng,8);
   if(pts.length===1)return M.setView(pts[0][0],pts[0][1],14);
@@ -285,10 +329,11 @@ function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];le
       else if(b.k==='week'||b.k==='later'){right='<span class="dbadge" style="--c:var('+b.c+')">'+esc(dLabel(daysUntil(s.startDate))||'日期未定')+'</span>';sub='<div class="sub">'+esc((s.startDate||'進場日未定')+(s.owner?' · '+s.owner:''))+'</div>'}
       else sub='<div class="sub">'+esc([s.owner,s.address].filter(Boolean).join(' · '))+'</div>';
       if(s.lat==null)right+=' <span class="loc">未定位</span>';
-      html.push('<button class="row" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm">'+esc(s.name)+'</span><span class="loc">'+right+'</span>'+sub+'</button>')}
+      const no=route.indexOf(s.id)+1;if(routeMode&&no)right='<span class="stopno">第 '+no+' 站</span>';
+      html.push('<button class="row'+(routeMode&&no?' instop':'')+'" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm">'+esc(s.name)+'</span><span class="loc">'+right+'</span>'+sub+'</button>')}
     html.push('</div>')}
   if(!any)html.push('<div class="empty">'+(loaded?(sites.length?'沒有符合篩選條件的案場。點上方的分類可以切換顯示。':'試算表裡還沒有案場資料。'):'載入中…')+'</div>');
-  $('pbody').innerHTML=html.join('')}
+  $('pbody').innerHTML=(routeMode?routeHtml():'')+html.join('')}
 function navUrl(s){return s.lat!=null?'https://www.google.com/maps/search/?api=1&query='+s.lat+','+s.lng:(s.address?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address):'')}
 function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=null;return renderList()}
   const b=BK[bucket(s)];const rows=[];
@@ -316,12 +361,106 @@ $('pbody').addEventListener('mouseover',e=>{const r=e.target.closest('.row');set
 $('pbody').addEventListener('mouseleave',()=>setHover(null));
 $('map').addEventListener('mouseover',e=>{const p=e.target.closest&&e.target.closest('.pin[data-id]');if(p)setHover(p.dataset.id)});
 $('map').addEventListener('mouseout',e=>{const p=e.target.closest&&e.target.closest('.pin[data-id]');if(p&&!(e.relatedTarget&&p.contains(e.relatedTarget)))setHover(null)});
-$('pbody').addEventListener('click',e=>{const r=e.target.closest('.row');if(r)return openDetail(r.dataset.id,true);
+$('pbody').addEventListener('click',e=>{
+  const a=e.target.closest('[data-r]');if(a)return routeAction(a.dataset.r,a.dataset.id);
+  const r=e.target.closest('.row');if(r)return routeMode?toggleStop(r.dataset.id):openDetail(r.dataset.id,true);
   if(e.target.closest('[data-act="back"]')){selected=null;render()}});
 function openDetail(id,fly){selected=id;const s=sites.find(x=>x.id===id);render();
   if(fly&&s&&s.lat!=null&&M)M.setView(s.lat,s.lng,Math.max(M.zoom(),14));
   if(!fly&&window.matchMedia('(max-width:760px)').matches)$('pbody').scrollIntoView({behavior:'smooth'})}
-function render(){renderChips();selected?renderDetail():renderList();drawPins()}
+function render(){renderChips();(selected&&!routeMode)?renderDetail():renderList();drawPins()}
+
+// ---------- 排路線：連線、估算路程、分享 ----------
+let routeMode=false,route=[],fromMe=false,myPos=null;
+try{fromMe=localStorage.getItem('fulin-route-fromme')==='1'}catch(e){}
+const siteKey=s=>s.name+'@'+(s.lat!=null?s.lat.toFixed(4)+','+s.lng.toFixed(4):'');
+function saveRoute(){try{localStorage.setItem('fulin-route',JSON.stringify(route.map(id=>siteKey(sites.find(x=>x.id===id))).filter(Boolean)));localStorage.setItem('fulin-route-fromme',fromMe?'1':'0')}catch(e){}}
+function restoreRoute(){try{const keys=JSON.parse(localStorage.getItem('fulin-route')||'[]');const used=new Set();
+  route=keys.map(k=>{const s=sites.find(x=>siteKey(x)===k&&!used.has(x.id));if(s){used.add(s.id);return s.id}}).filter(Boolean)}catch(e){}}
+function toggleStop(id){const s=sites.find(x=>x.id===id);if(!s)return;
+  if(s.lat==null){toast('這個案場沒有座標，無法加入路線');return}
+  const i=route.indexOf(id);i>=0?route.splice(i,1):route.push(id);saveRoute();render()}
+function km(a,b){const R=6371,r=Math.PI/180,dLa=(b[0]-a[0])*r,dLo=(b[1]-a[1])*r;
+  const h=Math.sin(dLa/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+// 路程估算：直線距離 × 1.35（道路繞行係數），平均時速 50 公里
+function roadKm(a,b){return km(a,b)*1.35}
+function mins(k){return Math.max(5,Math.round(k/50*60/5)*5)}
+function fmtMin(m){const h=Math.floor(m/60),mm=m%60;return h?(h+' 小時'+(mm?' '+mm+' 分':'')):(mm+' 分')}
+function stopPts(){return route.map(id=>sites.find(x=>x.id===id)).filter(s=>s&&s.lat!=null)}
+function legs(){const st=stopPts();const pts=st.map(s=>[s.lat,s.lng]);if(fromMe&&myPos)pts.unshift(myPos);
+  const out=[];for(let i=1;i<pts.length;i++){const k=roadKm(pts[i-1],pts[i]);out.push({k,m:mins(k)})}return out}
+function drawRouteLine(){if(!M||!M.line)return;const pts=stopPts().map(s=>[s.lat,s.lng]);
+  if(routeMode&&fromMe&&myPos&&pts.length)pts.unshift(myPos);M.line(routeMode||route.length?pts:[],fromMe&&myPos&&routeMode?myPos:null)}
+function routeHtml(){const st=stopPts();const lg=legs();const off=(fromMe&&myPos)?1:0;
+  let h='<div class="routebox"><div class="rhead"><b>出車路線</b><span>點地圖標記或下方列表，依序加入站點</span></div>'+
+   '<label class="fromme"><input type="checkbox" data-r="fromme" id="fromMe"'+(fromMe?' checked':'')+'> 從我目前的位置出發'+(fromMe&&!myPos?'（定位中…）':'')+'</label>';
+  if(!st.length){h+='<div class="rempty">還沒有站點。</div></div>';return h}
+  h+='<ol class="stops">';
+  if(fromMe&&myPos)h+='<li><span class="n me">起</span><span class="nm2">目前位置</span><span class="ops"></span></li>';
+  st.forEach((s,i)=>{const l=lg[i-1+off];
+    h+='<li><span class="n">'+(i+1)+'</span><span class="nm2">'+esc(s.name)+'</span><span class="ops">'+
+      (i?'<button data-r="up" data-id="'+s.id+'" title="往前移" aria-label="往前移">↑</button>':'')+
+      '<button data-r="rm" data-id="'+s.id+'" title="移除" aria-label="移除">✕</button></span>'+
+      '<span class="leg">'+(l?'↳ 約 '+l.k.toFixed(0)+' 公里 · '+fmtMin(l.m):(i===0?'起點':''))+'</span></li>'});
+  h+='</ol>';
+  const tk=lg.reduce((a,x)=>a+x.k,0),tm=lg.reduce((a,x)=>a+x.m,0);
+  h+='<div class="rtotal">共 '+st.length+' 站　總路程約 <b>'+tk.toFixed(0)+'</b> 公里　車程約 <b>'+fmtMin(tm)+'</b><br><span style="color:var(--muted);font-size:12px">估算值（直線距離 × 1.35、均速 50 km/h），實際以 Google 導航為準</span></div>';
+  const links=gmapsLinks();
+  h+='<div class="ractions">'+(st.length>1?'<button class="btn" data-r="opt">自動排成最順路線</button>':'')+
+    links.map((u,i)=>'<a class="btn primary" href="'+u+'" target="_blank" rel="noopener">Google 導航'+(links.length>1?'（第 '+(i+1)+' 段）':'')+'</a>').join('')+
+    '<button class="btn" data-r="share">分享路線</button><button class="btn" data-r="clear">清除</button></div></div>';
+  return h}
+// Google 地圖網址一次最多帶 9 個中途點，超過就分段
+function gmapsLinks(){const st=stopPts();if(!st.length)return[];const P=s=>s.lat.toFixed(6)+','+s.lng.toFixed(6);
+  const pts=st.map(P);const useMe=fromMe;const out=[];let i=0;
+  while(i<pts.length){const first=i===0;const origin=first?(useMe?null:pts[0]):pts[i-1];
+    const startIdx=first&&!useMe?1:i;const seg=pts.slice(startIdx,startIdx+10);if(!seg.length)break;
+    const dest=seg[seg.length-1],wps=seg.slice(0,-1);
+    let u='https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(dest);
+    if(origin)u+='&origin='+encodeURIComponent(origin);if(wps.length)u+='&waypoints='+encodeURIComponent(wps.join('|'));
+    out.push(u);i=startIdx+seg.length}
+  return out}
+function optimize(){let st=stopPts();if(st.length<3&&!(fromMe&&myPos))return;
+  const start=(fromMe&&myPos)?myPos:[st[0].lat,st[0].lng];let rest=(fromMe&&myPos)?st.slice():st.slice(1);const ord=(fromMe&&myPos)?[]:[st[0]];
+  let cur=start;while(rest.length){let bi=0,bd=1e9;rest.forEach((s,i)=>{const d=km(cur,[s.lat,s.lng]);if(d<bd){bd=d;bi=i}});const n=rest.splice(bi,1)[0];ord.push(n);cur=[n.lat,n.lng]}
+  // 2-opt 微調
+  const pt=s=>[s.lat,s.lng];const fixed=(fromMe&&myPos)?0:1;let improved=true,guard=0;
+  const D=(a,b)=>km(a,b);
+  while(improved&&guard++<50){improved=false;
+    for(let i=fixed;i<ord.length-1;i++)for(let j=i+1;j<ord.length;j++){
+      const a=i===0?start:pt(ord[i-1]),b=pt(ord[i]),c=pt(ord[j]),d=j+1<ord.length?pt(ord[j+1]):null;
+      const before=D(a,b)+(d?D(c,d):0),after=D(a,c)+(d?D(b,d):0);
+      if(after<before-1e-6){ord.splice(i,j-i+1,...ord.slice(i,j+1).reverse());improved=true}}}
+  route=ord.map(s=>s.id);saveRoute();render();toast('已排成最順的順序')}
+function shareText(){const st=stopPts();const lg=legs();const off=(fromMe&&myPos)?1:0;const d=new Date();
+  const lines=['【富林組合屋 出車路線】'+d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate()),''];
+  st.forEach((s,i)=>{const l=lg[i-1+off];
+    lines.push((i+1)+'. '+s.name+(l?'（約 '+l.k.toFixed(0)+' 公里，'+fmtMin(l.m)+'）':''));
+    if(s.address)lines.push('   地址：'+s.address);
+    if(s.contact||s.phone)lines.push('   聯絡：'+[s.contact,s.phone].filter(Boolean).join(' '));
+    if(s.issue)lines.push('   事項：'+s.issue)});
+  const tk=lg.reduce((a,x)=>a+x.k,0),tm=lg.reduce((a,x)=>a+x.m,0);
+  lines.push('','總路程約 '+tk.toFixed(0)+' 公里，車程約 '+fmtMin(tm)+'（估計）');
+  gmapsLinks().forEach((u,i,arr)=>lines.push('Google 導航'+(arr.length>1?'（第 '+(i+1)+' 段）':'')+'：'+u));
+  return lines.join('\n')}
+async function share(){const text=shareText();
+  if(navigator.share){try{await navigator.share({title:'富林組合屋 出車路線',text});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(text);toast('已複製路線，可以直接貼到 LINE')}
+  catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('已複製路線，可以直接貼到 LINE')}catch(e2){toast('無法複製，請手動選取')}ta.remove()}}
+function locate(){if(!navigator.geolocation){toast('這個裝置無法定位');fromMe=false;render();return}
+  navigator.geolocation.getCurrentPosition(p=>{myPos=[p.coords.latitude,p.coords.longitude];render()},
+    ()=>{toast('無法取得位置，請允許瀏覽器定位');fromMe=false;saveRoute();render()},{enableHighAccuracy:false,timeout:10000,maximumAge:300000})}
+function routeAction(act,id){
+  if(act==='rm'){route=route.filter(x=>x!==id)}
+  else if(act==='up'){const i=route.indexOf(id);if(i>0){route.splice(i,1);route.splice(i-1,0,id)}}
+  else if(act==='clear'){route=[]}
+  else if(act==='opt'){return optimize()}
+  else if(act==='share'){return share()}
+  else if(act==='fromme'){fromMe=$('fromMe').checked;if(fromMe&&!myPos)locate()}
+  saveRoute();render()}
+$('routeBtn').onclick=()=>{routeMode=!routeMode;$('routeBtn').setAttribute('aria-pressed',routeMode);document.body.classList.toggle('routing',routeMode);
+  selected=null;if(routeMode&&fromMe&&!myPos)locate();render();if(routeMode)toast('點地圖上的標記，依序加入站點')};
+let toastT;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2400)}
 
 // ---------- load (JSONP，不受跨網域限制) ----------
 let firstLoad=true;
@@ -330,7 +469,7 @@ function load(){
   const timer=setTimeout(()=>fail('連不到試算表，請確認網路或稍後再試。'),15000);
   window[cb]=resp=>{clearTimeout(timer);delete window[cb];s.remove();
     if(!resp||resp.status==='error'){return fail('讀不到試算表。請確認試算表已設定「知道連結的任何人都可以檢視」。')}
-    sites=rowsFromTable(resp.table);loaded=true;
+    sites=rowsFromTable(resp.table);loaded=true;restoreRoute();
     const noLoc=sites.filter(x=>x.lat==null).length;
     const n=$('notice');n.className='notice';n.textContent=noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'';n.hidden=!noLoc;
     const d=new Date();$('updated').textContent='更新 '+pad(d.getHours())+':'+pad(d.getMinutes());
