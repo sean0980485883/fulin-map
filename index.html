@@ -16,6 +16,7 @@
 window.FULIN_CONFIG = {
   SHEET_ID: "16aL7wXep_H1guH41lA7RGVShti2wLllZWSo2h1I6sU4",
   GID: "92069050",
+  GOOGLE_MAPS_KEY: "AIzaSyD-w7ehrTkTkAScYtZbRRYlYbrQiHn9dJM",   // 貼上 Google 地圖 API 金鑰；留空則使用 OpenStreetMap
   REFRESH_MINUTES: 5
 };
 </script>
@@ -94,6 +95,7 @@ h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.02em}
 .btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 14px;text-decoration:none;color:var(--ink);display:inline-block}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
 .leaflet-container{font-family:var(--sans)}
+.fitbtn.g{top:auto;bottom:120px}
 
 @media (max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto;min-height:100%}
@@ -182,14 +184,61 @@ let filters=new Set(['issue','active','week','later']);
 try{const f=JSON.parse(localStorage.getItem('fulin-map-filters')||'null');if(Array.isArray(f))filters=new Set(f)}catch(e){}
 
 // ---------- map ----------
-const map=L.map('map',{zoomControl:true,attributionControl:true}).setView([23.1,120.6],8);
-   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
-     maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
-map.zoomControl.setPosition('topright');
-const layer=L.layerGroup().addTo(map);
+// 有 GOOGLE_MAPS_KEY 就用 Google 地圖；沒有或金鑰失效則自動改用 OpenStreetMap。
+const CENTER={lat:23.1,lng:120.6};
+let M=null; // 地圖轉接層：setView / fit / zoom / clear / add
+function leafletAdapter(){
+  const el=$('map');el.innerHTML='';
+  const map=L.map(el,{zoomControl:true}).setView([CENTER.lat,CENTER.lng],8);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+  map.zoomControl.setPosition('topright');
+  const layer=L.layerGroup().addTo(map);
+  map.on('zoomend',drawPins);
+  return {kind:'osm',
+    setView:(lat,lng,z)=>map.setView([lat,lng],z),
+    zoom:()=>map.getZoom(),
+    fit:pts=>map.fitBounds(pts,{padding:[40,40],maxZoom:14}),
+    clear:()=>layer.clearLayers(),
+    add:(lat,lng,html,z,title,onClick)=>{const m=L.marker([lat,lng],{icon:L.divIcon({html,className:'',iconSize:[0,0]}),title,zIndexOffset:z});m.on('click',onClick);m.addTo(layer)}};
+}
+async function googleAdapter(){
+  const {Map,OverlayView}=await google.maps.importLibrary('maps');
+  const {ControlPosition,LatLngBounds}=await google.maps.importLibrary('core');
+  const map=new Map($('map'),{center:CENTER,zoom:8,gestureHandling:'greedy',clickableIcons:false,
+    mapTypeControl:true,mapTypeControlOptions:{position:ControlPosition.TOP_LEFT},streetViewControl:false,fullscreenControl:false,
+    zoomControlOptions:{position:ControlPosition.RIGHT_TOP}});
+  class HtmlMarker extends OverlayView{
+    constructor(lat,lng,html,z,title,onClick){super();this.pos={lat,lng};const d=document.createElement('div');
+      d.style.cssText='position:absolute;cursor:pointer;z-index:'+z;d.title=title;d.innerHTML=html;
+      d.addEventListener('click',e=>{e.stopPropagation();onClick()});this.div=d;OverlayView.preventMapHitsAndGesturesFrom(d)}
+    onAdd(){this.getPanes().overlayMouseTarget.appendChild(this.div)}
+    draw(){const p=this.getProjection().fromLatLngToDivPixel(this.pos);if(p){this.div.style.left=p.x+'px';this.div.style.top=p.y+'px'}}
+    onRemove(){this.div.remove()}}
+  $('fit').classList.add('g');
+  let markers=[],lastZ=map.getZoom();
+  map.addListener('zoom_changed',()=>{const z=map.getZoom();if((z>=13)!==(lastZ>=13))drawPins();lastZ=z});
+  return {kind:'google',
+    setView:(lat,lng,z)=>{map.setCenter({lat,lng});map.setZoom(z)},
+    zoom:()=>map.getZoom(),
+    fit:pts=>{const b=new LatLngBounds();pts.forEach(p=>b.extend({lat:p[0],lng:p[1]}));map.fitBounds(b,40);
+      google.maps.event.addListenerOnce(map,'idle',()=>{if(map.getZoom()>14)map.setZoom(14)})},
+    clear:()=>{markers.forEach(m=>m.setMap(null));markers=[]},
+    add:(lat,lng,html,z,title,onClick)=>{const m=new HtmlMarker(lat,lng,html,z,title,onClick);m.setMap(map);markers.push(m)}};
+}
+function useOSM(reason){$('fit').classList.remove('g');M=leafletAdapter();if(reason){const n=$('notice');n.className='notice err';n.textContent=reason;n.hidden=false}render();if(loaded)fitAll()}
+function initMap(){
+  const key=(CFG.GOOGLE_MAPS_KEY||'').trim();
+  if(!key)return useOSM();
+  window.gm_authFailure=()=>useOSM('Google 地圖金鑰無法使用（可能尚未啟用 Maps JavaScript API、未綁帳單，或網址限制設定錯誤），已暫時改用 OpenStreetMap。');
+  window.__gmReady=()=>googleAdapter().then(a=>{M=a;render();if(loaded)fitAll()}).catch(()=>useOSM('Google 地圖載入失敗，已暫時改用 OpenStreetMap。'));
+  const sc=document.createElement('script');
+  sc.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&callback=__gmReady&loading=async&language=zh-TW&region=TW';
+  sc.async=true;sc.onerror=()=>useOSM('連不到 Google 地圖，已暫時改用 OpenStreetMap。');
+  document.head.appendChild(sc);
+}
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
 function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>filters.has(bucket(s))&&(!q||matchQ(s,q)))}
-function drawPins(){layer.clearLayers();const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=map.getZoom()>=13;
+function drawPins(){if(!M)return;M.clear();const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=M.zoom()>=13;
   visible().filter(s=>s.lat!=null).sort((a,b)=>order[bucket(a)]-order[bucket(b)]).forEach(s=>{
     const b=bucket(s);const sel=selected===s.id;
     let h='<div class="pin'+(sel?' sel':'')+'" style="--c:var('+BK[b].c+')">';
@@ -198,13 +247,11 @@ function drawPins(){layer.clearLayers();const order={done:0,later:1,active:2,wee
     if(b==='week')h+='<div class="tag">'+esc(dLabel(daysUntil(s.startDate)))+'</div>';
     if(showLbl||sel)h+='<div class="lbl">'+esc(s.name)+'</div>';
     h+='</div>';
-    const m=L.marker([s.lat,s.lng],{icon:L.divIcon({html:h,className:'',iconSize:[0,0]}),title:s.name,zIndexOffset:order[b]*100+(sel?1000:0)});
-    m.on('click',()=>openDetail(s.id,false));m.addTo(layer)})}
-map.on('zoomend',drawPins);
-function fitAll(){const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
-  if(!pts.length)return map.setView([23.1,120.6],8);
-  if(pts.length===1)return map.setView(pts[0],14);
-  map.fitBounds(pts,{padding:[40,40],maxZoom:14})}
+    M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0),s.name,()=>openDetail(s.id,false))})}
+function fitAll(){if(!M)return;const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
+  if(!pts.length)return M.setView(CENTER.lat,CENTER.lng,8);
+  if(pts.length===1)return M.setView(pts[0][0],pts[0][1],14);
+  M.fit(pts)}
 $('fit').onclick=fitAll;
 
 // ---------- panel ----------
@@ -245,7 +292,7 @@ function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=n
 $('pbody').addEventListener('click',e=>{const r=e.target.closest('.row');if(r)return openDetail(r.dataset.id,true);
   if(e.target.closest('[data-act="back"]')){selected=null;render()}});
 function openDetail(id,fly){selected=id;const s=sites.find(x=>x.id===id);render();
-  if(fly&&s&&s.lat!=null)map.setView([s.lat,s.lng],Math.max(map.getZoom(),14));
+  if(fly&&s&&s.lat!=null&&M)M.setView(s.lat,s.lng,Math.max(M.zoom(),14));
   if(!fly&&window.matchMedia('(max-width:760px)').matches)$('pbody').scrollIntoView({behavior:'smooth'})}
 function render(){renderChips();selected?renderDetail():renderList();drawPins()}
 
@@ -266,7 +313,7 @@ function load(){
   document.head.appendChild(s)}
 function fail(msg){const n=$('notice');n.className='notice err';n.textContent=msg;n.hidden=false;$('updated').textContent='未更新';loaded=true;render()}
 $('reload').onclick=load;
-render();load();
+initMap();render();load();
 setInterval(load,(CFG.REFRESH_MINUTES||5)*60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 })();
