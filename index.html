@@ -183,8 +183,8 @@ try{const f=JSON.parse(localStorage.getItem('fulin-map-filters')||'null');if(Arr
 
 // ---------- map ----------
 const map=L.map('map',{zoomControl:true,attributionControl:true}).setView([23.1,120.6],8);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-  maxZoom:19,subdomains:'abcd',attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(map);
+   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+     maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
 map.zoomControl.setPosition('topright');
 const layer=L.layerGroup().addTo(map);
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
