@@ -3,19 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>富林組合屋案場地圖</title>
+<title>富林組合屋工作台</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <meta name="theme-color" content="#1F5C55">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ===== 設定 =====
-   SHEET_ID：Google 試算表網址中 /d/ 和 /edit 之間那一串。
-   試算表需設定「知道連結的任何人都可以檢視」。 */
 window.FULIN_CONFIG = {
-  SHEET_ID: "16aL7wXep_H1guH41lA7RGVShti2wLllZWSo2h1I6sU4",
-  GID: "92069050",
+  // 後台網址：「富林系統資料庫」Apps Script 部署後的網址（…/exec）
+  API_URL: "",
   GOOGLE_MAPS_KEY: "",   // 貼上 Google 地圖 API 金鑰；留空則使用備用底圖（Esri）
   REFRESH_MINUTES: 5
 };
@@ -33,12 +31,29 @@ window.FULIN_CONFIG = {
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0}
+.shell{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
+.page{grid-template-columns:minmax(0,1fr)}
+.topbar,.tabs{min-width:0}
+.topbar{display:flex;align-items:center;gap:16px;padding:0 16px;background:var(--accent);color:#fff;padding-top:env(safe-area-inset-top,0px)}
+.brand{font-weight:700;font-size:15px;letter-spacing:.04em;white-space:nowrap;padding:12px 0}
+.tabs{display:flex;gap:2px;overflow-x:auto}
+.tab{border:0;background:none;color:rgba(255,255,255,.75);padding:14px 14px 11px;font-size:14px;font-weight:500;border-bottom:3px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:#fff;border-bottom-color:#fff}
+.tab .cnt{font-family:var(--mono);font-size:11px;background:rgba(255,255,255,.2);border-radius:999px;padding:1px 7px;margin-left:6px}
+.tab .cnt.bad{background:#E5484D;color:#fff}
+.view{min-height:0;overflow:auto}
+#v-map{overflow:hidden}
 body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 380px}
+.pin .dot.star{left:-13px;top:-13px;width:26px;height:26px;font-size:17px;color:#FFC400;text-shadow:0 0 1px #7a5a00;border-width:3px;border-color:#FFC400}
+.pin.hl .dot.star,.pin:hover .dot.star{transform:scale(1.35)}
+.row .star{color:#E0A800;margin-right:4px}
+.legend .lstar{color:#E0A800;font-size:14px;line-height:1}
+.pin .today{position:absolute;left:10px;top:-26px;background:#F59E0B;color:#1E1E1E;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;border:1.5px solid #fff;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 #map{height:100%;width:100%;background:#E6EAE4}
 .mapwrap{position:relative;min-height:0}
 .legend{position:absolute;left:12px;bottom:24px;z-index:500;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);box-shadow:var(--shadow);max-width:calc(100% - 24px)}
@@ -140,13 +155,191 @@ body.routing #map .leaflet-interactive{cursor:pointer}
 
 @media (max-width:760px){
   .app{grid-template-columns:1fr;grid-template-rows:55vh auto;height:auto;min-height:100%}
+  #v-map{overflow:auto}
+  .brand{display:none}
   .panel{border-left:0;border-top:1px solid var(--line)}
   .pbody{overflow:visible}
   .legend{font-size:11px;padding:6px 10px;bottom:20px}
 }
+
+/* ---------- 今日排班 ---------- */
+.page{max-width:1100px;margin:0 auto;padding-block:16px 40px;padding-inline:16px;display:grid;gap:14px}
+.pagehead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px}
+.pagehead h2{margin:0;font-size:22px}
+.pagehead h2 small{font-size:14px;color:var(--muted);font-weight:500;margin-left:8px}
+.rest{display:flex;flex-wrap:wrap;gap:8px;font-size:13px}
+.rest span{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 12px}
+.rest b{font-weight:500;color:var(--muted);margin-right:6px}
+.crews{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.crew{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:grid}
+.crew .ch{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:2px;background:#F7F9F6}
+.crew .site{font-size:17px;font-weight:700;line-height:1.35}
+.crew .th{font-size:13px;color:var(--muted)}
+.crew .cb{padding:12px 14px;display:grid;gap:10px}
+.kvrow{display:grid;grid-template-columns:4.5em 1fr;gap:6px;align-items:start;font-size:14px}
+.kvrow>span:first-child{color:var(--muted);font-size:12px;padding-top:3px}
+.ppl{display:flex;flex-wrap:wrap;gap:5px}
+.ppl i{font-style:normal;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 8px;font-size:13px}
+.ppl i.lead{background:var(--accent);color:#fff;border-color:var(--accent)}
+.car{font-family:var(--mono);font-size:13px;background:#FFF4DB;border:1px solid #F2C46D;border-radius:6px;padding:1px 8px}
+.tasks{display:flex;flex-wrap:wrap;gap:6px}
+.task{border:1px solid var(--line);border-radius:8px;padding:3px 9px;display:grid;line-height:1.3}
+.task b{font-weight:500;font-size:13px}
+.task small{color:var(--muted);font-size:12px}
+.crew .note{background:#FFF8E6;border-radius:8px;padding:6px 10px;font-size:13px}
+.crew .cf{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 14px}
+.crew .cf .btn{padding:6px 12px;font-size:13px}
+.nomatch{font-size:12px;color:var(--muted)}
+.need{display:flex;flex-wrap:wrap;gap:5px}
+.need i{font-style:normal;font-size:12px;border-radius:6px;padding:1px 7px;background:#E5F4E8;color:#1E6B34}
+.need i.low{background:#FEF3C7;color:#8A5A00}
+.need i.out{background:#FDE2E2;color:#B42318}
+/* ---------- 庫存 ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:2px;text-align:left}
+.tile b{font-family:var(--mono);font-size:26px;line-height:1.1}
+.tile span{font-size:13px;color:var(--muted)}
+.tile.out b{color:#B42318}.tile.low b{color:#B7791F}.tile.need b{color:#1E6B34}
+button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
+.sbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:none;padding:7px 14px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.sbar input{flex:1;min-width:160px;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 10px}
+.stbl{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.srow{display:grid;grid-template-columns:minmax(0,2.2fr) repeat(3,minmax(0,.7fr)) minmax(0,.9fr) minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 14px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.srow.h{border-top:0;background:#F7F9F6;font-size:12px;color:var(--muted);font-weight:500}
+.srow .nm b{font-weight:500}
+.srow .nm small{display:block;color:var(--muted);font-size:12px}
+.srow .num{font-family:var(--mono);text-align:right}
+.srow .num.neg{color:#B42318;font-weight:700}
+.srow .tot{font-weight:700}
+.st{justify-self:start;font-size:12px;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.st.out{background:#FDE2E2;color:#B42318}.st.low{background:#FEF3C7;color:#8A5A00}.st.ok{background:#E5F4E8;color:#1E6B34}.st.idle{background:#EEF0EF;color:#63706F}
+.tag2{font-size:11px;background:#FFF4DB;border:1px solid #F2C46D;border-radius:4px;padding:0 5px;margin-left:6px;white-space:nowrap}
+.foot{font-size:12px;color:var(--muted)}
+.errbox{background:#FDE2E2;color:#B42318;border-radius:10px;padding:12px 14px;font-size:13px}
+@media (max-width:760px){
+  .srow{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}
+  .srow.h{display:none}
+  .srow .nm{grid-column:1/3}
+  .srow .num::before{content:attr(data-l);color:var(--muted);font-family:var(--sans);font-size:11px;margin-right:4px}
+  .srow .num{text-align:left}
+  .srow>*:nth-child(n+2){font-size:13px}
+  .crews{grid-template-columns:1fr}
+}
+
+/* ---------- 網站填寫 ---------- */
+.loginbtn{border:1px solid rgba(255,255,255,.5);background:none;color:#fff;border-radius:999px;padding:5px 14px;font-size:13px;white-space:nowrap}
+.loginbtn.on{background:#fff;color:var(--accent);font-weight:500}
+.mini{border:1px solid var(--accent);color:var(--accent);background:var(--panel);border-radius:6px;padding:3px 10px;font-size:12px}
+.modal-bg{position:fixed;inset:0;background:rgba(20,28,30,.45);z-index:3000;display:grid;place-items:center;padding:16px}
+.modal{background:var(--panel);border-radius:14px;width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);display:grid}
+.modal header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.modal header h3{margin:0;font-size:17px}
+.modal header button{border:0;background:none;font-size:20px;line-height:1;padding:4px 8px}
+.modal .mb{padding:16px 18px;display:grid;gap:12px}
+.modal .mf{padding:12px 18px 16px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line)}
+.fld{display:grid;gap:4px}
+.fld label{font-size:12px;color:var(--muted)}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;width:100%;font:inherit}
+.fld textarea{min-height:80px;resize:vertical}
+.fld .hint{font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.segs{display:flex;flex-wrap:wrap;gap:6px}
+.segs button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 12px;font-size:13px}
+.segs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.merr{background:#FDE2E2;color:#B42318;border-radius:8px;padding:8px 10px;font-size:13px}
+.aibox{background:#F4FAF8;border:1px dashed var(--accent);border-radius:10px;padding:10px;display:grid;gap:8px}
+.adminbox{border-top:1px dashed var(--line);padding-top:12px;display:grid;gap:10px}
+.adminbox h4,.reports h4{margin:0;font-size:13px;color:var(--muted);font-weight:500}
+.reports{border-top:1px dashed var(--line);padding-top:12px;display:grid;gap:10px}
+.rep{display:grid;gap:4px;font-size:13px}
+.rep .rh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rep .rk{font-size:11px;border-radius:4px;padding:0 6px;background:var(--bg);border:1px solid var(--line)}
+.rep .rk.issue{background:#1E1E1E;color:#fff;border-color:#1E1E1E}.rep .rk.done{background:#E5F4E8;color:#1E6B34}
+.rep time{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px}
+.thumbs a img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block}
+.previews{display:flex;flex-wrap:wrap;gap:6px}
+.previews img{width:72px;height:72px;object-fit:cover;border-radius:8px}
+.editor .blk{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.editor .blk h3{margin:0;font-size:14px;color:var(--muted);font-weight:500;display:flex;justify-content:space-between;align-items:center}
+.editor select,.editor input{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 8px;width:100%;font:inherit;min-width:0}
+.editor .row3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.editor .saved{font-size:12px;color:#1E6B34}
+.editor .blks{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+@media (max-width:760px){.editor .row3{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.editor .blks{grid-template-columns:1fr}.loginbtn{padding:5px 10px}}
+
+/* ---------- 排班表（一張圖） ---------- */
+.dnav{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dnav input[type=date]{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 8px;font:inherit}
+.boardwrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.board{border-collapse:collapse;width:100%;min-width:980px;font-size:14px;background:#fff;color:#1E2A2C}
+.board th,.board td{border:1px solid #9AA6A4;padding:5px 8px;text-align:center;vertical-align:middle}
+.board .ttl{font-size:26px;font-weight:700;letter-spacing:.2em}
+.board .dt{color:#C62828;font-weight:700;font-size:18px;line-height:1.3}
+.board .rest{background:#FFF36B;font-weight:700;text-align:left}
+.board .restv{background:#FFF36B;font-weight:700}
+.board thead th{background:#F2F4F1;font-weight:500}
+.board td.site{font-weight:700;min-width:120px}
+.board td.thsite{font-size:13px;min-width:130px}
+.board td.lead{font-weight:700;font-size:16px;white-space:nowrap}
+.board td.car{white-space:nowrap}
+.board td.car{font-weight:700;font-size:13px}
+.board td.wk{font-style:italic;font-weight:700;font-size:13px;min-width:48px}
+.board td.cnt{background:#FFE7A8;font-weight:700}
+.board td.tk{min-width:84px}
+.board tr.th td.tk{background:#FFF6D8;font-weight:700;font-size:13px}
+.board tr.band td.site,.board tr.band td.thsite,.board tr.band td.wk,.board tr.band td.lead,.board tr.band td.car{background:#E0FBEB}
+.board td.note{text-align:left;font-size:13px;min-width:110px}
+.board .emptyrow td{color:#9AA6A4}
+/* ---------- 排班編輯 ---------- */
+.crewed{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.crewed h3{margin:0;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chipsel{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.chipsel .cp{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px}
+.chipsel .cp.dup{border-color:#E5484D;background:#FDE2E2}
+.chipsel .cp button{border:0;background:none;font-size:14px;line-height:1;padding:2px 4px;color:var(--muted)}
+.chipsel select,.chipsel input{border:1px dashed var(--line);background:var(--panel);border-radius:999px;padding:4px 10px;font:inherit;font-size:13px;max-width:200px}
+.freebox{font-size:13px;background:#F4FAF8;border-radius:10px;padding:8px 12px}
+.freebox b{font-weight:500;color:var(--muted);margin-right:6px}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px;align-content:start}
+.mcard h3{margin:0;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center}
+.lrow input,.lrow select{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;font:inherit;min-width:0;width:100%}
+.lrow.t2{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
+.lrow button{border:0;background:none;color:var(--muted);font-size:16px;padding:4px 6px}
+.wkt{border-collapse:collapse;width:100%;min-width:900px;font-size:13px;font-variant-numeric:tabular-nums}
+.wkt th,.wkt td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:center}
+.wkt th{background:#F7F9F6;font-weight:500;font-size:12px;color:var(--muted);position:sticky;top:0}
+.wkt th small{display:block;font-size:11px}
+.wkt td.nm{text-align:left;white-space:nowrap}
+.wkt td.no{font-family:var(--mono);color:var(--muted)}
+.wkt td.cur,.wkt td.sum{font-family:var(--mono)}
+.wkt td.sum{font-weight:700}
+.wkt input{width:56px;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px;text-align:center;font:inherit;font-family:var(--mono)}
+.wkt input.ai{background:#FFF1B8;border-color:#E0A800}
+.hist{display:grid;gap:0;font-size:13px}
+.hist div{display:grid;grid-template-columns:6.5em 3.5em 3.5em 4em 1fr auto;gap:6px;padding:5px 0;border-top:1px solid var(--line);align-items:center;font-variant-numeric:tabular-nums}
+.hist .q{font-family:var(--mono);text-align:right}
+.hist .q.neg{color:#B42318}
+@media (max-width:760px){.lbx{display:none}.topbar{gap:8px;padding:0 10px}.tab{padding:14px 10px 11px}.sbar .actions{margin-left:0!important}}
+@media (max-width:760px){.hist div{grid-template-columns:5.5em 3em 3.5em 1fr auto}.hist div span:nth-child(4){display:none}}
 </style>
 </head>
 <body>
+<div class="shell">
+<header class="topbar"><div class="brand">富林組合屋</div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="map" aria-selected="true">案場地圖</button>
+    <button class="tab" role="tab" data-tab="today" aria-selected="false">排班<span class="cnt" id="cntToday">–</span></button>
+    <button class="tab" role="tab" data-tab="stock" aria-selected="false">庫存<span class="cnt" id="cntStock">–</span></button>
+    <button class="tab" role="tab" data-tab="manage" aria-selected="false" id="tabManage" hidden>管理</button>
+  </nav><div style="flex:1"></div><button class="loginbtn" id="loginBtn">登入</button></header>
+<main class="view" id="v-map">
 <div class="app">
   <div class="mapwrap">
     <div id="map"></div>
@@ -157,6 +350,7 @@ body.routing #map .leaflet-interactive{cursor:pointer}
       <span><i style="background:var(--week)"></i>7 天內進場</span>
       <span><i style="background:var(--later)"></i>待安排</span>
       <span><i style="background:var(--done)"></i>已完工</span>
+      <span><b class="lstar">★</b>今日出車</span>
     </div>
   </div>
   <aside class="panel">
@@ -164,16 +358,22 @@ body.routing #map .leaflet-interactive{cursor:pointer}
       <div class="titlerow"><h1>富林組合屋 案場地圖</h1>
         <span class="meta"><span id="updated">載入中…</span><button id="reload">重新整理</button></span></div>
       <div class="chips" id="chips"></div>
-      <div class="tools"><input id="q" type="search" placeholder="搜尋案名、地址、負責人"><button class="routebtn" id="routeBtn" aria-pressed="false">排路線</button></div>
+      <div class="tools"><input id="q" type="search" placeholder="搜尋案名、地址、負責人"><button class="routebtn" id="routeBtn" aria-pressed="false">排路線</button><button class="routebtn" id="addSiteBtn" hidden>＋ 新增</button></div>
     </div>
     <div class="notice" id="notice" hidden></div>
     <div class="pbody" id="pbody"></div>
   </aside>
 </div>
+</main>
+<main class="view" id="v-today" hidden><div class="page" id="todayPage"><div class="foot">載入排班中…</div></div></main>
+<main class="view" id="v-stock" hidden><div class="page" id="stockPage"><div class="foot">載入庫存中…</div></div></main>
+<main class="view" id="v-manage" hidden><div class="page" id="managePage"></div></main>
+</div>
 <div class="toast" id="toast" hidden></div>
 <script>
 (function(){
 const CFG=window.FULIN_CONFIG;
+let todayBySite={},sched=null,stock=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const BUCKETS=[
@@ -212,7 +412,7 @@ function rowsFromTable(t){
   t.rows.forEach((r,i)=>{const c=r.c||[];const g=k=>idx[k]>=0?c[idx[k]]:null;
     const name=cellText(g('name')).trim();if(!name)return;
     const co=parseCoord(cellText(g('coord')));
-    out.push({id:'r'+i,name,status:parseStatus(cellText(g('status'))),startDate:parseDate(g('startDate')),
+    out.push({id:'r'+i,coordText:cellText(g('coord')).trim(),name,status:parseStatus(cellText(g('status'))),startDate:parseDate(g('startDate')),
       address:cellText(g('address')).trim(),lat:co?co[0]:null,lng:co?co[1]:null,
       owner:cellText(g('owner')).trim(),contact:cellText(g('contact')).trim(),phone:cellText(g('phone')).trim(),issue:cellText(g('issue')).trim()})});
   return out}
@@ -239,6 +439,7 @@ function leafletAdapter(){
   const rlayer=L.layerGroup().addTo(map);
   map.on('zoomend',drawPins);
   return {kind:'osm',
+    resize:()=>map.invalidateSize(),
     setView:(lat,lng,z)=>map.setView([lat,lng],z),
     zoom:()=>map.getZoom(),
     fit:pts=>map.fitBounds(pts,{padding:[40,40],maxZoom:14}),
@@ -265,6 +466,7 @@ async function googleAdapter(){
   let markers=[],lastZ=map.getZoom(),poly=[],meM=null;
   map.addListener('zoom_changed',()=>{const z=map.getZoom();if((z>=13)!==(lastZ>=13))drawPins();lastZ=z});
   return {kind:'google',
+    resize:()=>{},
     setView:(lat,lng,z)=>{map.setCenter({lat,lng});map.setZoom(z)},
     zoom:()=>map.getZoom(),
     fit:pts=>{const b=new LatLngBounds();pts.forEach(p=>b.extend({lat:p[0],lng:p[1]}));map.fitBounds(b,40);
@@ -296,11 +498,13 @@ function drawPins(){if(!M)return;M.clear();for(const k in pinHandles)delete pinH
     const b=bucket(s);const sel=selected===s.id;const no=route.indexOf(s.id)+1;
     let h='<div class="pin'+(sel?' sel':'')+(no?' stop':'')+(hoverId===s.id?' hl':'')+'" data-id="'+s.id+'" style="--c:var('+BK[b].c+')">';
     if(b==='issue'&&!no)h+='<div class="halo"></div>';
-    h+=no?'<div class="num">'+no+'</div>':'<div class="dot">'+(b==='issue'?'!':'')+'</div>';
+    const tcx=todayBySite[s.id];
+    h+=no?'<div class="num">'+no+'</div>':(tcx?'<div class="dot star">★</div>':'<div class="dot">'+(b==='issue'?'!':'')+'</div>');
     if(b==='week')h+='<div class="tag">'+esc(dLabel(daysUntil(s.startDate)))+'</div>';
-    h+='<div class="lbl'+(showLbl||sel?'':' hide')+'">'+esc(s.name)+'</div>';
+
+    h+='<div class="lbl'+(showLbl||sel?'':' hide')+'">'+(tcx?'★ 今日 '+esc(tcx.leader||'出車')+'｜':'')+esc(s.name)+'</div>';
     h+='</div>';
-    const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0)+(no?5000:0),s.name,()=>routeMode?toggleStop(s.id):openDetail(s.id,false));
+    const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0)+(no?5000:0)+(todayBySite[s.id]?3000:0),s.name,()=>routeMode?toggleStop(s.id):openDetail(s.id,false));
     if(hnd){pinHandles[s.id]=hnd;if(hoverId===s.id)hnd.front(true)}});
   drawRouteLine()}
 function fitAll(){if(!M)return;const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
@@ -330,7 +534,7 @@ function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];le
       else sub='<div class="sub">'+esc([s.owner,s.address].filter(Boolean).join(' · '))+'</div>';
       if(s.lat==null)right+=' <span class="loc">未定位</span>';
       const no=route.indexOf(s.id)+1;if(routeMode&&no)right='<span class="stopno">第 '+no+' 站</span>';
-      html.push('<button class="row'+(routeMode&&no?' instop':'')+'" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm">'+esc(s.name)+'</span><span class="loc">'+right+'</span>'+sub+'</button>')}
+      html.push('<button class="row'+(routeMode&&no?' instop':'')+'" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm">'+(todayBySite[s.id]?'<span class="star" title="今日出車">★</span>':'')+esc(s.name)+'</span><span class="loc">'+right+'</span>'+sub+'</button>')}
     html.push('</div>')}
   if(!any)html.push('<div class="empty">'+(loaded?(sites.length?'沒有符合篩選條件的案場。點上方的分類可以切換顯示。':'試算表裡還沒有案場資料。'):'載入中…')+'</div>');
   $('pbody').innerHTML=(routeMode?routeHtml():'')+html.join('')}
@@ -346,7 +550,8 @@ function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=n
     '<div><span class="pill" style="--c:var('+b.c+');--cbg:var('+b.bg+')">'+b.label+'</span><h3>'+esc(s.name)+'</h3></div>'+
     (s.issue?'<div><div class="mono" style="color:var(--muted);margin-bottom:4px">'+(s.status==='issue'?'問題描述':'備註')+'</div><div class="'+(s.status==='issue'?'issuebox':'note')+'">'+esc(s.issue)+'</div></div>':'')+
     '<dl class="kv">'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('')+'</dl>'+
-    (nav?'<div class="actions"><a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a></div>':'')+'</div>'}
+    (nav?'<div class="actions"><a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a></div>':'')+
+    (canField()?adminDetailHtml(s):'')+reportsHtml(s)+'</div>'}
 // ---------- 滑鼠連動：列表 ↔ 地圖標記 ----------
 let hoverId=null;const pinHandles={};
 function setHover(id){
@@ -462,26 +667,463 @@ $('routeBtn').onclick=()=>{routeMode=!routeMode;$('routeBtn').setAttribute('aria
   selected=null;if(routeMode&&fromMe&&!myPos)locate();render();if(routeMode)toast('點地圖上的標記，依序加入站點')};
 let toastT;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2400)}
 
-// ---------- load (JSONP，不受跨網域限制) ----------
-let firstLoad=true;
-function load(){
-  const cb='__fulin'+Date.now();const s=document.createElement('script');
-  const timer=setTimeout(()=>fail('連不到試算表，請確認網路或稍後再試。'),15000);
-  window[cb]=resp=>{clearTimeout(timer);delete window[cb];s.remove();
-    if(!resp||resp.status==='error'){return fail('讀不到試算表。請確認試算表已設定「知道連結的任何人都可以檢視」。')}
-    sites=rowsFromTable(resp.table);loaded=true;restoreRoute();
-    const noLoc=sites.filter(x=>x.lat==null).length;
-    const n=$('notice');n.className='notice';n.textContent=noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'';n.hidden=!noLoc;
+
+
+// ================= 分頁 =================
+const TABS=['map','today','stock','manage'];
+function showTab(t){if(!TABS.includes(t))t='map';if(t==='manage'&&!isAdmin())t='map';
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  TABS.forEach(x=>$('v-'+x).hidden=x!==t);
+  try{history.replaceState(null,'','#'+t)}catch(e){}
+  if(t==='map'&&M&&M.resize)setTimeout(()=>M.resize(),0);
+  if(t==='manage')renderManage()}
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)showTab(b.dataset.tab)});
+
+// ================= 資料（後台 API） =================
+let DB={sites:[],reports:[],sched:[],rest:[],people:[],cars:[],tasks:[],items:[],today:''};
+const WK=['週日','週一','週二','週三','週四','週五','週六'];
+const toDate=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d)};
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const mdw=s=>{const d=toDate(s);return (d.getMonth()+1)+'/'+d.getDate()+' '+WK[d.getDay()]};
+const addDays=(s,n)=>{const d=toDate(s);d.setDate(d.getDate()+n);return ymd(d)};
+const norm=x=>String(x||'').replace(/[\s　]+/g,'');
+function fmtN(n){return (Math.round(n*10)/10).toString()}
+
+let firstLoad=true,loading=false;
+async function load(){
+  if(!CFG.API_URL){fail('尚未設定後台網址（API_URL）。');return}
+  if(loading)return;loading=true;
+  try{const r=await fetch(CFG.API_URL+'?action=all&t='+Date.now());const j=await r.json();if(!j.ok)throw new Error(j.error||'讀取失敗');
+    DB=j.data;applyData();
     const d=new Date();$('updated').textContent='更新 '+pad(d.getHours())+':'+pad(d.getMinutes());
-    render();if(firstLoad){firstLoad=false;fitAll()}};
-  s.onerror=()=>{clearTimeout(timer);fail('連不到試算表，請確認網路或稍後再試。')};
-  s.src='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID+'/gviz/tq?gid='+encodeURIComponent(CFG.GID)+'&headers=1&tqx=responseHandler:'+cb;
-  document.head.appendChild(s)}
+    if(firstLoad){firstLoad=false;fitAll()}
+  }catch(e){fail('讀不到資料（'+e.message+'），請檢查網路或稍後再試。')}
+  loading=false}
 function fail(msg){const n=$('notice');n.className='notice err';n.textContent=msg;n.hidden=false;$('updated').textContent='未更新';loaded=true;render()}
+function applyData(){
+  sites=DB.sites.map(s=>{const co=parseCoord(s.coord);return Object.assign({},s,{status:parseStatus(s.status),statusText:s.status,coordText:s.coord,lat:co?co[0]:null,lng:co?co[1]:null})});
+  loaded=true;restoreRoute();matchToday();
+  const noLoc=sites.filter(x=>x.lat==null).length;const n=$('notice');n.className='notice';n.textContent=noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'';n.hidden=!noLoc;
+  if(!schedDate)schedDate=DB.today;
+  stockCalc();render();renderToday();if(stockMode!=='week')renderStock();if(!$('v-manage').hidden)renderManage();
+  $('cntStock').textContent=stockItems.filter(i=>i.st==='out'||i.st==='neg').length;
+  $('cntStock').classList.toggle('bad',stockItems.some(i=>i.st==='out'||i.st==='neg'))}
 $('reload').onclick=load;
+
+// ================= 登入：管理密碼／現場密碼 =================
+let PIN='',ROLE='',BY='';
+try{PIN=localStorage.getItem('fulin-pin')||'';ROLE=localStorage.getItem('fulin-role')||'';BY=localStorage.getItem('fulin-by')||''}catch(e){}
+const isAdmin=()=>ROLE==='admin'&&!!PIN;
+const canField=()=>(ROLE==='admin'||ROLE==='field')&&!!PIN;
+function setAdminUI(){const b=$('loginBtn');b.innerHTML=canField()?'<span class="lbx">'+(ROLE==='admin'?'管理':'現場')+(BY?'・'+esc(BY):'')+'｜</span>登出':'登入';b.classList.toggle('on',canField());
+  $('addSiteBtn').hidden=!isAdmin();$('tabManage').hidden=!isAdmin()}
+async function api(action,payload){
+  const r=await fetch(CFG.API_URL,{method:'POST',body:JSON.stringify(Object.assign({action,pin:PIN,by:BY},payload||{}))});
+  const j=await r.json();
+  if(!j.ok){if(j.code==='auth')logout();throw new Error(j.error||'寫入失敗')}
+  return j}
+function logout(){PIN='';ROLE='';try{localStorage.removeItem('fulin-pin');localStorage.removeItem('fulin-role')}catch(e){}schedEdit=false;setAdminUI();if(!$('v-manage').hidden)showTab('map');render();renderToday();renderStock()}
+$('loginBtn').onclick=()=>{
+  if(canField()){logout();toast('已登出');return}
+  openModal('登入','<div class="fld"><label for="pinIn">密碼（管理或現場）</label><input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password"></div>'+
+    '<div class="fld"><label for="byIn">你的名字（記錄是誰填的）</label><input id="byIn" value="'+esc(BY)+'" placeholder="例：阿明"></div><div class="merr" id="merr" hidden></div>',
+    [['取消','close'],['登入','ok','primary']],async act=>{if(act!=='ok')return true;
+      const v=val('pinIn');if(!v)return false;if(!val('byIn')){showErr('請填名字');return false}
+      PIN=v;BY=val('byIn');
+      try{const j=await api('ping');ROLE=j.role;try{localStorage.setItem('fulin-pin',v);localStorage.setItem('fulin-role',ROLE);localStorage.setItem('fulin-by',BY)}catch(e){}
+        setAdminUI();render();renderToday();renderStock();toast(ROLE==='admin'?'已用管理密碼登入':'已用現場密碼登入：可回報問題、登記出貨');return true}
+      catch(e){PIN='';ROLE='';showErr(e.message);return false}});
+  setTimeout(()=>$('pinIn')&&$('pinIn').focus(),50)};
+
+// ---------- 通用對話框 ----------
+let modalCb=null;
+function openModal(title,body,buttons,cb,wide){closeModal();modalCb=cb;
+  const bg=document.createElement('div');bg.className='modal-bg';bg.id='modalBg';
+  bg.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"'+(wide?' style="width:min(760px,100%)"':'')+'><header><h3>'+esc(title)+'</h3><button data-m="close" aria-label="關閉">×</button></header><div class="mb">'+body+'</div><div class="mf">'+
+    buttons.map(b=>'<button class="btn'+(b[2]?' '+b[2]:'')+'" data-m="'+b[1]+'">'+esc(b[0])+'</button>').join('')+'</div></div>';
+  document.body.appendChild(bg);
+  bg.addEventListener('click',async e=>{if(e.target===bg)return closeModal();const b=e.target.closest('[data-m]');if(!b)return;
+    if(b.dataset.m==='close')return closeModal();
+    if(modalCb){b.disabled=true;const old=b.textContent;b.textContent='處理中…';let done=false;
+      try{done=await modalCb(b.dataset.m,bg,b)}catch(err){showErr(err.message)}
+      b.disabled=false;b.textContent=old;if(done)closeModal()}});
+  bg.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()})}
+function closeModal(){const m=$('modalBg');if(m)m.remove();modalCb=null}
+function showErr(msg){const e=$('merr');if(e){e.textContent=msg;e.hidden=!msg}else if(msg)toast(msg)}
+const val=id=>{const e=$(id);return e?e.value.trim():''};
+
+// ================= 案場：新增／編輯／狀態／回報 =================
+const ST_OPTS=['問題件','施工中','預定進場','已完工'];
+function siteForm(s){s=s||{};const st=s.statusText||'問題件';
+  return (s._new?'<div class="aibox"><div class="fld"><label for="fAi">貼上 LINE 訊息，讓 AI 幫你填（可略過）</label><textarea id="fAi" placeholder="把客戶或同事的 LINE 訊息整段貼上"></textarea></div><div><button class="btn" data-m="ai">AI 解析填入</button></div></div>':'')+
+  '<div class="fld"><label for="fName">案名 *</label><input id="fName" value="'+esc(s.name||'')+'" placeholder="例：北港 游佳憲"></div>'+
+  '<div class="grid2"><div class="fld"><label for="fSt">狀態</label><select id="fSt">'+ST_OPTS.map(o=>'<option'+(o===st?' selected':'')+'>'+o+'</option>').join('')+'</select></div>'+
+  '<div class="fld"><label for="fDate">進場日</label><input id="fDate" type="date" value="'+esc(s.startDate||'')+'"></div></div>'+
+  '<div class="fld"><label for="fAddr">地址</label><input id="fAddr" value="'+esc(s.address||'')+'"></div>'+
+  '<div class="fld"><label for="fCoord">座標或 Google 地圖連結</label><input id="fCoord" value="'+esc(s.coordText||'')+'" placeholder="22.701, 120.352 或 https://maps.app.goo.gl/…"><span class="hint">留空會用地址自動查座標</span></div>'+
+  '<div class="grid2"><div class="fld"><label for="fContact">聯絡人</label><input id="fContact" value="'+esc(s.contact||'')+'"></div><div class="fld"><label for="fPhone">電話</label><input id="fPhone" type="tel" value="'+esc(s.phone||'')+'"></div></div>'+
+  '<div class="fld"><label for="fOwner">負責人（我方）</label><input id="fOwner" value="'+esc(s.owner||'')+'"></div>'+
+  '<div class="fld"><label for="fIssue">問題描述／備註</label><textarea id="fIssue">'+esc(s.issue||'')+'</textarea></div><div class="merr" id="merr" hidden></div>'}
+function openSiteModal(s){const isNew=!s;
+  openModal(isNew?'新增案場':'編輯案場',siteForm(isNew?{_new:true}:s),isNew?[['取消','close'],['新增','save','primary']]:[['刪除案場','del'],['取消','close'],['儲存','save','primary']],async act=>{
+    if(act==='ai'){const t=val('fAi');if(!t){showErr('請先貼上訊息');return false}
+      const x=(await api('site_parse',{text:t})).data.site||{};
+      const set=(id,v)=>{if(v&&$(id))$(id).value=v};set('fName',x.name);set('fDate',x.startDate);set('fAddr',x.address);set('fCoord',x.coord);set('fContact',x.contact);set('fPhone',x.phone);set('fOwner',x.owner);set('fIssue',x.issue);
+      if(x.status&&$('fSt'))$('fSt').value=x.status;showErr(x.coord?'':'AI 已填入，但沒找到座標；可以貼 Google 地圖連結，或留空用地址查。');return false}
+    if(act==='del'){if(!confirmStep('del'))return false;await api('site_delete',{id:s.id});selected=null;toast('已刪除');await load();return true}
+    if(act!=='save')return true;
+    const f={id:isNew?'':s.id,name:val('fName'),status:val('fSt'),startDate:val('fDate'),address:val('fAddr'),coord:val('fCoord'),contact:val('fContact'),phone:val('fPhone'),owner:val('fOwner'),issue:val('fIssue')};
+    if(!f.name){showErr('請填案名');return false}
+    const d=(await api('site_save',{site:f})).data;toast(d.coord?'已儲存':'已儲存，但沒有座標，地圖上不會顯示');
+    await load();selected=d.id;render();return true})}
+let confirmAt=0,confirmKey='';
+function confirmStep(k){const now=Date.now();if(confirmKey===k&&now-confirmAt<4000){confirmKey='';return true}confirmKey=k;confirmAt=now;showErr('再按一次確認刪除');return false}
+$('addSiteBtn').onclick=()=>openSiteModal(null);
+
+function adminDetailHtml(s){const cur=s.statusText;
+  return '<div class="adminbox"><h4>'+(isAdmin()?'管理':'現場')+'</h4>'+(isAdmin()?'<div class="segs">'+ST_OPTS.map(o=>'<button data-adm="status" data-v="'+o+'" aria-pressed="'+(o===cur)+'">'+o+'</button>').join('')+'</div>':'')+
+    '<div class="actions">'+(isAdmin()?'<button class="btn" data-adm="edit">編輯資料</button>':'')+'<button class="btn primary" data-adm="report">現場回報＋照片</button></div></div>'}
+function reportsHtml(s){const list=(DB.reports||[]).filter(r=>r.siteId===s.id||(!r.siteId&&norm(r.name)===norm(s.name))).slice().reverse();if(!list.length)return '';
+  const k=x=>/問題/.test(x)?'issue':/完工/.test(x)?'done':'';
+  return '<div class="reports"><h4>現場回報（'+list.length+'）</h4>'+list.slice(0,12).map(r=>{const t=r.time?new Date(r.time):null;
+    return '<div class="rep"><div class="rh"><span class="rk '+k(r.kind)+'">'+esc(r.kind)+'</span><time>'+(t&&!isNaN(t)?esc(ymd(t)):'')+'</time>'+(r.by?'<span style="color:var(--muted);font-size:12px">'+esc(r.by)+'</span>':'')+'</div>'+
+    (r.text?'<div>'+esc(r.text)+'</div>':'')+(r.photos.length?'<div class="thumbs">'+r.photos.map(id=>'<a href="https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view" target="_blank" rel="noopener"><img loading="lazy" alt="現場照片" src="https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w300"></a>').join('')+'</div>':'')+'</div>'}).join('')+'</div>'}
+$('pbody').addEventListener('click',async e=>{const b=e.target.closest('[data-adm]');if(!b)return;e.stopPropagation();
+  const s=sites.find(x=>x.id===selected);if(!s)return;
+  if(b.dataset.adm==='edit')return openSiteModal(s);
+  if(b.dataset.adm==='report')return openReportModal(s);
+  if(b.dataset.adm==='status'){const v=b.dataset.v;b.disabled=true;
+    try{await api('site_status',{id:s.id,status:v});toast('已改為「'+v+'」');await load()}catch(err){toast(err.message)}b.disabled=false}},true);
+
+let repPhotos=[];
+function openReportModal(s){repPhotos=[];let kind='issue';
+  openModal('現場回報：'+s.name,
+   '<div class="fld"><label>類型</label><div class="segs" id="repKind"><button data-k="issue" aria-pressed="true">問題回報</button><button data-k="progress" aria-pressed="false">進度回報</button><button data-k="done" aria-pressed="false">完工回報</button></div><span class="hint" id="kindHint">送出後案場會標成「問題件」，內容加到問題描述</span></div>'+
+   '<div class="fld"><label for="repText">內容</label><textarea id="repText" placeholder="例：浴室地面漏水，已先止水"></textarea></div>'+
+   '<div class="fld"><label for="repFiles">照片（最多 8 張）</label><input id="repFiles" type="file" accept="image/*" multiple><div class="previews" id="repPrev"></div></div><div class="merr" id="merr" hidden></div>',
+   [['取消','close'],['送出回報','send','primary']],async act=>{if(act!=='send')return true;
+     const text=val('repText');if(!text&&!repPhotos.length){showErr('請填內容或加照片');return false}
+     const d=(await api('report',{siteId:s.id,kind,text,photos:repPhotos})).data;
+     toast('已送出回報'+(d.photos?'（'+d.photos+' 張照片）':''));await load();return true});
+  const hints={issue:'送出後案場會標成「問題件」，內容加到問題描述',progress:'只記錄進度，不改狀態',done:'送出後案場會標成「已完工」'};
+  $('repKind').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;kind=b.dataset.k;
+    $('repKind').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('kindHint').textContent=hints[kind]});
+  $('repFiles').addEventListener('change',async e=>{const files=[...e.target.files].slice(0,8);repPhotos=[];$('repPrev').textContent='處理照片中…';
+    for(const f of files){try{repPhotos.push(await shrink(f))}catch(err){}}
+    $('repPrev').innerHTML=repPhotos.map(p=>'<img alt="" src="data:image/jpeg;base64,'+p.data+'">').join('')})}
+function shrink(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const img=new Image();img.onload=()=>{
+  const max=1600,k=Math.min(1,max/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);
+  cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);res({type:'image/jpeg',data:cv.toDataURL('image/jpeg',.8).split(',')[1]})};img.onerror=rej;img.src=fr.result};fr.onerror=rej;fr.readAsDataURL(file)})}
+
+// ================= 排班 =================
+let schedDate='',schedView=(window.matchMedia('(max-width:760px)').matches?'cards':'board'),schedEdit=false,draft=null;
+const crewsOf=d=>(DB.sched||[]).filter(c=>c.date===d).sort((a,b)=>a.no-b.no);
+const restOf=d=>(DB.rest||[]).find(r=>r.date===d)||{drivers:[],workers:[]};
+const taskTh=zh=>{const t=(DB.tasks||[]).find(x=>x.zh===zh);return t?t.th:''};
+function crewSites(c){return String(c.site||'').split('\n').map(x=>x.trim()).filter(Boolean)}
+function siteMatch(c,line){
+  const ids=c.siteIds||[];for(const id of ids){const s=sites.find(x=>x.id===id);if(s&&(!line||norm(s.name)===norm(line)))return s}
+  if(!line)return null;const n=norm(line);let s=sites.find(x=>norm(x.name)===n);if(s)return s;
+  const p=line.trim().split(/\s+/);const person=p.length>1?p[p.length-1]:'';
+  if(person.length>=2)s=sites.find(x=>norm(x.name).includes(person));return s||null}
+function matchToday(){todayBySite={};crewsOf(DB.today).forEach(c=>crewSites(c).forEach(l=>{const s=siteMatch(c,l);if(s)todayBySite[s.id]=c}));
+  $('cntToday').textContent=crewsOf(DB.today).length}
+function goMap(id){showTab('map');const s=sites.find(x=>x.id===id);if(s){selected=id;routeMode=false;render();setTimeout(()=>{if(M){M.resize&&M.resize();if(s.lat!=null)M.setView(s.lat,s.lng,14)}},50)}}
+
+function boardHtml(d){const crews=crewsOf(d),rest=restOf(d);const dd=toDate(d);
+  const total=crews.reduce((a,c)=>a+c.workers.length,0);
+  let h='<table class="board" id="boardTbl"><tbody>'+
+   '<tr><td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td><td class="restv" colspan="5">'+esc(rest.drivers.join('、')||'')+'</td></tr>'+
+   '<tr><td colspan="2" class="dt">'+WK[dd.getDay()]+'</td><td class="rest">休息人員-工人</td><td class="restv" colspan="5">'+esc(rest.workers.join('、')||'')+'</td></tr>'+
+   '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
+  crews.forEach((c,i)=>{const band=i%2===0?' band':'';const w=c.workers.concat(Array(8).fill('')).slice(0,Math.max(8,Math.ceil(c.workers.length/4)*4));
+    const t=c.tasks.concat(Array(5).fill('')).slice(0,Math.max(5,c.tasks.length));
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(c.siteThai||'').replace(/\n/g,'<br>')+'</td><td rowspan="2" class="site">'+esc(c.site).replace(/\n/g,'<br>')+'</td><td rowspan="2" class="lead">'+esc(c.leader||'')+'</td><td rowspan="2" class="car">'+esc(c.car||'').replace(/^(.*?)\s*(\d{3,})$/,'$1<br>$2')+'</td>'+
+      w.slice(0,4).map(x=>'<td class="wk">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="cnt">'+c.workers.length+'</td>'+t.slice(0,5).map(x=>'<td class="tk">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="note">'+esc(c.note||'')+'</td></tr>'+
+      '<tr class="th'+band+'">'+w.slice(4,8).map(x=>'<td class="wk">'+esc(x)+'</td>').join('')+t.slice(0,5).map(x=>'<td class="tk">'+esc(x?(taskTh(x)||x):'')+'</td>').join('')+'</tr>'});
+  if(!crews.length)h+='<tr class="emptyrow"><td colspan="15" style="padding:24px">這天還沒有排班</td></tr>';
+  return h+'</tbody></table>'}
+function cardsHtml(d){const crews=crewsOf(d);if(!crews.length)return '<div class="foot">這天還沒有排班。</div>';
+  return '<div class="crews">'+crews.map(c=>{const need=needsForCrew(c);
+    return '<article class="crew"><div class="ch"><div class="site">'+esc(c.site||'（未填案場）').replace(/\n/g,'<br>')+'</div>'+(c.siteThai?'<div class="th">'+esc(c.siteThai).replace(/\n/g,'<br>')+'</div>':'')+'</div>'+
+    '<div class="cb"><div class="kvrow"><span>人員</span><div class="ppl">'+(c.leader?'<i class="lead">'+esc(c.leader)+'</i>':'')+c.workers.map(w=>'<i>'+esc(w)+'</i>').join('')+'<i style="border:0;background:none;color:var(--muted)">共 '+c.workers.length+' 人</i></div></div>'+
+      (c.car?'<div class="kvrow"><span>車輛</span><div><span class="car">'+esc(c.car)+'</span></div></div>':'')+
+      (c.tasks.length?'<div class="kvrow"><span>施作</span><div class="tasks">'+c.tasks.map(t=>'<span class="task"><b>'+esc(t)+'</b>'+(taskTh(t)&&taskTh(t)!==t?'<small>'+esc(taskTh(t))+'</small>':'')+'</span>').join('')+'</div></div>':'')+
+      (need.length?'<div class="kvrow"><span>可能用料</span><div class="need">'+need.map(n=>'<i class="'+(n.st==='out'||n.st==='neg'?'out':n.st==='low'?'low':'')+'">'+esc(n.label)+' '+fmtN(n.total)+'</i>').join('')+'</div></div>':'')+
+      (c.note?'<div class="note">'+esc(c.note)+'</div>':'')+'</div>'+
+    '<div class="cf">'+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
+function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEditor();if(!schedDate)return;
+  const d=schedDate,isT=d===DB.today;
+  el.innerHTML='<div class="pagehead"><h2>排班<small>'+mdw(d)+(isT?'（今天）':d===addDays(DB.today,1)?'（明天）':d===addDays(DB.today,-1)?'（昨天）':'')+'</small></h2>'+
+    '<div class="dnav"><button class="btn" data-t="prev">‹ 前一天</button><button class="btn" data-t="today">今天</button><button class="btn" data-t="next">後一天 ›</button><input type="date" id="sdPick" value="'+d+'"></div></div>'+
+    '<div class="sbar"><div class="seg"><button data-t="board" aria-pressed="'+(schedView==='board')+'">總表</button><button data-t="cards" aria-pressed="'+(schedView==='cards')+'">卡片</button></div>'+
+    '<div class="actions" style="margin-left:auto">'+(isAdmin()?'<button class="btn primary" data-t="edit">編輯這天排班</button>':'')+'<button class="btn" data-t="img">存成圖片</button><button class="btn" data-t="share">分享文字</button></div></div>'+
+    (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':cardsHtml(d))+
+    '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>'}
+$('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;
+  if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}
+  else if(t==='board'||t==='cards'){schedView=t;renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
+$('todayPage').addEventListener('change',e=>{if(e.target.id==='sdPick'&&e.target.value){schedDate=e.target.value;renderToday()}});
+async function saveBoardImage(){if(!window.html2canvas){toast('圖片功能載入失敗，請重新整理');return}
+  const box=document.createElement('div');box.style.cssText='position:fixed;left:-99999px;top:0;width:1400px;background:#fff;padding:12px';box.innerHTML=boardHtml(schedDate);document.body.appendChild(box);
+  try{const cv=await html2canvas(box,{scale:2,backgroundColor:'#ffffff'});const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const name='排班_'+schedDate+'.png';
+    const file=new File([blob],name,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'排班 '+schedDate});return}catch(e){if(e.name==='AbortError')return}}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();toast('已下載排班圖片')}
+  catch(e){toast('產生圖片失敗')}finally{box.remove()}}
+async function shareSched(){const d=schedDate,rest=restOf(d);const L=['【富林組合屋 排班】'+mdw(d)];
+  if(rest.drivers.length||rest.workers.length)L.push('休息：司機 '+(rest.drivers.join('、')||'無')+'／工人 '+(rest.workers.join('、')||'無'));
+  crewsOf(d).forEach((c,i)=>{L.push('');L.push((i+1)+'. '+crewSites(c).join('、'));if(c.siteThai)L.push('   '+c.siteThai.replace(/\n/g,'、'));
+    L.push('   帶頭 '+(c.leader||'-')+'｜車 '+(c.car||'-'));if(c.workers.length)L.push('   工人 '+c.workers.join('、'));
+    if(c.tasks.length)L.push('   施作 '+c.tasks.map(t=>t+(taskTh(t)&&taskTh(t)!==t?'('+taskTh(t)+')':'')).join('、'));if(c.note)L.push('   備註 '+c.note);
+    crewSites(c).forEach(l=>{const s=siteMatch(c,l);if(s&&navUrl(s))L.push('   導航 '+navUrl(s))})});
+  const text=L.join('\n');
+  if(navigator.share){try{await navigator.share({title:'排班',text});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(text);toast('已複製排班，可以直接貼到 LINE')}catch(e){toast('無法複製')}}
+
+// ---------- 排班編輯 ----------
+const leaders=()=>DB.people.filter(p=>p.kind==='帶頭').map(p=>p.name);
+const workersL=()=>DB.people.filter(p=>p.kind!=='帶頭').map(p=>p.name);
+function openSchedEditor(){schedEdit=true;
+  const src=crewsOf(schedDate);const rest=restOf(schedDate);
+  draft={date:schedDate,restD:rest.drivers.slice(),restW:rest.workers.slice(),crews:src.map(c=>({site:c.site,siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:c.workers.slice(),tasks:c.tasks.slice(),note:c.note||''}))};
+  if(!draft.crews.length)draft.crews.push(blankCrew());renderSchedEditor()}
+const blankCrew=()=>({site:'',siteIds:[],leader:'',car:'',workers:[],tasks:[],note:''});
+function chipSel(key,list,opts,ph,dups){return '<div class="chipsel" data-key="'+key+'">'+list.map((x,i)=>'<span class="cp'+(dups&&dups.has(x)?' dup':'')+'">'+esc(x)+'<button data-rm="'+key+'" data-i="'+i+'" aria-label="移除">×</button></span>').join('')+
+  '<select data-add="'+key+'"><option value="">＋ '+ph+'</option>'+opts.filter(o=>!list.includes(o)).map(o=>'<option>'+esc(o)+'</option>').join('')+'</select></div>'}
+function renderSchedEditor(){const el=$('todayPage');const D=draft;
+  const used={};D.crews.forEach(c=>[c.leader].concat(c.workers).filter(Boolean).forEach(p=>used[p]=(used[p]||0)+1));
+  const dups=new Set(Object.keys(used).filter(k=>used[k]>1));
+  const off=new Set(D.restD.concat(D.restW));
+  const free=DB.people.map(p=>p.name).filter(n=>!used[n]&&!off.has(n)&&!/全員|自己|支援/.test(n));
+  const siteNames=sites.map(s=>s.name);
+  let h='<div class="pagehead"><h2>編輯排班<small>'+mdw(D.date)+'</small></h2><div class="actions"><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="cancel">取消</button><button class="btn primary" data-e="save">儲存排班</button></div></div>'+
+   '<div class="crewed"><h3>休息人員</h3><div class="fld"><label>休息司機</label>'+chipSel('restD',D.restD,leaders(),'加入')+'</div><div class="fld"><label>休息工人</label>'+chipSel('restW',D.restW,workersL(),'加入')+'</div></div>'+
+   '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+(dups.size?'　<b style="color:#B42318">重複排班</b>'+esc([...dups].join('、')):'')+'</div>'+
+   '<datalist id="dlSites">'+siteNames.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist><div class="mgrid">'+
+   D.crews.map((c,i)=>'<div class="crewed"><h3>第 '+(i+1)+' 組<span>'+(i?'<button class="btn" data-e="up" data-i="'+i+'">上移</button> ':'')+'<button class="btn" data-e="del" data-i="'+i+'">刪除</button></span></h3>'+
+     '<div class="fld"><label>案場（可多個）</label><div class="chipsel">'+crewSites(c).map((l,j)=>'<span class="cp">'+esc(l)+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+
+       '<input list="dlSites" data-e-site="'+i+'" placeholder="＋ 輸入或選案場，按 Enter"></div></div>'+
+     '<div class="grid2"><div class="fld"><label>帶頭</label><select data-f="leader" data-i="'+i+'"><option value="">—</option>'+leaders().map(o=>'<option'+(o===c.leader?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div>'+
+     '<div class="fld"><label>車</label><select data-f="car" data-i="'+i+'"><option value="">—</option>'+DB.cars.map(o=>'<option'+(o===c.car?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div></div>'+
+     '<div class="fld"><label>工人（'+c.workers.length+' 人）</label>'+chipSel('w'+i,c.workers,workersL(),'加入工人',dups)+'</div>'+
+     '<div class="fld"><label>施作項目</label>'+chipSel('t'+i,c.tasks,DB.tasks.map(t=>t.zh),'加入項目')+'</div>'+
+     '<div class="fld"><label>備註</label><input data-f="note" data-i="'+i+'" value="'+esc(c.note)+'"></div></div>').join('')+
+   '</div><div><button class="btn" data-e="add">＋ 新增一組</button></div>';
+  el.innerHTML=h}
+function listRef(key){if(key==='restD')return draft.restD;if(key==='restW')return draft.restW;const i=+key.slice(1);return key[0]==='w'?draft.crews[i].workers:draft.crews[i].tasks}
+function addSiteLine(i,v){v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
+  const s=sites.find(x=>x.name===v);if(s&&!c.siteIds.includes(s.id))c.siteIds.push(s.id);renderSchedEditor()}
+$('todayPage').addEventListener('change',e=>{if(!schedEdit)return;const t=e.target;
+  if(t.dataset.add&&t.value){listRef(t.dataset.add).push(t.value);renderSchedEditor();return}
+  if(t.dataset.f){draft.crews[+t.dataset.i][t.dataset.f]=t.value;if(t.dataset.f!=='note')renderSchedEditor();return}
+  if(t.dataset.eSite!==undefined&&sites.some(s=>s.name===t.value))addSiteLine(+t.dataset.eSite,t.value)});
+$('todayPage').addEventListener('keydown',e=>{const t=e.target;if(schedEdit&&t.dataset.eSite!==undefined&&e.key==='Enter'){e.preventDefault();addSiteLine(+t.dataset.eSite,t.value)}});
+$('todayPage').addEventListener('input',e=>{const t=e.target;if(schedEdit&&t.dataset.f==='note')draft.crews[+t.dataset.i].note=t.value});
+$('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;const rm=e.target.closest('[data-rm]');
+  if(rm){listRef(rm.dataset.rm).splice(+rm.dataset.i,1);renderSchedEditor();return}
+  const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();const act=b.dataset.e,i=+b.dataset.i;
+  if(act==='add'){draft.crews.push(blankCrew());renderSchedEditor()}
+  else if(act==='del'){draft.crews.splice(i,1);renderSchedEditor()}
+  else if(act==='up'){const c=draft.crews.splice(i,1)[0];draft.crews.splice(i-1,0,c);renderSchedEditor()}
+  else if(act==='rmsite'){const c=draft.crews[i];const lines=crewSites(c);const gone=lines.splice(+b.dataset.j,1)[0];c.site=lines.join('\n');const s=sites.find(x=>x.name===gone);if(s)c.siteIds=c.siteIds.filter(x=>x!==s.id);renderSchedEditor()}
+  else if(act==='copy'){const prev=addDays(draft.date,-1);const src=crewsOf(prev);if(!src.length){toast('前一天沒有排班');return}
+    draft.crews=src.map(c=>({site:c.site,siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:c.workers.slice(),tasks:c.tasks.slice(),note:c.note||''}));const r=restOf(prev);draft.restD=r.drivers.slice();draft.restW=r.workers.slice();renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班，記得儲存')}
+  else if(act==='cancel'){schedEdit=false;draft=null;renderToday()}
+  else if(act==='save'){b.disabled=true;b.textContent='儲存中…（翻譯泰文）';
+    try{await api('sched_save',{date:draft.date,crews:draft.crews,restD:draft.restD,restW:draft.restW});schedEdit=false;draft=null;toast('排班已儲存');await load();renderToday()}
+    catch(err){toast(err.message);b.disabled=false;b.textContent='儲存排班'}}},true);
+
+// ================= 庫存 =================
+let stockItems=[];
+function stockCalc(){stockItems=(DB.items||[]).map(it=>{const total=(it.stock['大倉']||0)+(it.stock['油車']||0);const rate=it.used14/14;const days=rate>0?total/rate:null;
+  const st=total<0?'neg':(total===0?(it.used14>0?'out':'idle'):((it.safe>0&&total<=it.safe)||(days!=null&&days<7)?'low':'ok'));
+  return Object.assign({},it,{big:it.stock['大倉']||0,oil:it.stock['油車']||0,total,days,st,used:it.used14})})}
+function needsForCrew(cr){const txt=(cr.tasks||[]).join(' ');const it=stockItems;const pick=new Set();const add=f=>it.filter(f).forEach(x=>pick.add(x));
+  it.forEach(x=>{if(x.name.length>=3&&txt.includes(x.name.replace(/\s/g,'')))pick.add(x)});
+  if(/小衛浴/.test(txt))add(x=>x.section==='小衛浴'||x.name==='小衛浴');
+  if(/大衛浴|大浴室/.test(txt))add(x=>x.section==='大浴室'||x.name==='大浴室');
+  if(/日式衛浴/.test(txt))add(x=>x.section==='日式衛浴'||x.name==='日式衛浴');
+  if(/木紋/.test(txt))add(x=>x.type==='牆板'&&/木紋/.test(x.name)&&(!/重板/.test(txt)||x.spec==='水泥'));
+  if(/黑框/.test(txt))add(x=>x.type==='牆板'&&(/立柱黑/.test(x.name)||(/橫/.test(x.name)&&x.spec==='黑')));
+  if(/白框/.test(txt))add(x=>x.type==='牆板'&&(/立柱白/.test(x.name)||(/橫/.test(x.name)&&x.spec==='白')));
+  if(/高板|330/.test(txt))add(x=>x.type==='牆板'&&/^305/.test(x.name));
+  if(/地螺絲/.test(txt))add(x=>/地螺絲/.test(x.name));
+  if(/露臺|塑木/.test(txt))add(x=>/塑木/.test(x.name));
+  return [...pick].map(x=>({label:(x.section?x.section.replace('大浴室','大衛浴')+'-':'')+x.name+(x.spec?'('+x.spec+')':''),total:x.total,st:x.st,id:x.id}))}
+let stType='全部',stFilter='',stQ='',stockMode='list';
+const itemLabel=i=>(i.section?i.section.replace('大浴室','大衛浴')+'・':'')+i.name+(i.spec?'（'+i.spec+'）':'');
+function renderStock(){const el=$('stockPage');if(!loaded)return;const all=stockItems;
+  const needIds=new Set();crewsOf(DB.today).forEach(c=>needsForCrew(c).forEach(n=>needIds.add(n.id)));
+  const cnt=f=>all.filter(f).length;const types=['全部',...new Set(all.map(i=>i.type))];
+  if(stockMode==='week')return renderWeek();
+  let h='<div class="pagehead"><h2>庫存<small>大倉＋油車</small></h2><div class="actions">'+(isAdmin()?'<button class="btn" data-s="print">列印週表</button><button class="btn" data-s="week">輸入週表</button><button class="btn primary" data-s="newitem">＋ 新增品項</button>':'')+'</div></div>'+
+   '<div class="tiles"><button class="tile out" data-f="out" aria-pressed="'+(stFilter==='out')+'"><b>'+cnt(i=>i.st==='out'||i.st==='neg')+'</b><span>缺貨／負庫存</span></button>'+
+   '<button class="tile low" data-f="low" aria-pressed="'+(stFilter==='low')+'"><b>'+cnt(i=>i.st==='low')+'</b><span>低於安全量或 7 天內用完</span></button>'+
+   '<button class="tile need" data-f="need" aria-pressed="'+(stFilter==='need')+'"><b>'+needIds.size+'</b><span>今日排班可能用到</span></button>'+
+   '<button class="tile" data-f="" aria-pressed="'+(stFilter==='')+'"><b>'+all.length+'</b><span>全部品項</span></button></div>'+
+   '<div class="sbar"><div class="seg">'+types.map(t=>'<button data-ty="'+esc(t)+'" aria-pressed="'+(stType===t)+'">'+esc(t)+'</button>').join('')+'</div><input id="stq" type="search" placeholder="搜尋品項（中文或泰文）" value="'+esc(stQ)+'"></div>';
+  const q=stQ.trim().toLowerCase();const ord={neg:0,out:1,low:2,ok:3,idle:4};
+  let rows=all.filter(i=>(stType==='全部'||i.type===stType)&&(!stFilter||(stFilter==='need'?needIds.has(i.id):stFilter==='out'?(i.st==='out'||i.st==='neg'):i.st===stFilter))&&(!q||(i.name+i.spec+i.thai+i.section).toLowerCase().includes(q)));
+  rows.sort((a,b)=>ord[a.st]-ord[b.st]||(a.days??1e9)-(b.days??1e9)||a.order-b.order);
+  const stl={neg:'負庫存',out:'缺貨',low:'快不夠',ok:'充足',idle:'無庫存'};const stc={neg:'out',out:'out',low:'low',ok:'ok',idle:'idle'};
+  h+='<div class="stbl"><div class="srow h"><span>品項</span><span class="num">大倉</span><span class="num">油車</span><span class="num">合計</span><span class="num">近14天用量</span><span>預估可用</span><span>狀態</span><span></span></div>'+
+   rows.map(i=>'<div class="srow"><div class="nm"><b>'+esc(itemLabel(i))+'</b>'+(needIds.has(i.id)?'<span class="tag2">今日可能用到</span>':'')+(i.thai?'<small>'+esc(i.thai)+'</small>':'')+'</div>'+
+     '<span class="num'+(i.big<0?' neg':'')+'" data-l="大倉">'+fmtN(i.big)+'</span><span class="num'+(i.oil<0?' neg':'')+'" data-l="油車">'+fmtN(i.oil)+'</span><span class="num tot'+(i.total<0?' neg':'')+'" data-l="合計">'+fmtN(i.total)+'</span>'+
+     '<span class="num" data-l="14天用">'+fmtN(i.used)+'</span><span>'+(i.days==null?'—':(i.days<=0?'已不足':'約 '+Math.floor(i.days)+' 天'))+'</span><span class="st '+stc[i.st]+'">'+stl[i.st]+'</span>'+
+     '<span style="display:flex;gap:4px;justify-content:flex-end">'+(canField()?'<button class="mini" data-stk="'+i.id+'">登記</button>':'')+'<button class="mini" data-his="'+i.id+'">紀錄</button></span></div>').join('')+
+   (rows.length?'':'<div class="srow"><span class="foot">沒有符合的品項</span></div>')+'</div>'+
+   '<div class="foot">「預估可用」＝合計庫存 ÷ 近 14 天平均每日出貨量。負庫存表示出貨多於帳面，請盤點後用「調整」修正。</div>';
+  el.innerHTML=h}
+$('stockPage').addEventListener('click',e=>{if(stockMode==='week')return weekClick(e);const t=e.target.closest('[data-f]');if(t){stFilter=stFilter===t.dataset.f?'':t.dataset.f;renderStock();return}
+  const y=e.target.closest('[data-ty]');if(y){stType=y.dataset.ty;renderStock();return}
+  const s=e.target.closest('[data-stk]');if(s){openMoveModal(stockItems.find(x=>x.id===s.dataset.stk));return}
+  const h=e.target.closest('[data-his]');if(h){openHistory(stockItems.find(x=>x.id===h.dataset.his));return}
+  if(e.target.closest('[data-s="newitem"]'))openItemModal(null);
+  if(e.target.closest('[data-s="print"]'))openPrintModal();
+  if(e.target.closest('[data-s="week"]'))openWeek()});
+$('stockPage').addEventListener('input',e=>{if(stockMode==='week')return weekInput(e);if(e.target.id==='stq'){stQ=e.target.value;const pos=e.target.selectionStart;renderStock();const i=$('stq');i.focus();try{i.setSelectionRange(pos,pos)}catch(_){}}});
+function openMoveModal(it){if(!it)return;const kinds=isAdmin()?['出貨','進貨','調整']:['出貨'];let kind='出貨',place='大倉';
+  const siteOpts=crewsOf(DB.today).flatMap(c=>crewSites(c)).concat(sites.map(s=>s.name));
+  openModal('登記：'+itemLabel(it),
+   '<div class="fld"><label>動作</label><div class="segs" id="skKind">'+kinds.map((k,i)=>'<button data-k="'+k+'" aria-pressed="'+(i===0)+'">'+{出貨:'出貨（領料）',進貨:'進貨（補貨）',調整:'盤點調整（±）'}[k]+'</button>').join('')+'</div></div>'+
+   '<div class="fld"><label>地點</label><div class="segs" id="skPlace"><button data-p="大倉" aria-pressed="true">大倉（'+fmtN(it.big)+'）</button><button data-p="油車" aria-pressed="false">油車（'+fmtN(it.oil)+'）</button></div></div>'+
+   '<div class="grid2"><div class="fld"><label for="skQty" id="skQL">數量</label><input id="skQty" type="number" step="1" inputmode="numeric"></div>'+
+   '<div class="fld"><label for="skDate">日期</label><input id="skDate" type="date" value="'+DB.today+'"></div></div>'+
+   '<div class="fld" id="skSiteW"><label for="skSite">用在哪個案場（可略過）</label><input id="skSite" list="dlSk"><datalist id="dlSk">'+[...new Set(siteOpts)].map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist></div>'+
+   '<div class="fld"><label for="skNote">備註</label><input id="skNote"></div><div class="merr" id="merr" hidden></div>',
+   [['取消','close'],['登記','ok','primary']],async act=>{if(act!=='ok')return true;const q=Number(val('skQty'));if(!q){showErr('請填數量');return false}
+     await api('stock_move',{itemId:it.id,kind,place,qty:q,date:val('skDate'),site:val('skSite'),note:val('skNote')});
+     toast('已登記'+kind+' '+q);await load();return true});
+  setTimeout(()=>$('skQty')&&$('skQty').focus(),50);
+  $('skKind').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;kind=b.dataset.k;$('skKind').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    $('skSiteW').hidden=kind!=='出貨';$('skQL').textContent=kind==='調整'?'調整數量（多了填正數、少了填負數）':'數量'});
+  $('skPlace').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;place=b.dataset.p;$('skPlace').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))})}
+async function openHistory(it){if(!it)return;
+  openModal('紀錄：'+itemLabel(it),'<div class="foot">讀取中…</div>',isAdmin()?[['編輯品項','edit'],['關閉','close','primary']]:[['關閉','close','primary']],async act=>{if(act==='edit'){closeModal();openItemModal(it);return false}
+    if(act==='delmove')return false;return true},true);
+  try{const r=await fetch(CFG.API_URL+'?action=moves&item='+encodeURIComponent(it.id));const j=await r.json();const list=j.data||[];
+    const box=document.querySelector('#modalBg .mb');if(!box)return;
+    box.innerHTML='<div class="foot">大倉 '+fmtN(it.big)+'｜油車 '+fmtN(it.oil)+'｜合計 '+fmtN(it.total)+'（最近 100 筆）</div><div class="hist">'+list.map(m=>'<div><span>'+esc(m.date)+'</span><span>'+esc(m.place)+'</span><span>'+esc(m.kind)+'</span><span>'+esc(m.by||'')+'</span><span>'+esc([m.site,m.note].filter(Boolean).join('｜'))+'</span><span class="q'+(m.qty<0?' neg':'')+'">'+(m.qty>0?'+':'')+fmtN(m.qty)+(isAdmin()?' <button class="mini" data-dm="'+m.id+'" title="刪除這筆">×</button>':'')+'</span></div>').join('')+'</div>'+(list.length?'':'<div class="foot">還沒有紀錄</div>');
+    box.addEventListener('click',async e=>{const b=e.target.closest('[data-dm]');if(!b)return;if(b.dataset.ok!=='1'){b.dataset.ok='1';b.textContent='確定?';return}
+      try{await api('move_delete',{id:b.dataset.dm});toast('已刪除這筆紀錄');await load();closeModal()}catch(err){toast(err.message)}})}
+  catch(e){toast('讀不到紀錄')}}
+function openItemModal(it){const isNew=!it;it=it||{type:'牆板',section:'',name:'',spec:'',thai:'',safe:0};
+  const types=[...new Set(stockItems.map(i=>i.type).concat(['牆板','門窗','衛浴','其他']))];
+  openModal(isNew?'新增品項':'編輯品項',
+   '<div class="grid2"><div class="fld"><label for="iType">類別</label><select id="iType">'+types.map(t=>'<option'+(t===it.type?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></div>'+
+   '<div class="fld"><label for="iSec">分組（衛浴套組用，可空白）</label><input id="iSec" value="'+esc(it.section)+'"></div></div>'+
+   '<div class="grid2"><div class="fld"><label for="iName">品名 *</label><input id="iName" value="'+esc(it.name)+'"></div><div class="fld"><label for="iSpec">規格（例：發泡、黑）</label><input id="iSpec" value="'+esc(it.spec)+'"></div></div>'+
+   '<div class="grid2"><div class="fld"><label for="iThai">泰文</label><input id="iThai" value="'+esc(it.thai)+'"></div><div class="fld"><label for="iSafe">安全庫存（低於就提醒）</label><input id="iSafe" type="number" value="'+esc(it.safe||0)+'"></div></div><div class="merr" id="merr" hidden></div>',
+   isNew?[['取消','close'],['新增','ok','primary']]:[['刪除品項','del'],['取消','close'],['儲存','ok','primary']],async act=>{
+     if(act==='del'){if(!confirmStep('delitem'))return false;await api('item_delete',{id:it.id});toast('已刪除');await load();return true}
+     if(act!=='ok')return true;if(!val('iName')){showErr('請填品名');return false}
+     await api('item_save',{item:{id:isNew?'':it.id,type:val('iType'),section:val('iSec'),name:val('iName'),spec:val('iSpec'),thai:val('iThai'),safe:val('iSafe')}});toast('已儲存');await load();return true})}
+
+
+// ================= 紙本週表：列印／輸入／拍照辨識 =================
+const THWK=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+const mondayOf=s=>{const d=toDate(s);const k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return ymd(d)};
+const weekDays=from=>[0,1,2,3,4,5,6].map(i=>addDays(from,i));
+const itemsOfTypes=types=>stockItems.filter(i=>types.includes(i.type)).sort((a,b)=>a.order-b.order);
+function openPrintModal(){const types=[...new Set(stockItems.map(i=>i.type))];const wd=(toDate(DB.today).getDay()+6)%7;const def=wd>=3?addDays(mondayOf(DB.today),7):mondayOf(DB.today);
+  openModal('列印週表（給倉管手寫）',
+   '<div class="grid2"><div class="fld"><label for="pwFrom">週一日期</label><input id="pwFrom" type="date" value="'+def+'"></div>'+
+   '<div class="fld"><label for="pwPlace">地點</label><select id="pwPlace"><option>大倉</option><option>油車</option><option value="both">大倉＋油車（各一份）</option></select></div></div>'+
+   '<div class="fld"><label>類別（每類一頁）</label><div class="segs" id="pwTypes">'+types.map(t=>'<button data-t="'+esc(t)+'" aria-pressed="true">'+esc(t)+'</button>').join('')+'</div></div>'+
+   '<span class="hint" style="font-size:12px;color:var(--muted)">A4 橫式。每列有 No. 編號，之後拍照上傳時 AI 會用編號對應品項。</span>',
+   [['取消','close'],['列印','ok','primary']],async act=>{if(act!=='ok')return true;
+     const sel=[...document.querySelectorAll('#pwTypes button[aria-pressed=true]')].map(b=>b.dataset.t);if(!sel.length){toast('至少選一個類別');return false}
+     const pl=val('pwPlace');printWeek(mondayOf(val('pwFrom')),pl==='both'?['大倉','油車']:[pl],sel);return true});
+  $('pwTypes').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b)b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true')})}
+function printWeek(from,places,types){const days=weekDays(from);
+  const css='@page{size:A4 landscape;margin:8mm}body{font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;margin:0;color:#000}'+
+   '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}h1{font-size:18px;margin:0 0 2px}.sub{font-size:12px;margin-bottom:6px;display:flex;justify-content:space-between}'+
+   'table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #000;padding:1px 4px;font-size:11px;height:21px;overflow:hidden}th{background:#eee;font-weight:700;text-align:center}'+
+   'td.no{text-align:center;font-weight:700}td.nm{font-weight:700}td.th{font-size:10px}td.cur{text-align:center;background:#f6f6f6}td.w{background:#fff}td.cnt{background:#fff8d6}th small{display:block;font-weight:400;font-size:9px}'+
+   '.foot{margin-top:6px;font-size:12px;display:flex;gap:40px}';
+  let body='';
+  places.forEach(pl=>types.forEach(t=>{const list=itemsOfTypes([t]);if(!list.length)return;
+    body+='<div class="pg"><h1>富林庫存週表 ใบ STOCK วัสดุ｜'+esc(t)+'｜'+pl+(pl==='大倉'?' คลังใหญ่':' รถน้ำมัน')+'</h1><div class="sub"><span>'+mdw(days[0])+' ～ '+mdw(days[6])+'　每天填「出貨數量」／กรอกจำนวนที่เบิกออกแต่ละวัน</span><span>列印：'+DB.today+'</span></div>'+
+     '<table><colgroup><col style="width:34px"><col style="width:17%"><col style="width:15%"><col style="width:52px">'+days.map(()=>'<col>').join('')+'<col style="width:58px"><col style="width:64px"></colgroup>'+
+     '<thead><tr><th>No.</th><th>品項</th><th>รายการ</th><th>目前庫存<small>คงเหลือ</small></th>'+days.map(d=>{const x=toDate(d);return '<th>'+(x.getMonth()+1)+'/'+x.getDate()+' '+WK[x.getDay()].slice(1)+'<small>'+THWK[x.getDay()]+'</small></th>'}).join('')+'<th>本週合計<small>รวม</small></th><th>盤點實數<small>นับจริง</small></th></tr></thead><tbody>'+
+     list.map(i=>'<tr><td class="no">'+i.order+'</td><td class="nm">'+esc((i.section?i.section.replace('大浴室','大衛浴')+'・':'')+i.name+(i.spec?' '+i.spec:''))+'</td><td class="th">'+esc(i.thai||'')+'</td><td class="cur">'+fmtN(pl==='大倉'?i.big:i.oil)+'</td>'+days.map(()=>'<td class="w"></td>').join('')+'<td></td><td class="cnt"></td></tr>').join('')+
+     '</tbody></table><div class="foot"><span>倉管簽名 ลายเซ็น：＿＿＿＿＿＿＿</span><span>核對 ตรวจสอบ：＿＿＿＿＿＿＿</span><span>進貨請寫在背面 รับของเข้าเขียนด้านหลัง</span></div></div>'}));
+  const f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(f);
+  const d=f.contentDocument;d.open();d.write('<!doctype html><html><head><meta charset="utf-8"><title>富林庫存週表 '+from+'</title><style>'+css+'</style></head><body>'+body+'</body></html>');d.close();
+  setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){toast('無法開啟列印')}setTimeout(()=>f.remove(),60000)},300)}
+
+let wk=null;
+async function openWeek(){wk={place:'大倉',from:mondayOf(DB.today),types:[...new Set(stockItems.map(i=>i.type))],grid:{},ai:{},loading:true};stockMode='week';renderStock();await loadWeek()}
+async function loadWeek(){wk.loading=true;renderWeek();
+  try{const r=await fetch(CFG.API_URL+'?action=week&place='+encodeURIComponent(wk.place)+'&from='+wk.from+'&t='+Date.now());const j=await r.json();if(!j.ok)throw new Error(j.error);
+    wk.grid={};wk.ai={};stockItems.forEach(i=>{const e=j.data.entries[i.id]||{};const c=j.data.counts[i.id];wk.grid[i.id]={days:Object.assign({},e),count:c==null?'':String(c)}})}
+  catch(e){toast('讀不到週表：'+e.message)}
+  wk.loading=false;wk.dirty=false;renderWeek()}
+function renderWeek(){const el=$('stockPage');const days=weekDays(wk.from);const types=[...new Set(stockItems.map(i=>i.type))];
+  let h='<div class="pagehead"><h2>輸入週表<small>'+mdw(days[0])+' ～ '+mdw(days[6])+'</small></h2><div class="actions"><button class="btn" data-w="back">返回庫存</button><button class="btn" data-w="photo">拍照辨識</button><button class="btn primary" data-w="save">儲存這週</button></div></div>'+
+   '<div class="sbar"><div class="seg">'+['大倉','油車'].map(p=>'<button data-w="place" data-v="'+p+'" aria-pressed="'+(wk.place===p)+'">'+p+'</button>').join('')+'</div>'+
+   '<button class="btn" data-w="prev">‹ 上一週</button><button class="btn" data-w="next">下一週 ›</button>'+
+   '<div class="seg">'+types.map(t=>'<button data-w="type" data-v="'+esc(t)+'" aria-pressed="'+wk.types.includes(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
+   '<input type="file" id="wkPhoto" accept="image/*" hidden></div>';
+  if(wk.loading){el.innerHTML=h+'<div class="foot">讀取中…</div>';return}
+  const list=itemsOfTypes(wk.types);
+  h+='<div class="boardwrap"><table class="wkt"><thead><tr><th>No.</th><th style="text-align:left">品項</th><th>目前</th>'+days.map(d=>{const x=toDate(d);return '<th>'+(x.getMonth()+1)+'/'+x.getDate()+'<small>'+WK[x.getDay()]+'</small></th>'}).join('')+'<th>合計</th><th>盤點實數</th></tr></thead><tbody>'+
+   list.map(i=>{const g=wk.grid[i.id]||{days:{},count:''};const sum=days.reduce((a,d)=>a+(Number(g.days[d])||0),0);const A=wk.ai[i.id]||{};
+     return '<tr><td class="no">'+i.order+'</td><td class="nm">'+esc(itemLabel(i))+'</td><td class="cur">'+fmtN(wk.place==='大倉'?i.big:i.oil)+'</td>'+
+     days.map(d=>'<td><input inputmode="numeric" data-it="'+i.id+'" data-d="'+d+'" value="'+esc(g.days[d]??'')+'"'+(A[d]?' class="ai"':'')+'></td>').join('')+
+     '<td class="sum" id="sum-'+i.id+'">'+(sum||'')+'</td><td><input inputmode="numeric" data-it="'+i.id+'" data-d="count" value="'+esc(g.count??'')+'"'+(A.count?' class="ai"':'')+'></td></tr>'}).join('')+'</tbody></table></div>'+
+   '<div class="foot">照紙本週表把每天的出貨數量填進來，按「儲存這週」。同一週可以重複儲存，會覆蓋上次輸入的週表數字，不影響網站上單筆登記的出貨。<br>「盤點實數」有填的品項，系統會跟週日帳面比對，自動補一筆盤點調整。黃色格子是 AI 從照片讀出來的，請核對。</div>';
+  el.innerHTML=h}
+function weekInput(e){const t=e.target;if(!t.dataset.it)return;const g=wk.grid[t.dataset.it]=wk.grid[t.dataset.it]||{days:{},count:''};
+  const v=t.value.replace(/[^\d.\-]/g,'');if(t.dataset.d==='count')g.count=v;else g.days[t.dataset.d]=v;wk.dirty=true;t.classList.remove('ai');
+  const sum=weekDays(wk.from).reduce((a,d)=>a+(Number(g.days[d])||0),0);const c=$('sum-'+t.dataset.it);if(c)c.textContent=sum||''}
+async function weekClick(e){const b=e.target.closest('[data-w]');if(!b)return;const w=b.dataset.w;
+  const leave=()=>!wk.dirty||confirmStep('leave-week');
+  if(w==='back'){if(!leave()){toast('還沒儲存，再按一次離開');return}stockMode='list';wk=null;renderStock();return}
+  if(w==='prev'||w==='next'){if(!leave()){toast('還沒儲存，再按一次切換');return}wk.from=addDays(wk.from,w==='prev'?-7:7);return loadWeek()}
+  if(w==='place'){if(!leave()){toast('還沒儲存，再按一次切換');return}wk.place=b.dataset.v;return loadWeek()}
+  if(w==='type'){const t=b.dataset.v;wk.types=wk.types.includes(t)?wk.types.filter(x=>x!==t):wk.types.concat(t);if(!wk.types.length)wk.types=[t];renderWeek();return}
+  if(w==='photo'){const inp=$('wkPhoto');inp.onchange=async()=>{const f=inp.files[0];if(!f)return;b.disabled=true;b.textContent='AI 辨識中…（約 20 秒）';
+      try{const img=await shrink2(f,2200);const days=weekDays(wk.from);const d=(await api('week_ocr',{image:img,dates:days})).data;
+        let n=0;(d.rows||[]).forEach(r=>{const it=stockItems.find(i=>i.order===Number(r.no));if(!it)return;const g=wk.grid[it.id]=wk.grid[it.id]||{days:{},count:''};const A=wk.ai[it.id]=wk.ai[it.id]||{};
+          (r.days||[]).forEach((q,k)=>{if(q!==null&&q!==''&&!isNaN(Number(q))){g.days[days[k]]=String(q);A[days[k]]=1;n++}});
+          if(r.count!==null&&r.count!==undefined&&!isNaN(Number(r.count))){g.count=String(r.count);A.count=1;n++}});
+        wk.dirty=true;renderWeek();toast(n?'AI 讀到 '+n+' 格，請核對黃色格子後儲存':'AI 沒讀到數字，請確認照片清楚、是這週的表')}
+      catch(err){toast(err.message)}b.disabled=false;b.textContent='拍照辨識';inp.value=''};inp.click();return}
+  if(w==='save'){b.disabled=true;b.textContent='儲存中…';
+    try{const rows=Object.keys(wk.grid).map(id=>({itemId:id,days:wk.grid[id].days,count:wk.grid[id].count}))
+        .filter(r=>Object.values(r.days).some(v=>v!==''&&v!=null)||r.count!==''||true);
+      const d=(await api('week_save',{place:wk.place,from:wk.from,rows})).data;wk.dirty=false;toast('已儲存這週（'+d.outs+' 筆出貨）');await load();stockMode='week';await loadWeek()}
+    catch(err){toast(err.message)}b.disabled=false;b.textContent='儲存這週'}}
+function shrink2(file,max){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const img=new Image();img.onload=()=>{
+  const k=Math.min(1,max/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);
+  cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);res({type:'image/jpeg',data:cv.toDataURL('image/jpeg',.85).split(',')[1]})};img.onerror=rej;img.src=fr.result};fr.onerror=rej;fr.readAsDataURL(file)})}
+
+// ================= 管理：名單 =================
+let mdraft=null,mdirty=false;
+function renderManage(){const el=$('managePage');if(!isAdmin()){el.innerHTML='';return}
+  if(!mdraft||!mdirty)mdraft={people:DB.people.map(p=>({name:p.name,kind:p.kind})),cars:DB.cars.map(c=>({name:c})),tasks:DB.tasks.map(t=>({zh:t.zh,th:t.th}))};
+  const kinds=['帶頭','工人','其他'];
+  el.innerHTML='<div class="pagehead"><h2>管理<small>名單與設定</small></h2>'+(DB.sheetUrl?'<a class="btn" href="'+DB.sheetUrl+'" target="_blank" rel="noopener">打開資料庫試算表（備份）</a>':'')+'</div>'+
+  '<div class="mgrid">'+
+  '<div class="mcard"><h3>人員 <button class="btn primary" data-ms="people">儲存</button></h3>'+mdraft.people.map((p,i)=>'<div class="lrow"><input data-mk="people" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><select data-mk="people" data-i="'+i+'" data-f="kind">'+kinds.map(k=>'<option'+(k===p.kind?' selected':'')+'>'+k+'</option>').join('')+'</select><button data-mdel="people" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="people">＋ 新增人員</button></div>'+
+  '<div class="mcard"><h3>車輛 <button class="btn primary" data-ms="cars">儲存</button></h3>'+mdraft.cars.map((p,i)=>'<div class="lrow" style="grid-template-columns:1fr auto"><input data-mk="cars" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><button data-mdel="cars" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="cars">＋ 新增車輛</button></div>'+
+  '<div class="mcard"><h3>施作項目（中／泰） <button class="btn primary" data-ms="tasks">儲存</button></h3><div class="foot">泰文留空，儲存時會自動翻譯。</div>'+mdraft.tasks.map((p,i)=>'<div class="lrow t2"><input data-mk="tasks" data-i="'+i+'" data-f="zh" value="'+esc(p.zh)+'"><input data-mk="tasks" data-i="'+i+'" data-f="th" value="'+esc(p.th)+'"><button data-mdel="tasks" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="tasks">＋ 新增項目</button></div>'+
+  '</div><div class="foot">密碼在 Apps Script 的「指令碼屬性」修改：ADMIN_PIN（管理）、FIELD_PIN（現場）。每一筆寫入都記錄在資料庫的「紀錄」分頁。</div>'}
+$('managePage').addEventListener('input',e=>{const t=e.target;if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
+$('managePage').addEventListener('change',e=>{const t=e.target;if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
+$('managePage').addEventListener('click',async e=>{const a=e.target.closest('[data-madd]');if(a){const k=a.dataset.madd;mdirty=true;mdraft[k].push(k==='people'?{name:'',kind:'工人'}:k==='cars'?{name:''}:{zh:'',th:''});renderManage();return}
+  const d=e.target.closest('[data-mdel]');if(d){mdirty=true;mdraft[d.dataset.mdel].splice(+d.dataset.i,1);renderManage();return}
+  const s=e.target.closest('[data-ms]');if(s){const k=s.dataset.ms;s.disabled=true;s.textContent='儲存中…';
+    try{await api('list_save',{kind:k,rows:mdraft[k].filter(x=>(x.name||x.zh||'').trim())});toast('已儲存');mdraft=null;mdirty=false;await load();renderManage()}catch(err){toast(err.message);s.disabled=false;s.textContent='儲存'}}});
+
+// ================= 啟動 =================
+setAdminUI();
+showTab((location.hash||'#map').slice(1));
 initMap();render();load();
-setInterval(load,(CFG.REFRESH_MINUTES||5)*60000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
+setInterval(()=>{if(!schedEdit&&!document.getElementById('modalBg'))load()},(CFG.REFRESH_MINUTES||5)*60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!schedEdit&&!document.getElementById('modalBg'))load()});
 })();
 </script>
 </body>
