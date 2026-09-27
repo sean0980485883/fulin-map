@@ -422,6 +422,9 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 #gpop .gpb button.on{background:#1F63E0;color:#fff;border-color:#1F63E0}
 #gpop .gpb button[hidden]{display:none}
 #gpop .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+#gpop .gpb button em{font-style:normal;font-weight:400;font-size:11px;color:#8A6D00;background:#FFF3C4;border-radius:6px;padding:0 5px}
+#gpop .gpb button.on em{background:rgba(255,255,255,.25);color:#fff}
+#gpop .gpdone{border:0;border-top:1px solid var(--line);background:#1F5C55;color:#fff;padding:12px;font:inherit;font-weight:700;cursor:pointer}
 #gpop .gpclr{border:0;border-top:1px solid var(--line);background:#fff;padding:10px;color:#D93025;font:inherit;cursor:pointer}
 @media (max-width:640px){#gpop{position:fixed;left:0!important;right:0;bottom:0;top:auto!important;width:100%;border-radius:14px 14px 0 0;max-height:70vh}}
 </style>
@@ -1066,23 +1069,28 @@ function openPick(key){closePick();const anchor=document.querySelector('[data-g=
   else if(k==='w'){title='第 '+(i+1)+' 組・工人（點完自動跳下一格）';const u=usedPeople(key);opts=workersL().filter(o=>o===cur||!u.has(o));
     groups=[['工人',opts.map(v=>({v}))],['司機／帶頭',leaders().filter(o=>o===cur||!u.has(o)).map(v=>({v}))]]}
   else if(k==='t'){title='第 '+(i+1)+' 組・施作項目';opts=DB.tasks.map(t=>t.zh);free=true}
-  else if(k==='s'){title='第 '+(i+1)+' 組・案場（由北到南）';free=true;const used=new Set();draft.crews.forEach(c=>crewSites(c).forEach(l=>used.add(l)));
-    const ns=sitesNS().filter(x=>!used.has(x.name));
-    groups=[['常用',SPECIAL_SITES.map(x=>({v:x}))],['案場',ns.filter(x=>x.status!=='done').map(x=>({v:x.name,b:bucket(x)}))],['已完工',ns.filter(x=>x.status==='done').map(x=>({v:x.name,b:'done'}))]]}
+  else if(k==='s'){title='第 '+(i+1)+' 組・案場（可複選，由北到南）';free=true;const mine=crewSites(draft.crews[i]);const other={};
+    draft.crews.forEach((c,j)=>{if(j!==i)crewSites(c).forEach(l=>(other[l]=other[l]||[]).push(j+1))});
+    const mk=(v,b)=>({v,b,on:mine.includes(v),tag:other[v]&&!SPECIAL_SITES.includes(v)?'第'+other[v].join('、')+'組':''});
+    const ns=sitesNS();const extra=mine.filter(l=>!SPECIAL_SITES.includes(l)&&!sites.some(x=>x.name===l));
+    groups=[['常用',SPECIAL_SITES.map(x=>mk(x))],['案場',extra.map(x=>mk(x)).concat(ns.filter(x=>x.status!=='done').map(x=>mk(x.name,bucket(x))))],['已完工',ns.filter(x=>x.status==='done').map(x=>mk(x.name,'done'))]]}
   if(!groups)groups=[['',opts.map(v=>({v}))]];
   const pop=document.createElement('div');pop.id='gpop';
   pop.innerHTML='<div class="gph"><b>'+esc(title)+'</b><button data-pk="x" aria-label="關閉">✕</button></div>'+
     ((free||opts.length>12||k==='s')?'<input id="gpq" placeholder="'+(free?'搜尋，或直接打字按 Enter':'搜尋')+'" autocomplete="off">':'')+
-    '<div class="gpl">'+groups.filter(g=>g[1].length).map(g=>(g[0]?'<div class="gpg">'+g[0]+'</div>':'')+'<div class="gpb">'+g[1].map(o=>'<button data-pv="'+esc(o.v)+'" class="'+(o.v===cur?'on':'')+'">'+(o.b?'<span class="dot" style="background:var(--'+BK[o.b].c.slice(2)+')"></span>':'')+esc(o.v)+'</button>').join('')+'</div>').join('')+
+    '<div class="gpl">'+groups.filter(g=>g[1].length).map(g=>(g[0]?'<div class="gpg">'+g[0]+'</div>':'')+'<div class="gpb">'+g[1].map(o=>'<button data-pv="'+esc(o.v)+'" class="'+(o.v===cur||o.on?'on':'')+'">'+(o.on?'✓ ':'')+(o.b?'<span class="dot" style="background:var(--'+BK[o.b].c.slice(2)+')"></span>':'')+esc(o.v)+(o.tag?'<em>'+o.tag+'</em>':'')+'</button>').join('')+'</div>').join('')+
     (groups.every(g=>!g[1].length)?'<div class="foot">都排完了</div>':'')+'</div>'+
-    (cur?'<button data-pk="clear" class="gpclr">清除這格</button>':'');
+    (k==='s'?'<button data-pk="x" class="gpdone">完成</button>':cur?'<button data-pk="clear" class="gpclr">清除這格</button>':'');
   document.body.appendChild(pop);
   if(innerWidth>640){const r=anchor.getBoundingClientRect();const w=pop.offsetWidth,h=pop.offsetHeight;
     let x=r.left+scrollX,y=r.bottom+scrollY+4;if(x+w>scrollX+innerWidth-8)x=scrollX+innerWidth-w-8;if(r.bottom+h>innerHeight-8&&r.top-h>8)y=r.top+scrollY-h-4;
     pop.style.left=Math.max(8,x)+'px';pop.style.top=y+'px'}
   const q=$('gpq');if(q&&innerWidth>640)q.focus()}
 function pickValue(v){const key=gpopKey;if(!key)return;const p=key.split('|'),k=p[0],i=+p[1];
-  if(k==='s'){closePick();addSiteLine(i,v);return}
+  if(k==='s'){const c=draft.crews[i];const lines=crewSites(c);const sc=(document.querySelector('#gpop .gpl')||{}).scrollTop||0;
+    if(lines.includes(v)){lines.splice(lines.indexOf(v),1);c.site=lines.join('\n');const x=sites.find(y=>y.name===v);if(x)c.siteIds=c.siteIds.filter(z=>z!==x.id);closePick();renderSchedEditor()}
+    else{closePick();addSiteLine(i,v)}
+    openPick(key);const l=document.querySelector('#gpop .gpl');if(l)l.scrollTop=sc;return}
   setCell(key,v);closePick();renderSchedEditor();
   if(k==='w'&&v){const ws=draft.crews[i].workers;for(let j=+p[2]+1;j<8;j++)if(!ws[j]){openPick('w|'+i+'|'+j);return}}}
 document.addEventListener('click',e=>{const pop=$('gpop');if(!pop)return;
