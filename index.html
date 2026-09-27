@@ -427,6 +427,9 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 #gpop .gpdone{border:0;border-top:1px solid var(--line);background:#1F5C55;color:#fff;padding:12px;font:inherit;font-weight:700;cursor:pointer}
 #gpop .gpclr{border:0;border-top:1px solid var(--line);background:#fff;padding:10px;color:#D93025;font:inherit;cursor:pointer}
 @media (max-width:640px){#gpop{position:fixed;left:0!important;right:0;bottom:0;top:auto!important;width:100%;border-radius:14px 14px 0 0;max-height:70vh}}
+
+.savest{font-size:13px;color:var(--muted);padding:0 6px;white-space:nowrap}
+.savest.ok{color:#2E9E44}.savest.saving,.savest.wait{color:#1F63E0}.savest.err{color:#D93025;font-weight:600}
 </style>
 </head>
 <body>
@@ -799,7 +802,7 @@ async function load(){
   if(!CFG.API_URL){fail('尚未設定後台網址（API_URL）。');return}
   if(loading)return;loading=true;
   try{const r=await fetch(CFG.API_URL+'?action=all&t='+Date.now());const j=await readJson(r);if(!j.ok)throw new Error(j.error||'讀取失敗');
-    DB=j.data;applyData();
+    DB=j.data;try{localStorage.setItem('fulin-db',JSON.stringify(DB))}catch(e){}applyData();
     const d=new Date();$('updated').textContent='更新 '+pad(d.getHours())+':'+pad(d.getMinutes());
     if(firstLoad){firstLoad=false;fitAll()}
   }catch(e){fail('讀不到資料（'+e.message+'），請檢查網路或稍後再試。')}
@@ -809,8 +812,8 @@ function applyData(){
   sites=DB.sites.map(s=>{const co=parseCoord(s.coord);return Object.assign({},s,{status:parseStatus(s.status),statusText:s.status,coordText:s.coord,lat:co?co[0]:null,lng:co?co[1]:null})});
   loaded=true;restoreRoute();matchToday();
   const noLoc=sites.filter(x=>x.lat==null).length;const n=$('notice');n.className='notice';n.textContent=noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'';n.hidden=!noLoc;
-  if(!schedDate)schedDate=DB.today;
-  stockCalc();render();renderToday();if(wk&&!wk.dirty&&!wk.loading)wk.data=null;if(!(stockMode==='sheet'&&wk&&wk.dirty))renderStock();if(!$('v-manage').hidden)renderManage();
+  if(!schedDate)schedDate=DB.today;restoreDraft();
+  stockCalc();render();renderToday();if(wk&&!wk.dirty)wk.stale=true;if(!(stockMode==='sheet'&&wk&&wk.dirty))renderStock();if(!$('v-manage').hidden)renderManage();
   $('cntStock').textContent=stockItems.filter(i=>i.st==='out'||i.st==='neg').length;
   $('cntStock').classList.toggle('bad',stockItems.some(i=>i.st==='out'||i.st==='neg'))}
 $('reload').onclick=load;
@@ -1015,7 +1018,7 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
   const free=allPeople.filter(n=>!usedPeople('').has(n)&&!SPECIAL.test(n));
   let h='<div class="pagehead"><h2>編輯排班<small>點格子 → 點名字。選過的人和車不會再出現</small></h2>'+dayTabs(D.date,'e')+'<div class="actions">'+
    '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
-   '<button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="cancel">取消</button><button class="btn primary" data-e="save">儲存排班</button></div></div>'+
+   '<button class="btn" data-e="copy">複製前一天</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
    '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+
    '<div class="boardwrap"><table class="board edit"><tbody>'+
    '<tr><td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td>'+
@@ -1037,14 +1040,14 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
       c.tasks.slice(0,5).map(v=>'<td class="tk">'+esc(v?(taskTh(v)||''):'')+'</td>').join('')+'</tr>'});
   h+='</tbody></table></div>'+
    '<div class="actions"><button class="btn" data-e="add">＋ 新增一組</button></div>'+
-   '<div class="foot">點任何格子會跳出選單，直接點名字就填好。選工人時會自動跳到下一格，可以連續點。案場由北到南排列。泰文會在儲存時自動翻譯。</div>';
-  const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx}
+   '<div class="foot">點任何格子會跳出選單，直接點名字就填好。選工人時會自動跳到下一格，可以連續點。案場由北到南排列。每改一格都會自動存到雲端（跟 Google 試算表一樣），司機那邊重新整理就看得到；泰文也會自動翻譯。改完按「完成」回到總表。</div>';
+  const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;keepDraft()}
 function crewThai(c){const known={};(DB.sched||[]).forEach(x=>{crewSites(x).forEach((l,k)=>{const t=String(x.siteThai||'').split('\n')[k];if(t)known[l]=t})});
   sites.forEach(s=>{if(s.thai)known[s.name]=s.thai});return crewSites(c).map(l=>known[l]||'').join('\n')}
 function addSiteLine(i,v){v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
   const s=sites.find(x=>x.name===v);if(s&&!c.siteIds.includes(s.id))c.siteIds.push(s.id);renderSchedEditor()}
 $('todayPage').addEventListener('change',e=>{if(!schedEdit)return;const t=e.target;
-  if(t.id==='edDate'&&t.value){draft.date=t.value;renderSchedEditor()}});
+  if(t.id==='edDate'&&t.value&&t.value!==draft.date)switchEditDay(t.value)});
 // ---- 點格子跳出的選單 ----
 const SPECIAL_SITES=['已出車','已給單','展場','維修','拆櫃','倉庫'];
 // 案場由北到南（東部花蓮台東排最後、沒座標的再後面）
@@ -1080,7 +1083,7 @@ function openPick(key){closePick();const anchor=document.querySelector('[data-g=
     ((free||opts.length>12||k==='s')?'<input id="gpq" placeholder="'+(free?'搜尋，或直接打字按 Enter':'搜尋')+'" autocomplete="off">':'')+
     '<div class="gpl">'+groups.filter(g=>g[1].length).map(g=>(g[0]?'<div class="gpg">'+g[0]+'</div>':'')+'<div class="gpb">'+g[1].map(o=>'<button data-pv="'+esc(o.v)+'" class="'+(o.v===cur||o.on?'on':'')+'">'+(o.on?'✓ ':'')+(o.b?'<span class="dot" style="background:var(--'+BK[o.b].c.slice(2)+')"></span>':'')+esc(o.v)+(o.tag?'<em>'+o.tag+'</em>':'')+'</button>').join('')+'</div>').join('')+
     (groups.every(g=>!g[1].length)?'<div class="foot">都排完了</div>':'')+'</div>'+
-    (k==='s'?'<button data-pk="x" class="gpdone">完成</button>':cur?'<button data-pk="clear" class="gpclr">清除這格</button>':'');
+    (k==='s'?'<button data-pk="x" class="gpdone">完成</button>':cur?'<button data-pk="clear" class="gpclr">清除這格（也可以按 Delete）</button>':'');
   document.body.appendChild(pop);
   if(innerWidth>640){const r=anchor.getBoundingClientRect();const w=pop.offsetWidth,h=pop.offsetHeight;
     let x=r.left+scrollX,y=r.bottom+scrollY+4;if(x+w>scrollX+innerWidth-8)x=scrollX+innerWidth-w-8;if(r.bottom+h>innerHeight-8&&r.top-h>8)y=r.top+scrollY-h-4;
@@ -1099,28 +1102,56 @@ document.addEventListener('click',e=>{const pop=$('gpop');if(!pop)return;
   if(!e.target.closest('.gcell'))closePick()});
 document.addEventListener('input',e=>{if(e.target.id!=='gpq')return;const q=norm(e.target.value).toLowerCase();
   document.querySelectorAll('#gpop [data-pv]').forEach(b=>b.hidden=!!q&&!norm(b.dataset.pv).toLowerCase().includes(q))});
+// Delete／Backspace 直接清掉目前選的格子（搜尋框有字時照常刪字）
+document.addEventListener('keydown',e=>{if(!schedEdit||(e.key!=='Delete'&&e.key!=='Backspace'))return;
+  const t=e.target;if(t.id==='gpq'&&t.value)return;if(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.id!=='gpq'))return;
+  const key=gpopKey||(t.classList&&t.classList.contains('gcell')?t.dataset.g:'');if(!key||key[0]==='s')return;
+  e.preventDefault();setCell(key,'');closePick();renderSchedEditor();const b=document.querySelector('[data-g="'+key+'"]');if(b)b.focus()});
 document.addEventListener('keydown',e=>{if(!$('gpop'))return;if(e.key==='Escape'){closePick();return}
   if(e.key==='Enter'&&e.target.id==='gpq'){e.preventDefault();const vis=[...document.querySelectorAll('#gpop [data-pv]')].filter(b=>!b.hidden);const txt=e.target.value.trim();
     const k=gpopKey.split('|')[0];if(vis.length===1)pickValue(vis[0].dataset.pv);else if(txt&&(k==='s'||k==='t'))pickValue(txt);else if(vis.length)pickValue(vis[0].dataset.pv)}});
-$('todayPage').addEventListener('input',e=>{const t=e.target;if(schedEdit&&t.dataset.note!==undefined)draft.crews[+t.dataset.note].note=t.value});
+$('todayPage').addEventListener('input',e=>{const t=e.target;if(schedEdit&&t.dataset.note!==undefined){draft.crews[+t.dataset.note].note=t.value;keepDraft()}});
+// 編輯中的排班隨時存在這台電腦，重新整理、手機鎖屏、不小心關掉都不會不見
+const DKEY='fulin-sched-draft';
+function keepDraft(){const dirty=schedEdit&&draft&&snapOf()!==draft.snap;try{if(dirty)localStorage.setItem(DKEY,JSON.stringify(draft));else localStorage.removeItem(DKEY)}catch(e){}
+  if(dirty&&!saving){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,1200);setSaveState('wait')}}
+// ---- 像 Google 試算表一樣自動存到雲端 ----
+let saveTimer=null,saving=false,saveSt={s:'',m:'',t:''};
+function saveText(){return {wait:'編輯中…',saving:'儲存中…',ok:'✓ 已自動存到雲端 '+saveSt.t,err:'⚠ 沒存到，稍後自動重試'}[saveSt.s]||'會自動儲存'}
+function setSaveState(st,m){const d=new Date();saveSt={s:st,m:m||'',t:pad(d.getHours())+':'+pad(d.getMinutes())};const e=$('saveSt');if(e){e.className='savest '+st;e.textContent=saveText();e.title=m||''}}
+function payloadOf(d){return {date:d.date,auto:true,restD:d.restD.filter(Boolean),restW:d.restW.filter(Boolean),
+  crews:d.crews.map(c=>({site:c.site,siteIds:c.siteIds,leader:c.leader,car:c.car,workers:c.workers.filter(Boolean),tasks:c.tasks.filter(Boolean),note:c.note})).filter(c=>c.site||c.leader||c.car||c.workers.length||c.tasks.length)}}
+// 存好後直接更新畫面上的資料，不用整個重新讀
+function localSched(p){DB.sched=(DB.sched||[]).filter(x=>x.date!==p.date).concat(p.crews.map((c,i)=>({id:'local'+i,date:p.date,no:i+1,siteIds:c.siteIds,site:c.site,siteThai:crewThai(c),leader:c.leader,car:c.car,workers:c.workers,tasks:c.tasks,note:c.note})));
+  DB.rest=(DB.rest||[]).filter(x=>x.date!==p.date).concat([{date:p.date,drivers:p.restD,workers:p.restW}]);matchToday()}
+async function cloudSave(){clearTimeout(saveTimer);if(!draft||saving)return;const snap=snapOf();if(snap===draft.snap)return;const p=payloadOf(draft);saving=true;setSaveState('saving');
+  try{await api('sched_save',p);localSched(p);if(draft&&draft.date===p.date)draft.snap=snap;saving=false;setSaveState('ok');keepDraft()}
+  catch(e){saving=false;setSaveState('err',e.message);saveTimer=setTimeout(cloudSave,8000);return}
+  if(draft&&snapOf()!==draft.snap){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,600)}}
+async function flushSave(){for(let n=0;n<60;n++){if(!draft||(!saving&&snapOf()===draft.snap))return true;
+    if(!saving){await cloudSave();if(saveSt.s==='err')return false}else await new Promise(r=>setTimeout(r,250))}return false}
+async function switchEditDay(v){const ok=await flushSave();if(!ok){toast('這天還沒存到雲端（'+(saveSt.m||'網路問題')+'），先別切換');renderSchedEditor();return}
+  schedDate=v;openSchedEditor()}
+function dropDraft(){try{localStorage.removeItem(DKEY)}catch(e){}}
+let draftChecked=false;
+function restoreDraft(){if(draftChecked||schedEdit)return;draftChecked=true;let d=null;try{d=JSON.parse(localStorage.getItem(DKEY)||'null')}catch(e){}
+  if(!d||!d.crews||!isAdmin())return;draft=d;schedEdit=true;schedDate=d.date;
+  setTimeout(()=>{showTab('today');toast('找到上次還沒存到雲端的排班（'+mdw(d.date)+'），正在補存')},300)}
+window.addEventListener('beforeunload',e=>{if((schedEdit&&draft&&(saving||snapOf()!==draft.snap))||(wk&&wk.dirty)){e.preventDefault();e.returnValue=''}});
 $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   const g=e.target.closest('.gcell');if(g){e.stopPropagation();if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
   const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();closePick();const act=b.dataset.e,i=+b.dataset.i;
-  if(act==='day'){if(b.dataset.v===draft.date)return;if(snapOf()!==draft.snap&&!confirmStep('eday')){toast('這天還沒儲存，再按一次切換（會放棄修改）');return}
-    schedDate=b.dataset.v;openSchedEditor();return}
+  if(act==='day'){if(b.dataset.v!==draft.date)switchEditDay(b.dataset.v);return}
   if(act==='add'){draft.crews.push(blankCrew());renderSchedEditor()}
   else if(act==='del'){const c=draft.crews[i];const empty=!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean)&&!c.tasks.some(Boolean);
     if(empty&&draft.crews.length>1)draft.crews.splice(i,1);else draft.crews[i]=blankCrew();renderSchedEditor()}
   else if(act==='up'){const c=draft.crews.splice(i,1)[0];draft.crews.splice(i-1,0,c);renderSchedEditor()}
   else if(act==='rmsite'){const c=draft.crews[i];const lines=crewSites(c);const gone=lines.splice(+b.dataset.j,1)[0];c.site=lines.join('\n');const s=sites.find(x=>x.name===gone);if(s)c.siteIds=c.siteIds.filter(x=>x!==s.id);renderSchedEditor()}
   else if(act==='copy'){const prev=addDays(draft.date,-1);const src=crewsOf(prev);if(!src.length){toast('前一天沒有排班');return}
-    draft.crews=src.map(toCrew);while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班，記得儲存')}
-  else if(act==='cancel'){schedEdit=false;draft=null;renderToday()}
-  else if(act==='save'){b.disabled=true;b.textContent='儲存中…（翻譯泰文）';
-    const crews=draft.crews.map(c=>({site:c.site,siteIds:c.siteIds,leader:c.leader,car:c.car,workers:c.workers.filter(Boolean),tasks:c.tasks.filter(Boolean),note:c.note}))
-      .filter(c=>c.site||c.leader||c.car||c.workers.length||c.tasks.length);
-    try{await api('sched_save',{date:draft.date,crews,restD:draft.restD.filter(Boolean),restW:draft.restW.filter(Boolean)});schedDate=draft.date;schedEdit=false;draft=null;toast('排班已儲存');await load();renderToday()}
-    catch(err){toast(err.message);b.disabled=false;b.textContent='儲存排班'}}},true);
+    draft.crews=src.map(toCrew);while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班')}
+  else if(act==='done'){b.disabled=true;b.textContent='儲存中…';const ok=await flushSave();b.disabled=false;b.textContent='完成';
+    if(!ok){toast('還沒存到雲端（'+(saveSt.m||'網路問題')+'），請再按一次');return}
+    schedDate=draft.date;schedEdit=false;draft=null;dropDraft();renderToday();load()}},true);
 
 // ================= 庫存 =================
 let stockItems=[];
@@ -1245,12 +1276,14 @@ function printWeek(from,places,types){const days=weekDays(from);
 let wk=null;
 // 庫存主畫面：跟試算表一樣的「大倉牆板」表格，每天出貨直接填在格子裡
 function sheetInit(){if(!wk){const types=[...new Set(stockItems.map(i=>i.type))];wk={place:'大倉',type:types[0]||'牆板',from:mondayOf(DB.today),grid:{},ai:{},data:null,loading:false,dirty:false}}
-  if(!wk.data&&!wk.loading)loadWeek()}
+  if((!wk.data||wk.stale)&&!wk.loading){wk.stale=false;loadWeek()}}
 async function openWeek(){stockMode='sheet';sheetInit();renderStock()}
-async function loadWeek(){wk.loading=true;renderSheet();
+async function loadWeek(){const ck='fulin-wk|'+wk.place+'|'+wk.from;
+  if(!wk.data){try{const c=JSON.parse(localStorage.getItem(ck)||'null');if(c)fillWeek(c)}catch(e){}}
+  wk.loading=true;renderSheet();
   try{const r=await fetch(CFG.API_URL+'?action=week&place='+encodeURIComponent(wk.place)+'&from='+wk.from+'&t='+Date.now());const j=await readJson(r);if(!j.ok)throw new Error(j.error);
-    wk.data=j.data;j.data.entries=j.data.entries||{};j.data.counts=j.data.counts||{};wk.grid={};wk.ai={};stockItems.forEach(i=>{const e=j.data.entries[i.id]||{};const c=j.data.counts[i.id];wk.grid[i.id]={days:Object.assign({},e),count:c==null?'':String(c)}})}
-  catch(e){wk.data={entries:{},counts:{},other:{},err:e.message};toast('讀不到這週資料：'+e.message)}
+    if(wk.dirty){wk.loading=false;renderSheet();return}fillWeek(j.data);try{localStorage.setItem(ck,JSON.stringify(j.data))}catch(e){}}
+  catch(e){if(!wk.data)wk.data={entries:{},counts:{},other:{},err:e.message};toast('讀不到這週資料：'+e.message)}
   wk.loading=false;wk.dirty=false;renderSheet()}
 // 每列的三個數字：週初結存／已出貨／庫存（含還沒儲存的修改）
 function sheetNums(i){const D=wk.data||{};const days=weekDays(wk.from);const g=wk.grid[i.id]||{days:{}};
@@ -1291,6 +1324,7 @@ function renderSheet(){const el=$('stockPage');if(!wk)return;const days=weekDays
   el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;
   if(key){const [it,d]=key.split('|');const x=el.querySelector('input[data-it="'+it+'"][data-d="'+d+'"]');if(x)x.focus()}}
 function renderWeek(){return renderSheet()}
+function fillWeek(d){wk.data=d;d.entries=d.entries||{};d.counts=d.counts||{};wk.grid={};wk.ai={};stockItems.forEach(i=>{const e=d.entries[i.id]||{};const c=d.counts[i.id];wk.grid[i.id]={days:Object.assign({},e),count:c==null?'':String(c)}})}
 function weekInput(e){const t=e.target;if(!t.dataset.it)return;const g=wk.grid[t.dataset.it]=wk.grid[t.dataset.it]||{days:{},count:''};
   const v=t.value.replace(/[^\d.\-]/g,'');if(t.dataset.d==='count')g.count=v;else g.days[t.dataset.d]=v;t.classList.remove('ai');
   const it=stockItems.find(x=>x.id===t.dataset.it);if(it){const n=sheetNums(it);const o=$('so-'+it.id),b=$('sb-'+it.id);if(o)o.textContent=n.out?'-'+fmtN(n.out):'0';if(b){b.textContent=fmtN(n.end);b.classList.toggle('neg',n.end<0)}}
@@ -1308,8 +1342,8 @@ async function weekClick(e){const b=e.target.closest('[data-w]');if(!b)return;co
   if(w==='newitem'){openItemModal(null);return}
   if(w==='print'){printWeek(wk.from,[wk.place],[wk.type]);return}
   if(w==='item'){openHistory(stockItems.find(x=>x.id===b.dataset.v));return}
-  if(w==='prev'||w==='next'||w==='thisweek'){if(!leave())return stay();wk.from=w==='thisweek'?mondayOf(DB.today):addDays(wk.from,w==='prev'?-7:7);return loadWeek()}
-  if(w==='place'){if(wk.place===b.dataset.v)return;if(!leave())return stay();wk.place=b.dataset.v;return loadWeek()}
+  if(w==='prev'||w==='next'||w==='thisweek'){if(!leave())return stay();wk.from=w==='thisweek'?mondayOf(DB.today):addDays(wk.from,w==='prev'?-7:7);wk.data=null;return loadWeek()}
+  if(w==='place'){if(wk.place===b.dataset.v)return;if(!leave())return stay();wk.place=b.dataset.v;wk.data=null;return loadWeek()}
   if(w==='type'){wk.type=b.dataset.v;renderSheet();return}
   if(w==='photo'){const inp=$('wkPhoto');inp.onchange=async()=>{const f=inp.files[0];if(!f)return;b.disabled=true;b.textContent='AI 辨識中…（約 20 秒）';
       try{const img=await shrink2(f,2200);const days=weekDays(wk.from);const d=(await api('week_ocr',{image:img,dates:days})).data;
@@ -1347,7 +1381,10 @@ $('managePage').addEventListener('click',async e=>{const a=e.target.closest('[da
 // ================= 啟動 =================
 setAdminUI();
 showTab((location.hash||'#map').slice(1));
-initMap();render();load();
+initMap();render();
+// 先用上次的資料立刻顯示，同時在背景抓最新的
+(function(){try{const c=JSON.parse(localStorage.getItem('fulin-db')||'null');if(c&&c.sites){DB=c;applyData();$('updated').textContent='更新中…'}}catch(e){}})();
+load();
 setInterval(()=>{if(!schedEdit&&!document.getElementById('modalBg'))load()},(CFG.REFRESH_MINUTES||5)*60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!schedEdit&&!document.getElementById('modalBg'))load()});
 })();
