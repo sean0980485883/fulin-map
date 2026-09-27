@@ -299,7 +299,7 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 .board td.car{background:transparent;border:1px solid #9AA6A4;border-radius:0;font-family:inherit;padding:5px 8px}
 .board tr.band td.car{background:#E0FBEB}
 .board.edit td.car{padding:0}
-#v-today .page{max-width:1600px}
+#v-today .page,#v-stock .page{max-width:1600px}
 .board.edit td{padding:0;position:relative}
 .board.edit .gsel{appearance:none;-webkit-appearance:none;border:0;background:transparent;width:100%;height:100%;min-height:34px;padding:4px 6px;font:inherit;font-weight:700;text-align:center;text-align-last:center;cursor:pointer;color:inherit}
 .board.edit .gsel:hover,.board.edit .gsel:focus{background:rgba(31,92,85,.08);outline:none}
@@ -352,6 +352,78 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 .hist .q.neg{color:#B42318}
 @media (max-width:760px){.lbx{display:none}.topbar{gap:8px;padding:0 10px}.tab{padding:14px 10px 11px}.sbar .actions{margin-left:0!important}}
 @media (max-width:760px){.hist div{grid-template-columns:5.5em 3em 3.5em 1fr auto}.hist div span:nth-child(4){display:none}}
+
+/* 庫存表（跟試算表同樣式） */
+.shbar{flex-wrap:wrap;gap:8px;align-items:center}
+.wknav{display:flex;align-items:center;gap:6px;font-weight:600;font-variant-numeric:tabular-nums}
+.wknav .btn{padding:6px 12px}
+.shsave{margin-left:auto;display:flex;gap:6px}
+.btn .badge{background:#D93025;color:#fff;border-radius:9px;padding:0 6px;font-size:12px;margin-left:2px}
+.sheet{border-collapse:collapse;min-width:1100px;width:100%;background:#fff;font-size:15px;font-variant-numeric:tabular-nums}
+.sheet th,.sheet td{border:1px solid #333;padding:0 6px;height:36px;text-align:center;white-space:nowrap}
+.sheet td.corner{border:0;border-bottom:1px solid #333;text-align:left;font-size:12px;color:var(--muted);height:44px}
+.sheet td.ttl{font-size:22px;font-weight:800;letter-spacing:2px;border-top:0;border-left:3px solid #999}
+.sheet th{font-weight:500;background:#fff}
+.sheet th.n{width:62px}
+.sheet th.it{text-align:right;font-size:17px}
+.sheet th.dd{font-weight:500;width:70px;border-left-width:1px}
+.sheet th.wd{color:#E0201B;font-size:19px;font-weight:500}
+.sheet th.td,.sheet td.td{background:#FFF8E1}
+.sheet th.cc{width:62px;font-size:13px}
+.sheet tbody tr:nth-child(even) td{background:#EFEFEF}
+.sheet tbody tr:nth-child(even) td.td{background:#F5EDCF}
+.sheet td.n{font-family:inherit;font-size:15px;border-radius:0}
+.sheet td{border-radius:0}
+.sheet td.out{color:#E0201B}
+.sheet td.bal{font-weight:800;font-style:italic}
+.sheet td.bal.neg{color:#E0201B}
+.sheet td.nm{padding:0 4px}
+.sheet td.nm button{border:0;background:none;font:inherit;font-weight:800;font-style:italic;color:#E0201B;cursor:pointer;padding:4px}
+.sheet td.nm button:hover{text-decoration:underline}
+.sheet td.sp{font-weight:700;font-size:14px}
+.sheet td.th{text-align:left;font-weight:700;font-style:italic;font-size:14px;border-right:3px solid #999}
+.sheet td.c{padding:0;position:relative}
+.sheet td.c input{width:100%;height:36px;border:0;background:transparent;text-align:center;font:inherit;font-weight:700;color:#1F4FB0;padding:0}
+.sheet td.c input:focus{outline:2px solid #1F63E0;outline-offset:-2px;background:#fff}
+.sheet td.c input.ai{background:#FFF1B8}
+.sheet td.c small{position:absolute;right:2px;bottom:1px;font-size:10px;color:#8A8A8A;pointer-events:none}
+.sheet td.cc{background:#FFFBEA}
+.sheet td.cc input{color:#333}
+@media (max-width:700px){.shsave{margin-left:0;width:100%}.shsave .btn{flex:1}}
+
+.daytabs{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.daytabs button{border:0;background:#fff;padding:6px 16px;font:inherit;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.2;border-right:1px solid var(--line)}
+.daytabs button:last-child{border-right:0}
+.daytabs button small{font-weight:400;font-size:11px;color:var(--muted)}
+.daytabs button[aria-pressed=true]{background:var(--brand,#1F5C55);color:#fff}
+.daytabs button[aria-pressed=true] small{color:#DDEFEA}
+.dnav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.pagehead .daytabs{margin:0 8px}
+/* 排班編輯：點格子跳出選單 */
+.board.edit .gcell{border:0;background:transparent;width:100%;height:100%;min-height:34px;padding:4px 6px;font:inherit;font-weight:700;cursor:pointer;color:inherit;display:block}
+.board.edit .gcell.empty i{font-style:normal;color:#C5CCCA;font-weight:400}
+.board.edit .gcell:hover{background:rgba(31,99,224,.08)}
+.board.edit .gcell:hover i{color:#1F63E0}
+.board.edit .gcell.act{outline:2px solid #1F63E0;outline-offset:-2px;background:#fff}
+.board.edit td.wk .gcell{font-style:italic;font-size:13px;min-width:62px}
+.board.edit td.lead .gcell{font-size:16px;min-width:84px}
+.board.edit td.car .gcell{font-size:13px;min-width:84px}
+.board.edit td.tk .gcell{font-weight:400;min-width:92px}
+.board.edit .gcell.gsite{border:1px dashed #9AA6A4;border-radius:6px;min-height:26px;font-size:13px;font-weight:400;color:var(--muted);margin-top:2px}
+#gpop{position:absolute;z-index:1000;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.18);width:min(420px,calc(100vw - 16px));max-height:60vh;display:flex;flex-direction:column;overflow:hidden}
+#gpop .gph{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:14px}
+#gpop .gph button{border:0;background:none;font-size:16px;cursor:pointer;color:var(--muted)}
+#gpop input{margin:8px 12px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}
+#gpop .gpl{overflow:auto;padding:8px 12px 12px}
+#gpop .gpg{font-size:12px;color:var(--muted);margin:6px 0 4px}
+#gpop .gpb{display:flex;flex-wrap:wrap;gap:6px}
+#gpop .gpb button{border:1px solid var(--line);background:#F7F9F6;border-radius:8px;padding:8px 12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+#gpop .gpb button:hover{background:#E6F0FF;border-color:#1F63E0}
+#gpop .gpb button.on{background:#1F63E0;color:#fff;border-color:#1F63E0}
+#gpop .gpb button[hidden]{display:none}
+#gpop .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+#gpop .gpclr{border:0;border-top:1px solid var(--line);background:#fff;padding:10px;color:#D93025;font:inherit;cursor:pointer}
+@media (max-width:640px){#gpop{position:fixed;left:0!important;right:0;bottom:0;top:auto!important;width:100%;border-radius:14px 14px 0 0;max-height:70vh}}
 </style>
 </head>
 <body>
@@ -735,7 +807,7 @@ function applyData(){
   loaded=true;restoreRoute();matchToday();
   const noLoc=sites.filter(x=>x.lat==null).length;const n=$('notice');n.className='notice';n.textContent=noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'';n.hidden=!noLoc;
   if(!schedDate)schedDate=DB.today;
-  stockCalc();render();renderToday();if(stockMode!=='week')renderStock();if(!$('v-manage').hidden)renderManage();
+  stockCalc();render();renderToday();if(wk&&!wk.dirty&&!wk.loading)wk.data=null;if(!(stockMode==='sheet'&&wk&&wk.dirty))renderStock();if(!$('v-manage').hidden)renderManage();
   $('cntStock').textContent=stockItems.filter(i=>i.st==='out'||i.st==='neg').length;
   $('cntStock').classList.toggle('bad',stockItems.some(i=>i.st==='out'||i.st==='neg'))}
 $('reload').onclick=load;
@@ -882,16 +954,18 @@ function cardsHtml(d){const crews=crewsOf(d);if(!crews.length)return '<div class
       (need.length?'<div class="kvrow"><span>可能用料</span><div class="need">'+need.map(n=>'<i class="'+(n.st==='out'||n.st==='neg'?'out':n.st==='low'?'low':'')+'">'+esc(n.label)+' '+fmtN(n.total)+'</i>').join('')+'</div></div>':'')+
       (c.note?'<div class="note">'+esc(c.note)+'</div>':'')+'</div>'+
     '<div class="cf">'+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
+function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
+  return '<button data-'+attr+'="day" data-v="'+x+'" aria-pressed="'+(x===d)+'">'+['昨天','今天','明天'][o+1]+'<small>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+'</small></button>'}).join('')+'</div>'}
 function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEditor();if(!schedDate)return;
   const d=schedDate,isT=d===DB.today;
   el.innerHTML='<div class="pagehead"><h2>排班<small>'+mdw(d)+(isT?'（今天）':d===addDays(DB.today,1)?'（明天）':d===addDays(DB.today,-1)?'（昨天）':'')+'</small></h2>'+
-    '<div class="dnav"><button class="btn" data-t="prev">‹ 前一天</button><button class="btn" data-t="today">今天</button><button class="btn" data-t="next">後一天 ›</button><input type="date" id="sdPick" value="'+d+'"></div></div>'+
+    '<div class="dnav">'+dayTabs(d,'t')+'<button class="btn" data-t="prev" aria-label="前一天">‹</button><button class="btn" data-t="next" aria-label="後一天">›</button><input type="date" id="sdPick" value="'+d+'"></div></div>'+
     '<div class="sbar"><div class="seg"><button data-t="board" aria-pressed="'+(schedView==='board')+'">總表</button><button data-t="cards" aria-pressed="'+(schedView==='cards')+'">卡片</button></div>'+
     '<div class="actions" style="margin-left:auto">'+(isAdmin()?'<button class="btn primary" data-t="edit">編輯這天排班</button>':'')+'<button class="btn" data-t="img">存成圖片</button><button class="btn" data-t="share">分享文字</button></div></div>'+
     (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':cardsHtml(d))+
     '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>'}
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;
-  if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}
+  if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
   else if(t==='board'||t==='cards'){schedView=t;renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
 $('todayPage').addEventListener('change',e=>{if(e.target.id==='sdPick'&&e.target.value){schedDate=e.target.value;renderToday()}});
 async function saveBoardImage(){if(!window.html2canvas){toast('圖片功能載入失敗，請重新整理');return}
@@ -923,20 +997,20 @@ const blankCrew=()=>toCrew({});
 function openSchedEditor(){schedEdit=true;
   const src=crewsOf(schedDate);const rest=restOf(schedDate);
   draft={date:schedDate,restD:pad4(rest.drivers),restW:pad4(rest.workers),crews:src.map(toCrew)};
-  while(draft.crews.length<8)draft.crews.push(blankCrew());renderSchedEditor()}
+  while(draft.crews.length<8)draft.crews.push(blankCrew());draft.snap=snapOf();renderSchedEditor()}
+const snapOf=()=>JSON.stringify([draft.date,draft.restD,draft.restW,draft.crews]);
 // 已經被選走的人／車（排除自己這一格）
 function usedPeople(skip){const u=new Set();const add=(v,k)=>{if(v&&k!==skip&&!SPECIAL.test(v))u.add(v)};
   draft.restD.forEach((v,j)=>add(v,'rd|'+j));draft.restW.forEach((v,j)=>add(v,'rw|'+j));
   draft.crews.forEach((c,i)=>{add(c.leader,'l|'+i);c.workers.forEach((v,j)=>add(v,'w|'+i+'|'+j))});return u}
 function usedCars(skip){const u=new Set();draft.crews.forEach((c,i)=>{if(c.car&&'c|'+i!==skip)u.add(c.car)});return u}
-function gsel(key,opts,v,used){const list=opts.filter(o=>o===v||!used.has(o));if(v&&!list.includes(v))list.unshift(v);
-  return '<select class="gsel" data-g="'+key+'"><option value=""></option>'+list.map(o=>'<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>'}
+function gsel(key,opts,v,used){return '<button type="button" class="gcell'+(v?'':' empty')+(key===gpopKey?' act':'')+'" data-g="'+key+'">'+(v?esc(v):'<i>＋</i>')+'</button>'}
 function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDate(D.date);
   const allPeople=DB.people.map(p=>p.name);const L=leaders(),W=workersL(),C=DB.cars,TK=DB.tasks.map(t=>t.zh);
   const usedSite=new Set();D.crews.forEach(c=>crewSites(c).forEach(l=>usedSite.add(l)));
   const total=D.crews.reduce((a,c)=>a+c.workers.filter(Boolean).length,0);
   const free=allPeople.filter(n=>!usedPeople('').has(n)&&!SPECIAL.test(n));
-  let h='<div class="pagehead"><h2>編輯排班<small>點格子直接選，選過的人和車不會再出現</small></h2><div class="actions">'+
+  let h='<div class="pagehead"><h2>編輯排班<small>點格子 → 點名字。選過的人和車不會再出現</small></h2>'+dayTabs(D.date,'e')+'<div class="actions">'+
    '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
    '<button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="cancel">取消</button><button class="btn primary" data-e="save">儲存排班</button></div></div>'+
    '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+
@@ -949,7 +1023,7 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
     h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div></td>'+
       '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
-        '<input class="gsite" list="dlSites" data-site="'+i+'" placeholder="'+(siteList.length?'＋':'選案場')+'"></td>'+
+        '<button type="button" class="gcell gsite'+('s|'+i===gpopKey?' act':'')+'" data-g="s|'+i+'">'+(siteList.length?'＋ 再加一個':'＋ 選案場')+'</button></td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
       '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
       c.workers.slice(0,4).map((v,j)=>'<td class="wk">'+gsel('w|'+i+'|'+j,W,v,usedPeople('w|'+i+'|'+j))+'</td>').join('')+
@@ -958,26 +1032,74 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
       '<td rowspan="2" class="note"><textarea class="gnote" data-note="'+i+'" rows="2">'+esc(c.note)+'</textarea></td></tr>'+
       '<tr class="th'+band+'">'+c.workers.slice(4,8).map((v,j)=>'<td class="wk">'+gsel('w|'+i+'|'+(j+4),W,v,usedPeople('w|'+i+'|'+(j+4)))+'</td>').join('')+
       c.tasks.slice(0,5).map(v=>'<td class="tk">'+esc(v?(taskTh(v)||''):'')+'</td>').join('')+'</tr>'});
-  h+='</tbody></table></div><datalist id="dlSites">'+sites.map(s=>s.name).filter(n=>!usedSite.has(n)).map(n=>'<option value="'+esc(n)+'">').join('')+'</datalist>'+
+  h+='</tbody></table></div>'+
    '<div class="actions"><button class="btn" data-e="add">＋ 新增一組</button></div>'+
-   '<div class="foot">泰文案場名稱會在儲存時自動翻譯。每組的工人最多 8 位（上下兩排）。「全員上班」「工人自己」這類選項可以重複選。</div>';
+   '<div class="foot">點任何格子會跳出選單，直接點名字就填好。選工人時會自動跳到下一格，可以連續點。案場由北到南排列。泰文會在儲存時自動翻譯。</div>';
   const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx}
 function crewThai(c){const known={};(DB.sched||[]).forEach(x=>{crewSites(x).forEach((l,k)=>{const t=String(x.siteThai||'').split('\n')[k];if(t)known[l]=t})});
   sites.forEach(s=>{if(s.thai)known[s.name]=s.thai});return crewSites(c).map(l=>known[l]||'').join('\n')}
 function addSiteLine(i,v){v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
   const s=sites.find(x=>x.name===v);if(s&&!c.siteIds.includes(s.id))c.siteIds.push(s.id);renderSchedEditor()}
 $('todayPage').addEventListener('change',e=>{if(!schedEdit)return;const t=e.target;
-  if(t.id==='edDate'&&t.value){draft.date=t.value;renderSchedEditor();return}
-  if(t.dataset.g){const p=t.dataset.g.split('|');const v=t.value;
-    if(p[0]==='rd')draft.restD[+p[1]]=v;else if(p[0]==='rw')draft.restW[+p[1]]=v;
-    else if(p[0]==='l')draft.crews[+p[1]].leader=v;else if(p[0]==='c')draft.crews[+p[1]].car=v;
-    else if(p[0]==='w')draft.crews[+p[1]].workers[+p[2]]=v;else if(p[0]==='t')draft.crews[+p[1]].tasks[+p[2]]=v;
-    renderSchedEditor();return}
-  if(t.dataset.site!==undefined&&sites.some(s=>s.name===t.value))addSiteLine(+t.dataset.site,t.value)});
-$('todayPage').addEventListener('keydown',e=>{const t=e.target;if(schedEdit&&t.dataset.site!==undefined&&e.key==='Enter'){e.preventDefault();addSiteLine(+t.dataset.site,t.value)}});
+  if(t.id==='edDate'&&t.value){draft.date=t.value;renderSchedEditor()}});
+// ---- 點格子跳出的選單 ----
+const SPECIAL_SITES=['已出車','已給單','展場','維修','拆櫃','倉庫'];
+// 案場由北到南（東部花蓮台東排最後、沒座標的再後面）
+function sitesNS(){const k=s=>s.lat==null?2:(s.lng>121.35&&s.lat<24.6?1:0);
+  return sites.filter(s=>!/範例/.test(s.name)&&s.status!=='done').slice().sort((a,b)=>k(a)-k(b)||(b.lat||0)-(a.lat||0))
+   .concat(sites.filter(s=>s.status==='done'))}
+let gpopKey=null;
+function setCell(key,v){const p=key.split('|');
+  if(p[0]==='rd')draft.restD[+p[1]]=v;else if(p[0]==='rw')draft.restW[+p[1]]=v;
+  else if(p[0]==='l')draft.crews[+p[1]].leader=v;else if(p[0]==='c')draft.crews[+p[1]].car=v;
+  else if(p[0]==='w')draft.crews[+p[1]].workers[+p[2]]=v;else if(p[0]==='t')draft.crews[+p[1]].tasks[+p[2]]=v}
+function cellVal(key){const p=key.split('|');const c=draft.crews[+p[1]];
+  return p[0]==='rd'?draft.restD[+p[1]]:p[0]==='rw'?draft.restW[+p[1]]:p[0]==='l'?c.leader:p[0]==='c'?c.car:p[0]==='w'?c.workers[+p[2]]:p[0]==='t'?c.tasks[+p[2]]:''}
+function closePick(){const p=$('gpop');if(p)p.remove();const had=gpopKey;gpopKey=null;if(had){const b=document.querySelector('.gcell.act');if(b)b.classList.remove('act')}}
+function openPick(key){closePick();const anchor=document.querySelector('[data-g="'+key+'"]');if(!anchor)return;gpopKey=key;anchor.classList.add('act');
+  const p=key.split('|'),k=p[0],i=+p[1];const allPeople=DB.people.map(x=>x.name);const cur=k==='s'?'':cellVal(key);
+  let title='',opts=[],free=false,groups=null;
+  if(k==='rd'){title='休息的司機';opts=leaders().concat(allPeople.filter(x=>SPECIAL.test(x))).filter(o=>o===cur||!usedPeople(key).has(o))}
+  else if(k==='rw'){title='休息的工人';opts=workersL().filter(o=>o===cur||!usedPeople(key).has(o))}
+  else if(k==='l'){title='第 '+(i+1)+' 組・帶頭／司機';opts=leaders().filter(o=>o===cur||!usedPeople(key).has(o))}
+  else if(k==='c'){title='第 '+(i+1)+' 組・車';opts=DB.cars.filter(o=>o===cur||!usedCars(key).has(o))}
+  else if(k==='w'){title='第 '+(i+1)+' 組・工人（點完自動跳下一格）';const u=usedPeople(key);opts=workersL().filter(o=>o===cur||!u.has(o));
+    groups=[['工人',opts.map(v=>({v}))],['司機／帶頭',leaders().filter(o=>o===cur||!u.has(o)).map(v=>({v}))]]}
+  else if(k==='t'){title='第 '+(i+1)+' 組・施作項目';opts=DB.tasks.map(t=>t.zh);free=true}
+  else if(k==='s'){title='第 '+(i+1)+' 組・案場（由北到南）';free=true;const used=new Set();draft.crews.forEach(c=>crewSites(c).forEach(l=>used.add(l)));
+    const ns=sitesNS().filter(x=>!used.has(x.name));
+    groups=[['常用',SPECIAL_SITES.map(x=>({v:x}))],['案場',ns.filter(x=>x.status!=='done').map(x=>({v:x.name,b:bucket(x)}))],['已完工',ns.filter(x=>x.status==='done').map(x=>({v:x.name,b:'done'}))]]}
+  if(!groups)groups=[['',opts.map(v=>({v}))]];
+  const pop=document.createElement('div');pop.id='gpop';
+  pop.innerHTML='<div class="gph"><b>'+esc(title)+'</b><button data-pk="x" aria-label="關閉">✕</button></div>'+
+    ((free||opts.length>12||k==='s')?'<input id="gpq" placeholder="'+(free?'搜尋，或直接打字按 Enter':'搜尋')+'" autocomplete="off">':'')+
+    '<div class="gpl">'+groups.filter(g=>g[1].length).map(g=>(g[0]?'<div class="gpg">'+g[0]+'</div>':'')+'<div class="gpb">'+g[1].map(o=>'<button data-pv="'+esc(o.v)+'" class="'+(o.v===cur?'on':'')+'">'+(o.b?'<span class="dot" style="background:var(--'+BK[o.b].c.slice(2)+')"></span>':'')+esc(o.v)+'</button>').join('')+'</div>').join('')+
+    (groups.every(g=>!g[1].length)?'<div class="foot">都排完了</div>':'')+'</div>'+
+    (cur?'<button data-pk="clear" class="gpclr">清除這格</button>':'');
+  document.body.appendChild(pop);
+  if(innerWidth>640){const r=anchor.getBoundingClientRect();const w=pop.offsetWidth,h=pop.offsetHeight;
+    let x=r.left+scrollX,y=r.bottom+scrollY+4;if(x+w>scrollX+innerWidth-8)x=scrollX+innerWidth-w-8;if(r.bottom+h>innerHeight-8&&r.top-h>8)y=r.top+scrollY-h-4;
+    pop.style.left=Math.max(8,x)+'px';pop.style.top=y+'px'}
+  const q=$('gpq');if(q&&innerWidth>640)q.focus()}
+function pickValue(v){const key=gpopKey;if(!key)return;const p=key.split('|'),k=p[0],i=+p[1];
+  if(k==='s'){closePick();addSiteLine(i,v);return}
+  setCell(key,v);closePick();renderSchedEditor();
+  if(k==='w'&&v){const ws=draft.crews[i].workers;for(let j=+p[2]+1;j<8;j++)if(!ws[j]){openPick('w|'+i+'|'+j);return}}}
+document.addEventListener('click',e=>{const pop=$('gpop');if(!pop)return;
+  if(pop.contains(e.target)){const b=e.target.closest('[data-pv],[data-pk]');if(!b)return;
+    if(b.dataset.pk==='x')closePick();else if(b.dataset.pk==='clear'){setCell(gpopKey,'');closePick();renderSchedEditor()}else pickValue(b.dataset.pv);return}
+  if(!e.target.closest('.gcell'))closePick()});
+document.addEventListener('input',e=>{if(e.target.id!=='gpq')return;const q=norm(e.target.value).toLowerCase();
+  document.querySelectorAll('#gpop [data-pv]').forEach(b=>b.hidden=!!q&&!norm(b.dataset.pv).toLowerCase().includes(q))});
+document.addEventListener('keydown',e=>{if(!$('gpop'))return;if(e.key==='Escape'){closePick();return}
+  if(e.key==='Enter'&&e.target.id==='gpq'){e.preventDefault();const vis=[...document.querySelectorAll('#gpop [data-pv]')].filter(b=>!b.hidden);const txt=e.target.value.trim();
+    const k=gpopKey.split('|')[0];if(vis.length===1)pickValue(vis[0].dataset.pv);else if(txt&&(k==='s'||k==='t'))pickValue(txt);else if(vis.length)pickValue(vis[0].dataset.pv)}});
 $('todayPage').addEventListener('input',e=>{const t=e.target;if(schedEdit&&t.dataset.note!==undefined)draft.crews[+t.dataset.note].note=t.value});
 $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
-  const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();const act=b.dataset.e,i=+b.dataset.i;
+  const g=e.target.closest('.gcell');if(g){e.stopPropagation();if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
+  const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();closePick();const act=b.dataset.e,i=+b.dataset.i;
+  if(act==='day'){if(b.dataset.v===draft.date)return;if(snapOf()!==draft.snap&&!confirmStep('eday')){toast('這天還沒儲存，再按一次切換（會放棄修改）');return}
+    schedDate=b.dataset.v;openSchedEditor();return}
   if(act==='add'){draft.crews.push(blankCrew());renderSchedEditor()}
   else if(act==='del'){const c=draft.crews[i];const empty=!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean)&&!c.tasks.some(Boolean);
     if(empty&&draft.crews.length>1)draft.crews.splice(i,1);else draft.crews[i]=blankCrew();renderSchedEditor()}
@@ -1009,13 +1131,13 @@ function needsForCrew(cr){const txt=(cr.tasks||[]).join(' ');const it=stockItems
   if(/地螺絲/.test(txt))add(x=>/地螺絲/.test(x.name));
   if(/露臺|塑木/.test(txt))add(x=>/塑木/.test(x.name));
   return [...pick].map(x=>({label:(x.section?x.section.replace('大浴室','大衛浴')+'-':'')+x.name+(x.spec?'('+x.spec+')':''),total:x.total,st:x.st,id:x.id}))}
-let stType='全部',stFilter='',stQ='',stockMode='list';
+let stType='全部',stFilter='',stQ='',stockMode='sheet';
 const itemLabel=i=>(i.section?i.section.replace('大浴室','大衛浴')+'・':'')+i.name+(i.spec?'（'+i.spec+'）':'');
 function renderStock(){const el=$('stockPage');if(!loaded)return;const all=stockItems;
   const needIds=new Set();crewsOf(DB.today).forEach(c=>needsForCrew(c).forEach(n=>needIds.add(n.id)));
   const cnt=f=>all.filter(f).length;const types=['全部',...new Set(all.map(i=>i.type))];
-  if(stockMode==='week')return renderWeek();
-  let h='<div class="pagehead"><h2>庫存<small>大倉＋油車</small></h2><div class="actions">'+(isAdmin()?'<button class="btn" data-s="print">列印週表</button><button class="btn" data-s="week">輸入週表</button><button class="btn primary" data-s="newitem">＋ 新增品項</button>':'')+'</div></div>'+
+  if(stockMode==='sheet'){sheetInit();return renderSheet()}
+  let h='<div class="pagehead"><h2>缺貨提醒<small>大倉＋油車合計</small></h2><div class="actions">'+'<button class="btn primary" data-s="week">‹ 回庫存表</button>'+(isAdmin()?'<button class="btn" data-s="newitem">＋ 新增品項</button>':'')+'</div></div>'+
    '<div class="tiles"><button class="tile out" data-f="out" aria-pressed="'+(stFilter==='out')+'"><b>'+cnt(i=>i.st==='out'||i.st==='neg')+'</b><span>缺貨／負庫存</span></button>'+
    '<button class="tile low" data-f="low" aria-pressed="'+(stFilter==='low')+'"><b>'+cnt(i=>i.st==='low')+'</b><span>低於安全量或 7 天內用完</span></button>'+
    '<button class="tile need" data-f="need" aria-pressed="'+(stFilter==='need')+'"><b>'+needIds.size+'</b><span>今日排班可能用到</span></button>'+
@@ -1033,14 +1155,14 @@ function renderStock(){const el=$('stockPage');if(!loaded)return;const all=stock
    (rows.length?'':'<div class="srow"><span class="foot">沒有符合的品項</span></div>')+'</div>'+
    '<div class="foot">「預估可用」＝合計庫存 ÷ 近 14 天平均每日出貨量。負庫存表示出貨多於帳面，請盤點後用「調整」修正。</div>';
   el.innerHTML=h}
-$('stockPage').addEventListener('click',e=>{if(stockMode==='week')return weekClick(e);const t=e.target.closest('[data-f]');if(t){stFilter=stFilter===t.dataset.f?'':t.dataset.f;renderStock();return}
+$('stockPage').addEventListener('click',e=>{if(stockMode==='sheet')return weekClick(e);const t=e.target.closest('[data-f]');if(t){stFilter=stFilter===t.dataset.f?'':t.dataset.f;renderStock();return}
   const y=e.target.closest('[data-ty]');if(y){stType=y.dataset.ty;renderStock();return}
   const s=e.target.closest('[data-stk]');if(s){openMoveModal(stockItems.find(x=>x.id===s.dataset.stk));return}
   const h=e.target.closest('[data-his]');if(h){openHistory(stockItems.find(x=>x.id===h.dataset.his));return}
   if(e.target.closest('[data-s="newitem"]'))openItemModal(null);
   if(e.target.closest('[data-s="print"]'))openPrintModal();
   if(e.target.closest('[data-s="week"]'))openWeek()});
-$('stockPage').addEventListener('input',e=>{if(stockMode==='week')return weekInput(e);if(e.target.id==='stq'){stQ=e.target.value;const pos=e.target.selectionStart;renderStock();const i=$('stq');i.focus();try{i.setSelectionRange(pos,pos)}catch(_){}}});
+$('stockPage').addEventListener('input',e=>{if(stockMode==='sheet')return weekInput(e);if(e.target.id==='stq'){stQ=e.target.value;const pos=e.target.selectionStart;renderStock();const i=$('stq');i.focus();try{i.setSelectionRange(pos,pos)}catch(_){}}});
 function openMoveModal(it){if(!it)return;const kinds=isAdmin()?['出貨','進貨','調整']:['出貨'];let kind='出貨',place='大倉';
   const siteOpts=crewsOf(DB.today).flatMap(c=>crewSites(c)).concat(sites.map(s=>s.name));
   openModal('登記：'+itemLabel(it),
@@ -1058,7 +1180,8 @@ function openMoveModal(it){if(!it)return;const kinds=isAdmin()?['出貨','進貨
     $('skSiteW').hidden=kind!=='出貨';$('skQL').textContent=kind==='調整'?'調整數量（多了填正數、少了填負數）':'數量'});
   $('skPlace').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;place=b.dataset.p;$('skPlace').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b))})}
 async function openHistory(it){if(!it)return;
-  openModal('紀錄：'+itemLabel(it),'<div class="foot">讀取中…</div>',isAdmin()?[['編輯品項','edit'],['關閉','close','primary']]:[['關閉','close','primary']],async act=>{if(act==='edit'){closeModal();openItemModal(it);return false}
+  openModal('紀錄：'+itemLabel(it),'<div class="foot">讀取中…</div>',(isAdmin()?[['編輯品項','edit']]:[]).concat(canField()?[['登記出貨／進貨','reg']]:[]).concat([['關閉','close','primary']]),async act=>{if(act==='edit'){closeModal();openItemModal(it);return false}
+    if(act==='reg'){closeModal();openMoveModal(it);return false}
     if(act==='delmove')return false;return true},true);
   try{const r=await fetch(CFG.API_URL+'?action=moves&item='+encodeURIComponent(it.id));const j=await r.json();const list=j.data||[];
     const box=document.querySelector('#modalBg .mb');if(!box)return;
@@ -1112,48 +1235,85 @@ function printWeek(from,places,types){const days=weekDays(from);
   setTimeout(()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){toast('無法開啟列印')}setTimeout(()=>f.remove(),60000)},300)}
 
 let wk=null;
-async function openWeek(){wk={place:'大倉',from:mondayOf(DB.today),types:[...new Set(stockItems.map(i=>i.type))],grid:{},ai:{},loading:true};stockMode='week';renderStock();await loadWeek()}
-async function loadWeek(){wk.loading=true;renderWeek();
-  try{const r=await fetch(CFG.API_URL+'?action=week&place='+encodeURIComponent(wk.place)+'&from='+wk.from+'&t='+Date.now());const j=await r.json();if(!j.ok)throw new Error(j.error);
-    wk.grid={};wk.ai={};stockItems.forEach(i=>{const e=j.data.entries[i.id]||{};const c=j.data.counts[i.id];wk.grid[i.id]={days:Object.assign({},e),count:c==null?'':String(c)}})}
-  catch(e){toast('讀不到週表：'+e.message)}
-  wk.loading=false;wk.dirty=false;renderWeek()}
-function renderWeek(){const el=$('stockPage');const days=weekDays(wk.from);const types=[...new Set(stockItems.map(i=>i.type))];
-  let h='<div class="pagehead"><h2>輸入週表<small>'+mdw(days[0])+' ～ '+mdw(days[6])+'</small></h2><div class="actions"><button class="btn" data-w="back">返回庫存</button><button class="btn" data-w="photo">拍照辨識</button><button class="btn primary" data-w="save">儲存這週</button></div></div>'+
-   '<div class="sbar"><div class="seg">'+['大倉','油車'].map(p=>'<button data-w="place" data-v="'+p+'" aria-pressed="'+(wk.place===p)+'">'+p+'</button>').join('')+'</div>'+
-   '<button class="btn" data-w="prev">‹ 上一週</button><button class="btn" data-w="next">下一週 ›</button>'+
-   '<div class="seg">'+types.map(t=>'<button data-w="type" data-v="'+esc(t)+'" aria-pressed="'+wk.types.includes(t)+'">'+esc(t)+'</button>').join('')+'</div>'+
+// 庫存主畫面：跟試算表一樣的「大倉牆板」表格，每天出貨直接填在格子裡
+function sheetInit(){if(!wk){const types=[...new Set(stockItems.map(i=>i.type))];wk={place:'大倉',type:types[0]||'牆板',from:mondayOf(DB.today),grid:{},ai:{},data:null,loading:false,dirty:false}}
+  if(!wk.data&&!wk.loading)loadWeek()}
+async function openWeek(){stockMode='sheet';sheetInit();renderStock()}
+async function loadWeek(){wk.loading=true;renderSheet();
+  try{const r=await fetch(CFG.API_URL+'?action=week&place='+encodeURIComponent(wk.place)+'&from='+wk.from+'&t='+Date.now());const j=await readJson(r);if(!j.ok)throw new Error(j.error);
+    wk.data=j.data;j.data.entries=j.data.entries||{};j.data.counts=j.data.counts||{};wk.grid={};wk.ai={};stockItems.forEach(i=>{const e=j.data.entries[i.id]||{};const c=j.data.counts[i.id];wk.grid[i.id]={days:Object.assign({},e),count:c==null?'':String(c)}})}
+  catch(e){wk.data={entries:{},counts:{},other:{},err:e.message};toast('讀不到這週資料：'+e.message)}
+  wk.loading=false;wk.dirty=false;renderSheet()}
+// 每列的三個數字：週初結存／已出貨／庫存（含還沒儲存的修改）
+function sheetNums(i){const D=wk.data||{};const days=weekDays(wk.from);const g=wk.grid[i.id]||{days:{}};
+  const saved=days.reduce((a,d)=>a+(Number((D.entries||{})[i.id]?.[d])||0),0);const now=days.reduce((a,d)=>a+(Number(g.days[d])||0),0);const diff=now-saved;
+  const cur=wk.place==='大倉'?i.big:i.oil;
+  if(D.start){const st=D.start[i.id]||0;const out=(D.out[i.id]||0)+diff;const end=st+(D.net[i.id]||0)-diff;return {st,out,end}}
+  return {st:null,out:now,end:cur-diff}}
+function renderSheet(){const el=$('stockPage');if(!wk)return;const days=weekDays(wk.from);const types=[...new Set(stockItems.map(i=>i.type))];const A=isAdmin();
+  const alerts=stockItems.filter(i=>i.st==='out'||i.st==='neg'||i.st==='low').length;const d0=toDate(days[0]),d6=toDate(days[6]);
+  let h='<div class="pagehead"><h2>庫存</h2><div class="actions">'+
+    '<button class="btn" data-w="alerts">缺貨提醒'+(alerts?' <span class="badge">'+alerts+'</span>':'')+'</button>'+
+    (A?'<button class="btn" data-w="print">列印這張給倉管</button><button class="btn" data-w="newitem">＋ 品項</button>':'')+'</div></div>'+
+   '<div class="sbar shbar"><div class="seg">'+['大倉','油車'].map(p=>'<button data-w="place" data-v="'+p+'" aria-pressed="'+(wk.place===p)+'">'+p+'</button>').join('')+'</div>'+
+   '<div class="seg">'+types.map(t=>'<button data-w="type" data-v="'+esc(t)+'" aria-pressed="'+(wk.type===t)+'">'+esc(t)+'</button>').join('')+'</div>'+
+   '<div class="wknav"><button class="btn" data-w="prev" aria-label="上一週">‹</button><span>'+(d0.getMonth()+1)+'/'+d0.getDate()+' ～ '+(d6.getMonth()+1)+'/'+d6.getDate()+'</span><button class="btn" data-w="next" aria-label="下一週">›</button>'+
+     (wk.from!==mondayOf(DB.today)?'<button class="btn" data-w="thisweek">回本週</button>':'')+'</div>'+
+   (A?'<div class="shsave"><button class="btn" data-w="photo">📷 拍照填入</button><button class="btn primary" data-w="save"'+(wk.dirty?'':' disabled')+'>'+(wk.dirty?'儲存修改':'已儲存')+'</button></div>':'')+
    '<input type="file" id="wkPhoto" accept="image/*" hidden></div>';
-  if(wk.loading){el.innerHTML=h+'<div class="foot">讀取中…</div>';return}
-  const list=itemsOfTypes(wk.types);
-  h+='<div class="boardwrap"><table class="wkt"><thead><tr><th>No.</th><th style="text-align:left">品項</th><th>目前</th>'+days.map(d=>{const x=toDate(d);return '<th>'+(x.getMonth()+1)+'/'+x.getDate()+'<small>'+WK[x.getDay()]+'</small></th>'}).join('')+'<th>合計</th><th>盤點實數</th></tr></thead><tbody>'+
-   list.map(i=>{const g=wk.grid[i.id]||{days:{},count:''};const sum=days.reduce((a,d)=>a+(Number(g.days[d])||0),0);const A=wk.ai[i.id]||{};
-     return '<tr><td class="no">'+i.order+'</td><td class="nm">'+esc(itemLabel(i))+'</td><td class="cur">'+fmtN(wk.place==='大倉'?i.big:i.oil)+'</td>'+
-     days.map(d=>'<td><input inputmode="numeric" data-it="'+i.id+'" data-d="'+d+'" value="'+esc(g.days[d]??'')+'"'+(A[d]?' class="ai"':'')+'></td>').join('')+
-     '<td class="sum" id="sum-'+i.id+'">'+(sum||'')+'</td><td><input inputmode="numeric" data-it="'+i.id+'" data-d="count" value="'+esc(g.count??'')+'"'+(A.count?' class="ai"':'')+'></td></tr>'}).join('')+'</tbody></table></div>'+
-   '<div class="foot">照紙本週表把每天的出貨數量填進來，按「儲存這週」。同一週可以重複儲存，會覆蓋上次輸入的週表數字，不影響網站上單筆登記的出貨。<br>「盤點實數」有填的品項，系統會跟週日帳面比對，自動補一筆盤點調整。黃色格子是 AI 從照片讀出來的，請核對。</div>';
-  el.innerHTML=h}
+  if(wk.loading&&!wk.data){el.innerHTML=h+'<div class="foot">讀取中…</div>';return}
+  const list=itemsOfTypes([wk.type]);const today=DB.today;const O=(wk.data&&wk.data.other)||{};
+  const hasStart=!!(wk.data&&wk.data.start);
+  h+='<div class="boardwrap"><table class="sheet"><thead>'+
+   '<tr><td colspan="6" class="corner">'+(A?'點格子直接填當天出貨數量，Enter 跳下一格':'')+'</td><td colspan="8" class="ttl">'+esc(wk.place+wk.type)+'</td></tr>'+
+   '<tr><th rowspan="2" class="n">'+(hasStart?(d0.getMonth()+1)+'/'+d0.getDate()+'前':'')+'</th><th rowspan="2" class="n">已出貨</th><th rowspan="2" class="n">庫存</th><th colspan="3" rowspan="2" class="it">品項/รายการวัสดุ</th>'+
+     days.map(d=>{const x=toDate(d);return '<th class="dd'+(d===today?' td':'')+'">'+(x.getMonth()+1)+'/'+x.getDate()+'</th>'}).join('')+'<th rowspan="2" class="cc">盤點<br>實數</th></tr>'+
+   '<tr>'+days.map(d=>'<th class="wd'+(d===today?' td':'')+'">'+WK[toDate(d).getDay()]+'</th>').join('')+'</tr></thead><tbody>'+
+   list.map((i,r)=>{const g=wk.grid[i.id]||{days:{},count:''};const n=sheetNums(i);const AI=wk.ai[i.id]||{};
+     return '<tr><td class="n st">'+(n.st==null?'':fmtN(n.st))+'</td><td class="n out" id="so-'+i.id+'">'+(n.out?'-'+fmtN(n.out):'0')+'</td><td class="n bal'+(n.end<0?' neg':'')+'" id="sb-'+i.id+'">'+fmtN(n.end)+'</td>'+
+     '<td class="nm"><button data-w="item" data-v="'+i.id+'">'+esc((i.section?i.section.replace('大浴室','大衛浴')+'・':'')+i.name)+'</button></td><td class="sp">'+esc(i.spec||'')+'</td><td class="th">'+esc(i.thai||'')+'</td>'+
+     days.map((d,c)=>{const v=g.days[d]??'';const o=O[i.id]&&O[i.id][d];
+       return '<td class="c'+(d===today?' td':'')+'">'+(A?'<input inputmode="numeric" data-it="'+i.id+'" data-d="'+d+'" data-r="'+r+'" data-c="'+c+'" value="'+esc(v)+'"'+(AI[d]?' class="ai"':'')+'>':'<span>'+esc(v)+'</span>')+
+         (o?'<small title="網站單筆登記的出貨">登'+fmtN(o)+'</small>':'')+'</td>'}).join('')+
+     '<td class="c cc">'+(A?'<input inputmode="numeric" data-it="'+i.id+'" data-d="count" data-r="'+r+'" data-c="7" value="'+esc(g.count??'')+'"'+(AI.count?' class="ai"':'')+'>':'<span>'+esc(g.count)+'</span>')+'</td></tr>'}).join('')+
+   (list.length?'':'<tr><td colspan="14" class="foot">這個類別還沒有品項</td></tr>')+'</tbody></table></div>'+
+   '<div class="foot">格子裡填的是「當天出貨數量」。'+(hasStart?'第一欄是這週一之前的結存，':'')+'「庫存」會跟著你填的數字即時變動，按「儲存修改」才會存進去。'+
+   '「盤點實數」有填的話，會自動補一筆盤點調整，讓帳面等於實際數量。小字「登N」是現場在網站上單筆登記的出貨。黃色格子是 AI 從照片讀出來的，請核對。點品名可以看紀錄、登記進貨。</div>';
+  const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;const ae=document.activeElement;const key=ae&&ae.dataset&&ae.dataset.it?ae.dataset.it+'|'+ae.dataset.d:'';
+  el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;
+  if(key){const [it,d]=key.split('|');const x=el.querySelector('input[data-it="'+it+'"][data-d="'+d+'"]');if(x)x.focus()}}
+function renderWeek(){return renderSheet()}
 function weekInput(e){const t=e.target;if(!t.dataset.it)return;const g=wk.grid[t.dataset.it]=wk.grid[t.dataset.it]||{days:{},count:''};
-  const v=t.value.replace(/[^\d.\-]/g,'');if(t.dataset.d==='count')g.count=v;else g.days[t.dataset.d]=v;wk.dirty=true;t.classList.remove('ai');
-  const sum=weekDays(wk.from).reduce((a,d)=>a+(Number(g.days[d])||0),0);const c=$('sum-'+t.dataset.it);if(c)c.textContent=sum||''}
+  const v=t.value.replace(/[^\d.\-]/g,'');if(t.dataset.d==='count')g.count=v;else g.days[t.dataset.d]=v;t.classList.remove('ai');
+  const it=stockItems.find(x=>x.id===t.dataset.it);if(it){const n=sheetNums(it);const o=$('so-'+it.id),b=$('sb-'+it.id);if(o)o.textContent=n.out?'-'+fmtN(n.out):'0';if(b){b.textContent=fmtN(n.end);b.classList.toggle('neg',n.end<0)}}
+  if(!wk.dirty){wk.dirty=true;const s=document.querySelector('[data-w="save"]');if(s){s.disabled=false;s.textContent='儲存修改'}}}
+// 像試算表一樣用 Enter／方向鍵移動
+function sheetKey(e){const t=e.target;if(!t.dataset||t.dataset.r===undefined)return;let r=+t.dataset.r,c=+t.dataset.c;
+  if(e.key==='Enter'||e.key==='ArrowDown')r+=e.shiftKey&&e.key==='Enter'?-1:1;else if(e.key==='ArrowUp')r--;
+  else if(e.key==='ArrowRight'&&t.selectionStart===t.value.length)c++;else if(e.key==='ArrowLeft'&&t.selectionStart===0)c--;else return;
+  const x=document.querySelector('#stockPage input[data-r="'+r+'"][data-c="'+c+'"]');if(x){e.preventDefault();x.focus();x.select()}}
+$('stockPage').addEventListener('keydown',e=>{if(stockMode==='sheet')sheetKey(e)});
+$('stockPage').addEventListener('focusin',e=>{if(stockMode==='sheet'&&e.target.dataset&&e.target.dataset.r!==undefined)e.target.select()});
 async function weekClick(e){const b=e.target.closest('[data-w]');if(!b)return;const w=b.dataset.w;
-  const leave=()=>!wk.dirty||confirmStep('leave-week');
-  if(w==='back'){if(!leave()){toast('還沒儲存，再按一次離開');return}stockMode='list';wk=null;renderStock();return}
-  if(w==='prev'||w==='next'){if(!leave()){toast('還沒儲存，再按一次切換');return}wk.from=addDays(wk.from,w==='prev'?-7:7);return loadWeek()}
-  if(w==='place'){if(!leave()){toast('還沒儲存，再按一次切換');return}wk.place=b.dataset.v;return loadWeek()}
-  if(w==='type'){const t=b.dataset.v;wk.types=wk.types.includes(t)?wk.types.filter(x=>x!==t):wk.types.concat(t);if(!wk.types.length)wk.types=[t];renderWeek();return}
+  const leave=()=>!wk.dirty||confirmStep('leave-week');const stay=()=>toast('還沒儲存，再按一次就放棄修改');
+  if(w==='alerts'){if(!leave())return stay();wk.dirty=false;stockMode='list';stFilter='out';renderStock();return}
+  if(w==='newitem'){openItemModal(null);return}
+  if(w==='print'){printWeek(wk.from,[wk.place],[wk.type]);return}
+  if(w==='item'){openHistory(stockItems.find(x=>x.id===b.dataset.v));return}
+  if(w==='prev'||w==='next'||w==='thisweek'){if(!leave())return stay();wk.from=w==='thisweek'?mondayOf(DB.today):addDays(wk.from,w==='prev'?-7:7);return loadWeek()}
+  if(w==='place'){if(wk.place===b.dataset.v)return;if(!leave())return stay();wk.place=b.dataset.v;return loadWeek()}
+  if(w==='type'){wk.type=b.dataset.v;renderSheet();return}
   if(w==='photo'){const inp=$('wkPhoto');inp.onchange=async()=>{const f=inp.files[0];if(!f)return;b.disabled=true;b.textContent='AI 辨識中…（約 20 秒）';
       try{const img=await shrink2(f,2200);const days=weekDays(wk.from);const d=(await api('week_ocr',{image:img,dates:days})).data;
         let n=0;(d.rows||[]).forEach(r=>{const it=stockItems.find(i=>i.order===Number(r.no));if(!it)return;const g=wk.grid[it.id]=wk.grid[it.id]||{days:{},count:''};const A=wk.ai[it.id]=wk.ai[it.id]||{};
           (r.days||[]).forEach((q,k)=>{if(q!==null&&q!==''&&!isNaN(Number(q))){g.days[days[k]]=String(q);A[days[k]]=1;n++}});
           if(r.count!==null&&r.count!==undefined&&!isNaN(Number(r.count))){g.count=String(r.count);A.count=1;n++}});
-        wk.dirty=true;renderWeek();toast(n?'AI 讀到 '+n+' 格，請核對黃色格子後儲存':'AI 沒讀到數字，請確認照片清楚、是這週的表')}
-      catch(err){toast(err.message)}b.disabled=false;b.textContent='拍照辨識';inp.value=''};inp.click();return}
+        wk.dirty=n>0||wk.dirty;renderSheet();toast(n?'AI 讀到 '+n+' 格，請核對黃色格子後按「儲存修改」':'AI 沒讀到數字，請確認照片清楚、是這週的表')}
+      catch(err){toast(err.message);b.disabled=false;b.textContent='📷 拍照填入'}inp.value=''};inp.click();return}
   if(w==='save'){b.disabled=true;b.textContent='儲存中…';
-    try{const rows=Object.keys(wk.grid).map(id=>({itemId:id,days:wk.grid[id].days,count:wk.grid[id].count}))
-        .filter(r=>Object.values(r.days).some(v=>v!==''&&v!=null)||r.count!==''||true);
-      const d=(await api('week_save',{place:wk.place,from:wk.from,rows})).data;wk.dirty=false;toast('已儲存這週（'+d.outs+' 筆出貨）');await load();stockMode='week';await loadWeek()}
-    catch(err){toast(err.message)}b.disabled=false;b.textContent='儲存這週'}}
+    try{const rows=Object.keys(wk.grid).map(id=>({itemId:id,days:wk.grid[id].days,count:wk.grid[id].count}));
+      const d=(await api('week_save',{place:wk.place,from:wk.from,rows})).data;wk.dirty=false;toast('已儲存（'+d.outs+' 筆出貨）');await load()}
+    catch(err){toast(err.message);b.disabled=false;b.textContent='儲存修改'}}}
 function shrink2(file,max){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const img=new Image();img.onload=()=>{
   const k=Math.min(1,max/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);
   cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);res({type:'image/jpeg',data:cv.toDataURL('image/jpeg',.85).split(',')[1]})};img.onerror=rej;img.src=fr.result};fr.onerror=rej;fr.readAsDataURL(file)})}
