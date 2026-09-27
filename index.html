@@ -295,6 +295,30 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 .board tr.band td.site,.board tr.band td.thsite,.board tr.band td.wk,.board tr.band td.lead,.board tr.band td.car{background:#E0FBEB}
 .board td.note{text-align:left;font-size:13px;min-width:110px}
 .board .emptyrow td{color:#9AA6A4}
+/* ---------- 排班編輯（表格） ---------- */
+.board td.car{background:transparent;border:1px solid #9AA6A4;border-radius:0;font-family:inherit;padding:5px 8px}
+.board tr.band td.car{background:#E0FBEB}
+.board.edit td.car{padding:0}
+#v-today .page{max-width:1600px}
+.board.edit td{padding:0;position:relative}
+.board.edit .gsel{appearance:none;-webkit-appearance:none;border:0;background:transparent;width:100%;height:100%;min-height:34px;padding:4px 6px;font:inherit;font-weight:700;text-align:center;text-align-last:center;cursor:pointer;color:inherit}
+.board.edit .gsel:hover,.board.edit .gsel:focus{background:rgba(31,92,85,.08);outline:none}
+.board.edit td.wk .gsel{font-style:italic;font-size:13px;min-width:62px}
+.board.edit td.lead .gsel{font-size:16px;min-width:84px}
+.board.edit td.car .gsel{font-size:13px;min-width:84px}
+.board.edit td.tk .gsel{font-weight:400;min-width:92px}
+.board.edit tr.th td.tk{padding:4px 6px;font-size:13px}
+.board.edit td.site{padding:4px 6px;min-width:150px}
+.board.edit td.thsite{padding:4px 6px}
+.board.edit .restv .gsel{background:transparent}
+.sitechips{display:grid;gap:2px}
+.sitechips span{display:flex;align-items:center;justify-content:center;gap:2px;font-weight:700;color:#1F4FB0}
+.sitechips button{border:0;background:none;color:#9AA6A4;font-size:13px;padding:0 2px;cursor:pointer}
+.gsite{border:1px dashed #9AA6A4;background:transparent;border-radius:6px;width:100%;padding:3px 6px;font:inherit;font-size:13px;text-align:center;margin-top:2px}
+.gnote{border:0;background:transparent;width:100%;min-width:120px;resize:vertical;font:inherit;font-size:13px;padding:4px 6px}
+.rowops{display:flex;gap:2px;justify-content:center;margin-top:4px;opacity:.5}
+.rowops:hover{opacity:1}
+.rowops button{border:1px solid var(--line);background:#fff;border-radius:4px;font-size:11px;padding:0 5px;cursor:pointer}
 /* ---------- 排班編輯 ---------- */
 .crewed{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
 .crewed h3{margin:0;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -689,11 +713,17 @@ const addDays=(s,n)=>{const d=toDate(s);d.setDate(d.getDate()+n);return ymd(d)};
 const norm=x=>String(x||'').replace(/[\s　]+/g,'');
 function fmtN(n){return (Math.round(n*10)/10).toString()}
 
+// 後台若回傳網頁而不是資料，多半是部署設定問題，給出看得懂的說明
+async function readJson(r){const t=await r.text();if(/^\s*</.test(t)){
+  if(/accounts\.google|ServiceLogin|登入|Sign in/i.test(t))throw new Error('後台要求登入：部署時「誰可以存取」要選「所有人」');
+  if(/doPost|doGet|找不到|not found/i.test(t))throw new Error('後台程式找不到函式：請確認已儲存程式，並用「管理部署作業 → 編輯 → 新版本」重新部署');
+  throw new Error('後台回傳錯誤頁面：請確認 API_URL 是結尾為 /exec 的部署網址，並已重新部署最新版本')}
+  try{return JSON.parse(t)}catch(e){throw new Error('後台回傳格式不正確')}}
 let firstLoad=true,loading=false;
 async function load(){
   if(!CFG.API_URL){fail('尚未設定後台網址（API_URL）。');return}
   if(loading)return;loading=true;
-  try{const r=await fetch(CFG.API_URL+'?action=all&t='+Date.now());const j=await r.json();if(!j.ok)throw new Error(j.error||'讀取失敗');
+  try{const r=await fetch(CFG.API_URL+'?action=all&t='+Date.now());const j=await readJson(r);if(!j.ok)throw new Error(j.error||'讀取失敗');
     DB=j.data;applyData();
     const d=new Date();$('updated').textContent='更新 '+pad(d.getHours())+':'+pad(d.getMinutes());
     if(firstLoad){firstLoad=false;fitAll()}
@@ -719,7 +749,7 @@ function setAdminUI(){const b=$('loginBtn');b.innerHTML=canField()?'<span class=
   $('addSiteBtn').hidden=!isAdmin();$('tabManage').hidden=!isAdmin()}
 async function api(action,payload){
   const r=await fetch(CFG.API_URL,{method:'POST',body:JSON.stringify(Object.assign({action,pin:PIN,by:BY},payload||{}))});
-  const j=await r.json();
+  const j=await readJson(r);
   if(!j.ok){if(j.code==='auth')logout();throw new Error(j.error||'寫入失敗')}
   return j}
 function logout(){PIN='';ROLE='';try{localStorage.removeItem('fulin-pin');localStorage.removeItem('fulin-role')}catch(e){}schedEdit=false;setAdminUI();if(!$('v-manage').hidden)showTab('map');render();renderToday();renderStock()}
@@ -881,57 +911,85 @@ async function shareSched(){const d=schedDate,rest=restOf(d);const L=['【富林
   if(navigator.share){try{await navigator.share({title:'排班',text});return}catch(e){if(e&&e.name==='AbortError')return}}
   try{await navigator.clipboard.writeText(text);toast('已複製排班，可以直接貼到 LINE')}catch(e){toast('無法複製')}}
 
-// ---------- 排班編輯 ----------
+// ---------- 排班編輯（跟紙本總表同一個樣子，直接在表格上選） ----------
 const leaders=()=>DB.people.filter(p=>p.kind==='帶頭').map(p=>p.name);
 const workersL=()=>DB.people.filter(p=>p.kind!=='帶頭').map(p=>p.name);
+const SPECIAL=/全員|自己|支援|休息|^-+$/;           // 可以重複選的特殊選項
+const pad8=a=>(a||[]).concat(Array(8).fill('')).slice(0,Math.max(8,(a||[]).length));
+const pad5=a=>(a||[]).concat(Array(5).fill('')).slice(0,Math.max(5,(a||[]).length));
+const pad4=a=>(a||[]).concat(Array(4).fill('')).slice(0,4);
+const toCrew=c=>({site:c.site||'',siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:pad8(c.workers),tasks:pad5(c.tasks),note:c.note||''});
+const blankCrew=()=>toCrew({});
 function openSchedEditor(){schedEdit=true;
   const src=crewsOf(schedDate);const rest=restOf(schedDate);
-  draft={date:schedDate,restD:rest.drivers.slice(),restW:rest.workers.slice(),crews:src.map(c=>({site:c.site,siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:c.workers.slice(),tasks:c.tasks.slice(),note:c.note||''}))};
-  if(!draft.crews.length)draft.crews.push(blankCrew());renderSchedEditor()}
-const blankCrew=()=>({site:'',siteIds:[],leader:'',car:'',workers:[],tasks:[],note:''});
-function chipSel(key,list,opts,ph,dups){return '<div class="chipsel" data-key="'+key+'">'+list.map((x,i)=>'<span class="cp'+(dups&&dups.has(x)?' dup':'')+'">'+esc(x)+'<button data-rm="'+key+'" data-i="'+i+'" aria-label="移除">×</button></span>').join('')+
-  '<select data-add="'+key+'"><option value="">＋ '+ph+'</option>'+opts.filter(o=>!list.includes(o)).map(o=>'<option>'+esc(o)+'</option>').join('')+'</select></div>'}
-function renderSchedEditor(){const el=$('todayPage');const D=draft;
-  const used={};D.crews.forEach(c=>[c.leader].concat(c.workers).filter(Boolean).forEach(p=>used[p]=(used[p]||0)+1));
-  const dups=new Set(Object.keys(used).filter(k=>used[k]>1));
-  const off=new Set(D.restD.concat(D.restW));
-  const free=DB.people.map(p=>p.name).filter(n=>!used[n]&&!off.has(n)&&!/全員|自己|支援/.test(n));
-  const siteNames=sites.map(s=>s.name);
-  let h='<div class="pagehead"><h2>編輯排班<small>'+mdw(D.date)+'</small></h2><div class="actions"><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="cancel">取消</button><button class="btn primary" data-e="save">儲存排班</button></div></div>'+
-   '<div class="crewed"><h3>休息人員</h3><div class="fld"><label>休息司機</label>'+chipSel('restD',D.restD,leaders(),'加入')+'</div><div class="fld"><label>休息工人</label>'+chipSel('restW',D.restW,workersL(),'加入')+'</div></div>'+
-   '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+(dups.size?'　<b style="color:#B42318">重複排班</b>'+esc([...dups].join('、')):'')+'</div>'+
-   '<datalist id="dlSites">'+siteNames.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist><div class="mgrid">'+
-   D.crews.map((c,i)=>'<div class="crewed"><h3>第 '+(i+1)+' 組<span>'+(i?'<button class="btn" data-e="up" data-i="'+i+'">上移</button> ':'')+'<button class="btn" data-e="del" data-i="'+i+'">刪除</button></span></h3>'+
-     '<div class="fld"><label>案場（可多個）</label><div class="chipsel">'+crewSites(c).map((l,j)=>'<span class="cp">'+esc(l)+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+
-       '<input list="dlSites" data-e-site="'+i+'" placeholder="＋ 輸入或選案場，按 Enter"></div></div>'+
-     '<div class="grid2"><div class="fld"><label>帶頭</label><select data-f="leader" data-i="'+i+'"><option value="">—</option>'+leaders().map(o=>'<option'+(o===c.leader?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div>'+
-     '<div class="fld"><label>車</label><select data-f="car" data-i="'+i+'"><option value="">—</option>'+DB.cars.map(o=>'<option'+(o===c.car?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select></div></div>'+
-     '<div class="fld"><label>工人（'+c.workers.length+' 人）</label>'+chipSel('w'+i,c.workers,workersL(),'加入工人',dups)+'</div>'+
-     '<div class="fld"><label>施作項目</label>'+chipSel('t'+i,c.tasks,DB.tasks.map(t=>t.zh),'加入項目')+'</div>'+
-     '<div class="fld"><label>備註</label><input data-f="note" data-i="'+i+'" value="'+esc(c.note)+'"></div></div>').join('')+
-   '</div><div><button class="btn" data-e="add">＋ 新增一組</button></div>';
-  el.innerHTML=h}
-function listRef(key){if(key==='restD')return draft.restD;if(key==='restW')return draft.restW;const i=+key.slice(1);return key[0]==='w'?draft.crews[i].workers:draft.crews[i].tasks}
+  draft={date:schedDate,restD:pad4(rest.drivers),restW:pad4(rest.workers),crews:src.map(toCrew)};
+  while(draft.crews.length<8)draft.crews.push(blankCrew());renderSchedEditor()}
+// 已經被選走的人／車（排除自己這一格）
+function usedPeople(skip){const u=new Set();const add=(v,k)=>{if(v&&k!==skip&&!SPECIAL.test(v))u.add(v)};
+  draft.restD.forEach((v,j)=>add(v,'rd|'+j));draft.restW.forEach((v,j)=>add(v,'rw|'+j));
+  draft.crews.forEach((c,i)=>{add(c.leader,'l|'+i);c.workers.forEach((v,j)=>add(v,'w|'+i+'|'+j))});return u}
+function usedCars(skip){const u=new Set();draft.crews.forEach((c,i)=>{if(c.car&&'c|'+i!==skip)u.add(c.car)});return u}
+function gsel(key,opts,v,used){const list=opts.filter(o=>o===v||!used.has(o));if(v&&!list.includes(v))list.unshift(v);
+  return '<select class="gsel" data-g="'+key+'"><option value=""></option>'+list.map(o=>'<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>'}
+function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDate(D.date);
+  const allPeople=DB.people.map(p=>p.name);const L=leaders(),W=workersL(),C=DB.cars,TK=DB.tasks.map(t=>t.zh);
+  const usedSite=new Set();D.crews.forEach(c=>crewSites(c).forEach(l=>usedSite.add(l)));
+  const total=D.crews.reduce((a,c)=>a+c.workers.filter(Boolean).length,0);
+  const free=allPeople.filter(n=>!usedPeople('').has(n)&&!SPECIAL.test(n));
+  let h='<div class="pagehead"><h2>編輯排班<small>點格子直接選，選過的人和車不會再出現</small></h2><div class="actions">'+
+   '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
+   '<button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="cancel">取消</button><button class="btn primary" data-e="save">儲存排班</button></div></div>'+
+   '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+
+   '<div class="boardwrap"><table class="board edit"><tbody>'+
+   '<tr><td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td>'+
+     D.restD.map((v,j)=>'<td class="restv">'+gsel('rd|'+j,L.concat(allPeople.filter(x=>SPECIAL.test(x))),v,usedPeople('rd|'+j))+'</td>').join('')+'<td class="restv"></td></tr>'+
+   '<tr><td colspan="2" class="dt">'+WK[dd.getDay()]+'</td><td class="rest">休息人員-工人</td>'+
+     D.restW.map((v,j)=>'<td class="restv">'+gsel('rw|'+j,W,v,usedPeople('rw|'+j))+'</td>').join('')+'<td class="restv"></td></tr>'+
+   '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
+  D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div></td>'+
+      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
+        '<input class="gsite" list="dlSites" data-site="'+i+'" placeholder="'+(siteList.length?'＋':'選案場')+'"></td>'+
+      '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
+      '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
+      c.workers.slice(0,4).map((v,j)=>'<td class="wk">'+gsel('w|'+i+'|'+j,W,v,usedPeople('w|'+i+'|'+j))+'</td>').join('')+
+      '<td rowspan="2" class="cnt">'+c.workers.filter(Boolean).length+'</td>'+
+      c.tasks.slice(0,5).map((v,j)=>'<td class="tk">'+gsel('t|'+i+'|'+j,TK,v,new Set())+'</td>').join('')+
+      '<td rowspan="2" class="note"><textarea class="gnote" data-note="'+i+'" rows="2">'+esc(c.note)+'</textarea></td></tr>'+
+      '<tr class="th'+band+'">'+c.workers.slice(4,8).map((v,j)=>'<td class="wk">'+gsel('w|'+i+'|'+(j+4),W,v,usedPeople('w|'+i+'|'+(j+4)))+'</td>').join('')+
+      c.tasks.slice(0,5).map(v=>'<td class="tk">'+esc(v?(taskTh(v)||''):'')+'</td>').join('')+'</tr>'});
+  h+='</tbody></table></div><datalist id="dlSites">'+sites.map(s=>s.name).filter(n=>!usedSite.has(n)).map(n=>'<option value="'+esc(n)+'">').join('')+'</datalist>'+
+   '<div class="actions"><button class="btn" data-e="add">＋ 新增一組</button></div>'+
+   '<div class="foot">泰文案場名稱會在儲存時自動翻譯。每組的工人最多 8 位（上下兩排）。「全員上班」「工人自己」這類選項可以重複選。</div>';
+  const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx}
+function crewThai(c){const known={};(DB.sched||[]).forEach(x=>{crewSites(x).forEach((l,k)=>{const t=String(x.siteThai||'').split('\n')[k];if(t)known[l]=t})});
+  sites.forEach(s=>{if(s.thai)known[s.name]=s.thai});return crewSites(c).map(l=>known[l]||'').join('\n')}
 function addSiteLine(i,v){v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
   const s=sites.find(x=>x.name===v);if(s&&!c.siteIds.includes(s.id))c.siteIds.push(s.id);renderSchedEditor()}
 $('todayPage').addEventListener('change',e=>{if(!schedEdit)return;const t=e.target;
-  if(t.dataset.add&&t.value){listRef(t.dataset.add).push(t.value);renderSchedEditor();return}
-  if(t.dataset.f){draft.crews[+t.dataset.i][t.dataset.f]=t.value;if(t.dataset.f!=='note')renderSchedEditor();return}
-  if(t.dataset.eSite!==undefined&&sites.some(s=>s.name===t.value))addSiteLine(+t.dataset.eSite,t.value)});
-$('todayPage').addEventListener('keydown',e=>{const t=e.target;if(schedEdit&&t.dataset.eSite!==undefined&&e.key==='Enter'){e.preventDefault();addSiteLine(+t.dataset.eSite,t.value)}});
-$('todayPage').addEventListener('input',e=>{const t=e.target;if(schedEdit&&t.dataset.f==='note')draft.crews[+t.dataset.i].note=t.value});
-$('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;const rm=e.target.closest('[data-rm]');
-  if(rm){listRef(rm.dataset.rm).splice(+rm.dataset.i,1);renderSchedEditor();return}
+  if(t.id==='edDate'&&t.value){draft.date=t.value;renderSchedEditor();return}
+  if(t.dataset.g){const p=t.dataset.g.split('|');const v=t.value;
+    if(p[0]==='rd')draft.restD[+p[1]]=v;else if(p[0]==='rw')draft.restW[+p[1]]=v;
+    else if(p[0]==='l')draft.crews[+p[1]].leader=v;else if(p[0]==='c')draft.crews[+p[1]].car=v;
+    else if(p[0]==='w')draft.crews[+p[1]].workers[+p[2]]=v;else if(p[0]==='t')draft.crews[+p[1]].tasks[+p[2]]=v;
+    renderSchedEditor();return}
+  if(t.dataset.site!==undefined&&sites.some(s=>s.name===t.value))addSiteLine(+t.dataset.site,t.value)});
+$('todayPage').addEventListener('keydown',e=>{const t=e.target;if(schedEdit&&t.dataset.site!==undefined&&e.key==='Enter'){e.preventDefault();addSiteLine(+t.dataset.site,t.value)}});
+$('todayPage').addEventListener('input',e=>{const t=e.target;if(schedEdit&&t.dataset.note!==undefined)draft.crews[+t.dataset.note].note=t.value});
+$('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();const act=b.dataset.e,i=+b.dataset.i;
   if(act==='add'){draft.crews.push(blankCrew());renderSchedEditor()}
-  else if(act==='del'){draft.crews.splice(i,1);renderSchedEditor()}
+  else if(act==='del'){const c=draft.crews[i];const empty=!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean)&&!c.tasks.some(Boolean);
+    if(empty&&draft.crews.length>1)draft.crews.splice(i,1);else draft.crews[i]=blankCrew();renderSchedEditor()}
   else if(act==='up'){const c=draft.crews.splice(i,1)[0];draft.crews.splice(i-1,0,c);renderSchedEditor()}
   else if(act==='rmsite'){const c=draft.crews[i];const lines=crewSites(c);const gone=lines.splice(+b.dataset.j,1)[0];c.site=lines.join('\n');const s=sites.find(x=>x.name===gone);if(s)c.siteIds=c.siteIds.filter(x=>x!==s.id);renderSchedEditor()}
   else if(act==='copy'){const prev=addDays(draft.date,-1);const src=crewsOf(prev);if(!src.length){toast('前一天沒有排班');return}
-    draft.crews=src.map(c=>({site:c.site,siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:c.workers.slice(),tasks:c.tasks.slice(),note:c.note||''}));const r=restOf(prev);draft.restD=r.drivers.slice();draft.restW=r.workers.slice();renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班，記得儲存')}
+    draft.crews=src.map(toCrew);while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班，記得儲存')}
   else if(act==='cancel'){schedEdit=false;draft=null;renderToday()}
   else if(act==='save'){b.disabled=true;b.textContent='儲存中…（翻譯泰文）';
-    try{await api('sched_save',{date:draft.date,crews:draft.crews,restD:draft.restD,restW:draft.restW});schedEdit=false;draft=null;toast('排班已儲存');await load();renderToday()}
+    const crews=draft.crews.map(c=>({site:c.site,siteIds:c.siteIds,leader:c.leader,car:c.car,workers:c.workers.filter(Boolean),tasks:c.tasks.filter(Boolean),note:c.note}))
+      .filter(c=>c.site||c.leader||c.car||c.workers.length||c.tasks.length);
+    try{await api('sched_save',{date:draft.date,crews,restD:draft.restD.filter(Boolean),restW:draft.restW.filter(Boolean)});schedDate=draft.date;schedEdit=false;draft=null;toast('排班已儲存');await load();renderToday()}
     catch(err){toast(err.message);b.disabled=false;b.textContent='儲存排班'}}},true);
 
 // ================= 庫存 =================
