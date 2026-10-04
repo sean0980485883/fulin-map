@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" translate="no" class="notranslate">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>富林組合屋工作台</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -430,6 +431,9 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 
 .savest{font-size:13px;color:var(--muted);padding:0 6px;white-space:nowrap}
 .savest.ok{color:#2E9E44}.savest.saving,.savest.wait{color:#1F63E0}.savest.err{color:#D93025;font-weight:600}
+
+.ainote{background:#FFF6D0;border:1px solid #E0C050;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.ainote button{border:0;background:none;cursor:pointer;color:#8A6D00;font-size:14px}
 </style>
 </head>
 <body>
@@ -1312,7 +1316,7 @@ function renderSheet(){const el=$('stockPage');if(!wk)return;const days=weekDays
    '<div class="wknav"><button class="btn" data-w="prev" aria-label="上一週">‹</button><span>'+(d0.getMonth()+1)+'/'+d0.getDate()+' ～ '+(d6.getMonth()+1)+'/'+d6.getDate()+'</span><button class="btn" data-w="next" aria-label="下一週">›</button>'+
      (wk.from!==mondayOf(DB.today)?'<button class="btn" data-w="thisweek">回本週</button>':'')+'</div>'+
    (A?'<div class="shsave"><button class="btn" data-w="photo">📷 拍照填入</button><button class="btn primary" data-w="save"'+(wk.dirty?'':' disabled')+'>'+(wk.dirty?'儲存修改':'已儲存')+'</button></div>':'')+
-   '<input type="file" id="wkPhoto" accept="image/*" hidden></div>';
+   '<input type="file" id="wkPhoto" accept="image/*" multiple hidden></div>'+(wk.note?'<div class="ainote">'+esc(wk.note)+'<button data-w="noteoff" aria-label="關閉">✕</button></div>':'');
   if(wk.loading&&!wk.data){el.innerHTML=h+'<div class="foot">讀取中…</div>';return}
   const list=itemsOfTypes([wk.type]);const today=DB.today;const O=(wk.data&&wk.data.other)||{};
   const hasStart=!!(wk.data&&wk.data.start);
@@ -1335,7 +1339,7 @@ function renderSheet(){const el=$('stockPage');if(!wk)return;const days=weekDays
   el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;
   if(key){const [it,d]=key.split('|');const x=el.querySelector('input[data-it="'+it+'"][data-d="'+d+'"]');if(x)x.focus()}}
 function renderWeek(){return renderSheet()}
-function fillWeek(d){wk.data=d;d.entries=d.entries||{};d.counts=d.counts||{};wk.grid={};wk.ai={};stockItems.forEach(i=>{const e=d.entries[i.id]||{};const c=d.counts[i.id];wk.grid[i.id]={days:Object.assign({},e),count:c==null?'':String(c)}})}
+function fillWeek(d){wk.note='';wk.data=d;d.entries=d.entries||{};d.counts=d.counts||{};wk.grid={};wk.ai={};stockItems.forEach(i=>{const e=d.entries[i.id]||{};const c=d.counts[i.id];wk.grid[i.id]={days:Object.assign({},e),count:c==null?'':String(c)}})}
 function weekInput(e){const t=e.target;if(!t.dataset.it)return;const g=wk.grid[t.dataset.it]=wk.grid[t.dataset.it]||{days:{},count:''};
   const v=t.value.replace(/[^\d.\-]/g,'');if(t.dataset.d==='count')g.count=v;else g.days[t.dataset.d]=v;t.classList.remove('ai');
   const it=stockItems.find(x=>x.id===t.dataset.it);if(it){const n=sheetNums(it);const o=$('so-'+it.id),b=$('sb-'+it.id);if(o)o.textContent=n.out?'-'+fmtN(n.out):'0';if(b){b.textContent=fmtN(n.end);b.classList.toggle('neg',n.end<0)}}
@@ -1349,6 +1353,7 @@ $('stockPage').addEventListener('keydown',e=>{if(stockMode==='sheet')sheetKey(e)
 $('stockPage').addEventListener('focusin',e=>{if(stockMode==='sheet'&&e.target.dataset&&e.target.dataset.r!==undefined)e.target.select()});
 async function weekClick(e){const b=e.target.closest('[data-w]');if(!b)return;const w=b.dataset.w;
   const leave=()=>!wk.dirty||confirmStep('leave-week');const stay=()=>toast('還沒儲存，再按一次就放棄修改');
+  if(w==='noteoff'){wk.note='';renderSheet();return}
   if(w==='alerts'){if(!leave())return stay();wk.dirty=false;stockMode='list';stFilter='out';renderStock();return}
   if(w==='newitem'){openItemModal(null);return}
   if(w==='print'){printWeek(wk.from,[wk.place],[wk.type]);return}
@@ -1356,13 +1361,27 @@ async function weekClick(e){const b=e.target.closest('[data-w]');if(!b)return;co
   if(w==='prev'||w==='next'||w==='thisweek'){if(!leave())return stay();wk.from=w==='thisweek'?mondayOf(DB.today):addDays(wk.from,w==='prev'?-7:7);wk.data=null;return loadWeek()}
   if(w==='place'){if(wk.place===b.dataset.v)return;if(!leave())return stay();wk.place=b.dataset.v;wk.data=null;return loadWeek()}
   if(w==='type'){wk.type=b.dataset.v;renderSheet();return}
-  if(w==='photo'){const inp=$('wkPhoto');inp.onchange=async()=>{const f=inp.files[0];if(!f)return;b.disabled=true;b.textContent='AI 辨識中…（約 20 秒）';
-      try{const img=await shrink2(f,2200);const days=weekDays(wk.from);const d=(await api('week_ocr',{image:img,dates:days})).data;
-        let n=0;(d.rows||[]).forEach(r=>{const it=stockItems.find(i=>i.order===Number(r.no));if(!it)return;const g=wk.grid[it.id]=wk.grid[it.id]||{days:{},count:''};const A=wk.ai[it.id]=wk.ai[it.id]||{};
-          (r.days||[]).forEach((q,k)=>{if(q!==null&&q!==''&&!isNaN(Number(q))){g.days[days[k]]=String(q);A[days[k]]=1;n++}});
-          if(r.count!==null&&r.count!==undefined&&!isNaN(Number(r.count))){g.count=String(r.count);A.count=1;n++}});
-        wk.dirty=n>0||wk.dirty;renderSheet();toast(n?'AI 讀到 '+n+' 格，請核對黃色格子後按「儲存修改」':'AI 沒讀到數字，請確認照片清楚、是這週的表')}
-      catch(err){toast(err.message);b.disabled=false;b.textContent='📷 拍照填入'}inp.value=''};inp.click();return}
+  if(w==='photo'){const inp=$('wkPhoto');inp.onchange=async()=>{const files=[...inp.files];if(!files.length)return;b.disabled=true;
+      const days=weekDays(wk.from);const all=stockItems.slice().sort((x,y)=>x.order-y.order);
+      const items=all.map(i=>({no:i.order,type:i.type,name:(i.section?i.section.replace('大浴室','大衛浴')+'・':'')+i.name,spec:i.spec||''}));
+      // 手寫「4+4」這種算式也收：加總
+      const numVal=q=>{if(q===null||q===undefined||q==='')return null;if(typeof q==='number')return isFinite(q)?q:null;
+        const t=String(q).replace(/\s/g,'');if(!/^\d+(\.\d+)?(\+\d+(\.\d+)?)*$/.test(t))return null;return t.split('+').reduce((x,y)=>x+Number(y),0)};
+      const findItem=r=>{let it=all.find(i=>i.order===Number(r.no));if(it)return it;const nm=norm(r.name||'');if(!nm)return null;
+        return all.find(i=>norm(itemLabel(i))===nm)||all.find(i=>nm.includes(norm(i.name))&&(!i.spec||nm.includes(norm(i.spec))))||null};
+      let total=0;const perType={};const errs=[];
+      for(let k=0;k<files.length;k++){b.textContent='AI 辨識中…'+(files.length>1?'（第 '+(k+1)+'/'+files.length+' 張）':'（約 30 秒）');
+        try{const img=await shrink2(files[k],2400);const d=(await api('week_ocr',{image:img,dates:days,items})).data;
+          (d.rows||[]).forEach(r=>{const it=findItem(r);if(!it)return;const g=wk.grid[it.id]=wk.grid[it.id]||{days:{},count:''};const A=wk.ai[it.id]=wk.ai[it.id]||{};
+            (r.days||[]).forEach((q,j)=>{const v=numVal(q);if(v!==null&&j<7){g.days[days[j]]=String(v);A[days[j]]=1;total++;perType[it.type]=(perType[it.type]||0)+1}});
+            const c=numVal(r.count);if(c!==null){g.count=String(c);A.count=1;total++;perType[it.type]=(perType[it.type]||0)+1}})}
+        catch(err){errs.push(err.message)}}
+      const types=Object.keys(perType).sort((x,y)=>perType[y]-perType[x]);
+      if(total){wk.dirty=true;if(!perType[wk.type])wk.type=types[0];
+        wk.note='AI 從照片讀到 '+total+' 格（'+types.map(t=>wk.place+t+' '+perType[t]+' 格').join('、')+'），已用黃色標出。請一格一格核對，沒問題再按「儲存修改」。';}
+      else wk.note=errs.length?'':'AI 沒有讀到手寫數字。請確認：照片是這一週（'+mdw(days[0])+'～'+mdw(days[6])+'）的表、整張拍進去、字清楚。';
+      renderSheet();toast(errs.length?errs[0]:(total?'AI 讀到 '+total+' 格，請核對黃色格子':'AI 沒讀到數字'));
+      const nb=document.querySelector('[data-w="photo"]');if(nb){nb.disabled=false}inp.value=''};inp.click();return}
   if(w==='save'){b.disabled=true;b.textContent='儲存中…';
     try{const rows=Object.keys(wk.grid).map(id=>({itemId:id,days:wk.grid[id].days,count:wk.grid[id].count}));
       const d=(await api('week_save',{place:wk.place,from:wk.from,rows})).data;wk.dirty=false;toast('已儲存（'+d.outs+' 筆出貨）');await load()}
