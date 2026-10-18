@@ -523,6 +523,29 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 .selbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:900;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#1E1E1E;color:#fff;border-radius:12px;padding:8px 12px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:calc(100% - 24px)}
 .selbar[hidden]{display:none}
 .selbar button{background:#fff;color:#1E1E1E;padding:4px 10px}
+
+/* 編輯排班：左側近期需進場 */
+.edlayout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start}
+.edmain{min-width:0}
+.edside{position:sticky;top:8px;background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;max-height:calc(100vh - 24px);overflow:hidden}
+.eshead{padding:10px;border-bottom:1px solid var(--line);display:grid;gap:6px}.eshead b{font-size:15px}
+.eshead input{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
+.eslist{overflow:auto;padding:6px 8px 10px}
+.esg{margin-top:8px}.esd{font-size:13px;font-weight:700;color:#B42318;padding:4px 2px;border-bottom:2px solid #F3C1BC;margin-bottom:4px;display:flex;justify-content:space-between;cursor:default}
+.esd span{font-weight:400;color:var(--muted);font-size:12px}
+.esg:not(.late) .esd{color:#1F5C55;border-color:#CFE3DD}
+details.esg summary{list-style:none;cursor:pointer}
+.sidecard{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;padding:6px 8px;margin:5px 0;cursor:grab;background:#fff;font-size:13px}
+.sidecard:hover{border-color:#1F63E0;background:#F3F7FF}
+.sidecard.used{opacity:.55}
+.sidecard .scn{display:flex;align-items:center;gap:6px}.sidecard .scn i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.sidecard .scn b{flex:1;font-weight:700}.sidecard .scn button{border:0;background:none;cursor:pointer;font-size:13px;padding:0}
+.sidecard small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.sidecard em{display:block;font-style:normal;font-size:11px;color:#8A6D00;margin-top:2px}.sidecard em.ok{color:#2E9E44}
+.esfoot{padding:8px 10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.dragging-site .board.edit td.site{outline:2px dashed #9DB8F0;outline-offset:-3px}
+.board.edit td.dropok{background:#CFE0FF!important}
+@media (max-width:1100px){.edlayout{grid-template-columns:1fr}.edside{position:static;max-height:320px}}
 </style>
 </head>
 <body>
@@ -1249,7 +1272,7 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
   let h='<div class="pagehead"><h2>編輯排班<small>點格子 → 點名字。選過的人和車不會再出現</small></h2>'+dayTabs(D.date,'e')+'<div class="actions">'+
    '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
    '<button class="btn" id="undoBtn" data-e="undo" title="復原上一步（⌘/Ctrl+Z）"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
-   '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+edSuggest(D)+
+   '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
    '<div class="clrbar"><details class="clrmenu"><summary>🧹 一次清除</summary><div class="clrpop"><div class="foot">清掉這天所有的：</div>'+
      '<button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="sites">案場</button><button data-e="clr" data-v="all" class="danger">全部清空</button>'+
      '<div class="foot">清錯了可以按「↶ 復原」。</div></div></details>'+
@@ -1276,7 +1299,8 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
   h+='</tbody></table></div>'+
    '<div class="actions"><button class="btn" data-e="add">＋ 新增一組</button></div>'+
    '<div class="foot">點任何格子會跳出選單，直接點名字就填好。選工人時會自動跳到下一格，可以連續點。案場由北到南排列。每改一格都會自動存到雲端（跟 Google 試算表一樣），司機那邊重新整理就看得到；泰文也會自動翻譯。改完按「完成」回到總表。</div>';
-  const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;paintSel();keepDraft()}
+  h=h.replace('<div class="clrbar">','<div class="edlayout"><aside class="edside" id="edside">'+edSide(D)+'</aside><div class="edmain"><div class="clrbar">')+'</div></div>';
+  const sideSc=($('edsideList')||{}).scrollTop||0;const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;if($('edsideList'))$('edsideList').scrollTop=sideSc;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;paintSel();keepDraft()}
 // 檢查：漏填或怪怪的地方（不擋儲存，只提醒）
 function edChecks(D){const w=[];D.crews.forEach((c,i)=>{const any=c.site||c.leader||c.car||c.workers.some(Boolean)||c.tasks.some(Boolean);if(!any)return;const g='第'+(i+1)+'組';
     const special=crewSites(c).length&&crewSites(c).every(l=>SPECIAL_SITES.includes(l));
@@ -1289,6 +1313,37 @@ function edSuggest(D){const used=new Set();D.crews.forEach(c=>crewSites(c).forEa
   const grp=[['進場中',pick('active')],['7 天內進場',pick('week')],['問題單',pick('issue')]].filter(g=>g[1].length);if(!grp.length)return '';
   return '<details class="edsugg"'+(draft.suggOpen?' open':'')+'><summary>還沒排到的案場（點一下加入）</summary>'+grp.map(g=>'<div class="sg"><span>'+g[0]+'</span>'+g[1].slice(0,40).map(s=>{const b=BK[bucket(s)];
     return '<button data-e="sugg" data-v="'+esc(s.name)+'" style="--c:var('+b.c+')"><i></i>'+esc(s.name)+(bucket(s)==='week'?' <small>'+esc(dLabel(daysUntil(s.startDate)))+'</small>':'')+'</button>'}).join('')+'</div>').join('')+'</details>'}
+// ---- 左側：近期要進場的案場（依進場日分組），點一下或拖到某一組就加進去 ----
+let edSideQ='';
+function lastSched(){const m={};(DB.sched||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(c=>crewSites(c).forEach(l=>{(m[l]=m[l]||[]).push(c.date)}));return m}
+function edSide(D){return '<div class="eshead"><b>近期需進場</b><input id="edSideQ" placeholder="搜尋案場" value="'+esc(edSideQ)+'" autocomplete="off"></div><div class="eslist" id="edsideList">'+edSideList(D)+'</div>'+
+  '<div class="esfoot">點一下加入空的一組，或<b>拖到</b>某一組的案場欄</div>'}
+function edSideList(D){const used=new Set();D.crews.forEach(c=>crewSites(c).forEach(l=>used.add(l)));const ls=lastSched();
+  const q=norm(edSideQ).toLowerCase();const ok=s=>s.status!=='done'&&(!q||norm(s.name+' '+(s.address||'')).toLowerCase().includes(q));
+  const dn=d=>Math.round((toDate(d)-toDate(D.date))/864e5);const ns=sitesNS().filter(ok);
+  const card=s=>{const b=BK[bucket(s)];const other=(ls[s.name]||[]).filter(d=>d!==D.date);const lastD=other.length?other[other.length-1]:'';
+    return '<div class="sidecard'+(used.has(s.name)?' used':'')+'" draggable="true" data-e="sugg" data-v="'+esc(s.name)+'" style="--c:var('+b.c+')">'+
+      '<div class="scn"><i></i><b>'+esc(s.name)+'</b>'+(isAdmin()?'<button data-e="squote" data-v="'+esc(s.name)+'" title="看報價單">📄</button>':'')+'</div>'+
+      '<small>'+esc([String(s.address||'').slice(0,12),s.startDate?dLabel(daysUntil(s.startDate)):''].filter(Boolean).join('｜'))+'</small>'+
+      (used.has(s.name)?'<em class="ok">✓ 這天已排</em>':lastD?'<em>上次排：'+esc(mdw(lastD))+'</em>':'')+'</div>'};
+  let h='';
+  const late=ns.filter(s=>s.status==='upcoming'&&s.startDate&&dn(s.startDate)<0);
+  if(late.length)h+='<div class="esg late"><div class="esd">⚠ 已過進場日、還沒進場</div>'+late.map(card).join('')+'</div>';
+  const soon=ns.filter(s=>s.startDate&&dn(s.startDate)>=0&&dn(s.startDate)<=14).sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  const days=[...new Set(soon.map(s=>s.startDate))];
+  days.forEach(d=>{const n=dn(d);h+='<div class="esg"><div class="esd">'+esc(mdw(d))+'<span>'+(n===0?'這一天':n===1?'隔天':n+' 天後')+'</span></div>'+soon.filter(s=>s.startDate===d).map(card).join('')+'</div>'});
+  const act=ns.filter(s=>s.status==='active'&&!soon.includes(s));if(act.length)h+='<div class="esg"><div class="esd">進場中（還在施工）</div>'+act.map(card).join('')+'</div>';
+  const iss=ns.filter(s=>s.status==='issue');if(iss.length)h+='<div class="esg"><div class="esd">問題單</div>'+iss.map(card).join('')+'</div>';
+  const nod=ns.filter(s=>s.status==='upcoming'&&!s.startDate);if(nod.length)h+='<details class="esg"><summary class="esd">日期未定（'+nod.length+'）</summary>'+nod.map(card).join('')+'</details>';
+  return h||'<div class="foot" style="padding:10px">沒有符合的案場</div>'}
+$('todayPage').addEventListener('input',e=>{if(e.target.id!=='edSideQ'||!schedEdit)return;edSideQ=e.target.value;const l=$('edsideList');if(l)l.innerHTML=edSideList(draft)});
+$('todayPage').addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.sidecard');if(!c||!schedEdit)return;e.dataTransfer.setData('text/plain',c.dataset.v);e.dataTransfer.effectAllowed='copy';document.body.classList.add('dragging-site')});
+$('todayPage').addEventListener('dragend',()=>{document.body.classList.remove('dragging-site');document.querySelectorAll('.dropok').forEach(x=>x.classList.remove('dropok'))});
+function dropRow(e){const td=e.target.closest&&e.target.closest('.board.edit tr');if(!td)return -1;const t=td.querySelector('td.thsite[data-grp]')||(td.previousElementSibling&&td.previousElementSibling.querySelector('td.thsite[data-grp]'));return t?+t.dataset.grp:-1}
+$('todayPage').addEventListener('dragover',e=>{if(!schedEdit)return;const i=dropRow(e);if(i<0)return;e.preventDefault();e.dataTransfer.dropEffect='copy';
+  document.querySelectorAll('.dropok').forEach(x=>x.classList.remove('dropok'));const td=document.querySelector('td.thsite[data-grp="'+i+'"]');if(td){td.classList.add('dropok');td.nextElementSibling&&td.nextElementSibling.classList.add('dropok')}});
+$('todayPage').addEventListener('drop',e=>{if(!schedEdit)return;const i=dropRow(e);if(i<0)return;e.preventDefault();const v=e.dataTransfer.getData('text/plain');document.body.classList.remove('dragging-site');
+  if(v){addSiteLine(i,v);toast('已把「'+v+'」加到第 '+(i+1)+' 組');const c=draft.crews[i];if(!c.leader)setTimeout(()=>openPick('l|'+i),50)}});
 function crewThai(c){const known={};(DB.sched||[]).forEach(x=>{crewSites(x).forEach((l,k)=>{const t=String(x.siteThai||'').split('\n')[k];if(t)known[l]=t})});
   sites.forEach(s=>{if(s.thai)known[s.name]=s.thai});return crewSites(c).map(l=>known[l]||'').join('\n')}
 function addSiteLine(i,v){v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
@@ -1434,6 +1489,7 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   const g=e.target.closest('.gcell');if(g){e.stopPropagation();if(edDragged||e.shiftKey||e.metaKey||e.ctrlKey){edDragged=false;return}if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
   const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();closePick();const act=b.dataset.e,i=+b.dataset.i;
   if(act==='day'){if(b.dataset.v!==draft.date)switchEditDay(b.dataset.v);return}
+  if(act==='squote'){openQuotesModal(sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
   if(act==='undo'){undoDraft();return}
   if(act==='clr'){const v=b.dataset.v;const det=b.closest('details');if(det)det.open=false;doClear(allKeys(),v);return}
   if(act==='selclr'){doClear(edSel,b.dataset.v);return}
