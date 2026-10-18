@@ -503,6 +503,26 @@ button.tile[aria-pressed="true"]{outline:2px solid var(--accent)}
 .qlist{max-height:55vh;overflow:auto;display:grid;gap:4px}
 .qpick{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
 .qpick:has(input:checked){border-color:#1F63E0;background:#F3F7FF}
+
+.sitechips .qbtn{font-size:12px!important;color:#1F4FB0!important;padding:0 1px!important}
+.board .qlink{border:0;background:none;font:inherit;font-weight:inherit;color:#1F4FB0;cursor:pointer;padding:0;text-align:center}
+.board .qlink i{font-style:normal;font-size:11px;opacity:.6}.board .qlink:hover{text-decoration:underline}.board .qlink:hover i{opacity:1}
+
+/* 範圍選取／一次清除 */
+.board.edit td.sel{background:#CFE0FF!important;box-shadow:inset 0 0 0 1px #1F63E0}
+.board.edit td.thsite[data-grp]{cursor:pointer}.board.edit td.thsite[data-grp]:hover{background:#E6F0FF}
+.board.edit .gcell{user-select:none}
+.clrbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+.clrmenu{position:relative}.clrmenu summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:#fff;font-weight:600}
+.clrmenu summary::-webkit-details-marker{display:none}
+.clrpop{position:absolute;z-index:50;top:110%;left:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:10px;display:grid;gap:6px;width:220px}
+.clrpop button,.selbar button{border:1px solid var(--line);background:#F7F9F6;border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer;text-align:left}
+.clrpop button:hover,.selbar button:hover{border-color:#1F63E0;background:#E6F0FF}
+.clrpop .danger,.selbar .danger{color:#B42318;border-color:#F3C1BC;background:#FDECEA}
+.selhint{font-size:12px;color:var(--muted)}
+.selbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:900;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:#1E1E1E;color:#fff;border-radius:12px;padding:8px 12px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:calc(100% - 24px)}
+.selbar[hidden]{display:none}
+.selbar button{background:#fff;color:#1E1E1E;padding:4px 10px}
 </style>
 </head>
 <body>
@@ -1042,6 +1062,12 @@ async function fillQuotes(s){try{const q=await getQuotes();const box=$('quoteBox
         :'<div class="foot">資料夾裡沒找到檔名有「'+esc(coreName(s.name)||s.name)+'」的報價單，可以按「連結其他報價單」手動選。</div>')+
       '<div class="actions"><button class="btn" data-q="link">🔗 連結其他報價單</button>'+(q.folder?'<a class="btn" href="'+esc(q.folder)+'" target="_blank" rel="noopener">打開資料夾</a>':'')+'<button class="btn" data-q="refresh" title="資料夾有新檔案時按這裡">↻ 重新讀取</button></div>'}
   catch(err){const box=$('quoteBox');if(box)box.innerHTML='<h4>報價單</h4><div class="foot">'+esc(/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回 Apps Script 並重新部署。':err.message)+'</div>'}}
+function openQuotesModal(s,label){if(!s){toast('「'+(label||'')+'」不在案場清單裡，找不到報價單');return}
+  openModal('報價單：'+s.name,'<div id="qmBody" class="foot">讀取中…</div>',[['連結其他報價單','link'],['關閉','close','primary']],async act=>{if(act==='link'){closeModal();openQuoteLink(s)}return false},true);
+  getQuotes().then(q=>{const el=$('qmBody');if(!el)return;const list=quoteMatch(s,q.files||[]);el.className='';
+    el.innerHTML=list.length?list.map(f=>'<a class="qf" href="'+esc(f.url)+'" target="_blank" rel="noopener"><span class="qi">'+qIcon(f.mime)+'</span><span><b>'+esc(f.name)+'</b><small>'+esc([f.path,f.t].filter(Boolean).join('｜'))+'</small></span></a>').join('')
+      :'<div class="foot">沒找到檔名有「'+esc(coreName(s.name)||s.name)+'」的報價單，可以按「連結其他報價單」手動選。</div>'})
+   .catch(err=>{const el=$('qmBody');if(el)el.textContent=/未知的動作/.test(err.message)?'後台還沒更新：請重新部署新版 富林系統.gs。':err.message})}
 function openQuoteLink(s){getQuotes().then(q=>{const files=(q.files||[]).slice().sort((a,b)=>String(b.t).localeCompare(String(a.t)));const sel=new Set(s.quotes||[]);
   const listHtml=t=>{const k=norm(t).toLowerCase();const arr=files.filter(f=>!k||norm(f.name+' '+f.path).toLowerCase().includes(k)).slice(0,200);
     return arr.map(f=>'<label class="qpick"><input type="checkbox" value="'+esc(f.id)+'"'+(sel.has(f.id)?' checked':'')+'><span class="qi">'+qIcon(f.mime)+'</span><span><b>'+esc(f.name)+'</b><small>'+esc([f.path,f.t].filter(Boolean).join('｜'))+'</small></span></label>').join('')||'<div class="foot">找不到符合的檔案</div>'};
@@ -1117,7 +1143,8 @@ function matchToday(){todayBySite={};crewsOf(DB.today).forEach(c=>crewSites(c).f
   $('cntToday').textContent=crewsOf(DB.today).length}
 function goMap(id){showTab('map');const s=sites.find(x=>x.id===id);if(s){selected=id;routeMode=false;render();setTimeout(()=>{if(M){M.resize&&M.resize();if(s.lat!=null)M.setView(s.lat,s.lng,14)}},50)}}
 
-function boardHtml(d){const crews=crewsOf(d),rest=restOf(d);const dd=toDate(d);
+let boardPlain=false;
+function boardHtml(d){const meName_=boardPlain?'':meName;const crews=crewsOf(d),rest=restOf(d);const dd=toDate(d);
   const total=crews.reduce((a,c)=>a+c.workers.length,0);
   let h='<table class="board" id="boardTbl"><tbody>'+
    '<tr><td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td><td class="restv" colspan="5">'+esc(rest.drivers.join('、')||'')+'</td></tr>'+
@@ -1125,9 +1152,9 @@ function boardHtml(d){const crews=crewsOf(d),rest=restOf(d);const dd=toDate(d);
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   crews.forEach((c,i)=>{const band=i%2===0?' band':'';const w=c.workers.concat(Array(8).fill('')).slice(0,Math.max(8,Math.ceil(c.workers.length/4)*4));
     const t=c.tasks.concat(Array(5).fill('')).slice(0,Math.max(5,c.tasks.length));
-    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(c.siteThai||'').replace(/\n/g,'<br>')+'</td><td rowspan="2" class="site">'+esc(c.site).replace(/\n/g,'<br>')+'</td><td rowspan="2" class="lead'+(c.leader&&c.leader===meName?' me':'')+'">'+esc(c.leader||'')+'</td><td rowspan="2" class="car">'+esc(c.car||'').replace(/^(.*?)\s*(\d{3,})$/,'$1<br>$2')+'</td>'+
-      w.slice(0,4).map(x=>'<td class="wk'+(x&&x===meName?' me':'')+'">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="cnt">'+c.workers.length+'</td>'+t.slice(0,5).map(x=>'<td class="tk">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="note">'+esc(c.note||'')+'</td></tr>'+
-      '<tr class="th'+band+'">'+w.slice(4,8).map(x=>'<td class="wk'+(x&&x===meName?' me':'')+'">'+esc(x)+'</td>').join('')+t.slice(0,5).map(x=>'<td class="tk">'+esc(x?(taskTh(x)||x):'')+'</td>').join('')+'</tr>'});
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(c.siteThai||'').replace(/\n/g,'<br>')+'</td><td rowspan="2" class="site">'+(isAdmin()&&!boardPlain?crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="qlink" data-t="quote" data-id="'+s.id+'" title="看報價單">'+esc(l)+' <i>📄</i></button>':esc(l)}).join('<br>'):esc(c.site).replace(/\n/g,'<br>'))+'</td><td rowspan="2" class="lead'+(c.leader&&c.leader===meName_?' me':'')+'">'+esc(c.leader||'')+'</td><td rowspan="2" class="car">'+esc(c.car||'').replace(/^(.*?)\s*(\d{3,})$/,'$1<br>$2')+'</td>'+
+      w.slice(0,4).map(x=>'<td class="wk'+(x&&x===meName_?' me':'')+'">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="cnt">'+c.workers.length+'</td>'+t.slice(0,5).map(x=>'<td class="tk">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="note">'+esc(c.note||'')+'</td></tr>'+
+      '<tr class="th'+band+'">'+w.slice(4,8).map(x=>'<td class="wk'+(x&&x===meName_?' me':'')+'">'+esc(x)+'</td>').join('')+t.slice(0,5).map(x=>'<td class="tk">'+esc(x?(taskTh(x)||x):'')+'</td>').join('')+'</tr>'});
   if(!crews.length)h+='<tr class="emptyrow"><td colspan="15" style="padding:24px">這天還沒有排班</td></tr>';
   return h+'</tbody></table>'}
 function cardsHtml(d){const crews=crewsOf(d);if(!crews.length)return '<div class="foot">這天還沒有排班。</div>';
@@ -1138,7 +1165,7 @@ function cardsHtml(d){const crews=crewsOf(d);if(!crews.length)return '<div class
       (c.tasks.length?'<div class="kvrow"><span>施作</span><div class="tasks">'+c.tasks.map(t=>'<span class="task"><b>'+esc(t)+'</b>'+(taskTh(t)&&taskTh(t)!==t?'<small>'+esc(taskTh(t))+'</small>':'')+'</span>').join('')+'</div></div>':'')+
       (need.length?'<div class="kvrow"><span>可能用料</span><div class="need">'+need.map(n=>'<i class="'+(n.st==='out'||n.st==='neg'?'out':n.st==='low'?'low':'')+'">'+esc(n.label)+' '+fmtN(n.total)+'</i>').join('')+'</div></div>':'')+
       (c.note?'<div class="note">'+esc(c.note)+'</div>':'')+'</div>'+
-    '<div class="cf">'+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
+    '<div class="cf">'+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(isAdmin()?'<button class="btn" data-t="quote" data-id="'+s.id+'">📄 報價單</button>':'')+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
   return '<button data-'+attr+'="day" data-v="'+x+'" aria-pressed="'+(x===d)+'">'+['昨天','今天','明天'][o+1]+'<small>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+'</small></button>'}).join('')+'</div>'}
 function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEditor();if(!schedDate)return;
@@ -1154,7 +1181,7 @@ function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEd
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
-  else if(t==='board'||t==='cards'||t==='week'){schedView=t;renderToday()}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
+  else if(t==='board'||t==='cards'||t==='week'){schedView=t;renderToday()}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
 $('todayPage').addEventListener('change',e=>{if(e.target.id==='sdPick'&&e.target.value){schedDate=e.target.value;renderToday()}
   if(e.target.id==='meSel'){meName=e.target.value;try{localStorage.setItem('fulin-me',meName)}catch(_){}renderToday()}});
 // 找人：這個人今天在哪一組（司機、泰籍工人手機上看最方便）
@@ -1178,7 +1205,7 @@ function weekHtml(d){const mon=mondayOf(d);const days=[0,1,2,3,4,5,6].map(k=>add
   h+='<tr class="wrest"><th>休息</th>'+days.map(x=>{const r=restOf(x);const all=r.drivers.concat(r.workers);return '<td>'+esc(all.join('、'))+'</td>'}).join('')+'</tr>';
   return h+'</tbody></table></div><div class="foot">點日期可以打開那一天的總表。'+(n?'黃色是「'+esc(n)+'」有排到的。':'選「找人」可以標出某個人這週在哪裡。')+'</div>'}
 async function saveBoardImage(){if(!window.html2canvas){toast('圖片功能載入失敗，請重新整理');return}
-  const box=document.createElement('div');box.style.cssText='position:fixed;left:-99999px;top:0;width:1400px;background:#fff;padding:12px';box.innerHTML=boardHtml(schedDate);document.body.appendChild(box);
+  const box=document.createElement('div');box.style.cssText='position:fixed;left:-99999px;top:0;width:1400px;background:#fff;padding:12px';boardPlain=true;box.innerHTML=boardHtml(schedDate);boardPlain=false;document.body.appendChild(box);
   try{const cv=await html2canvas(box,{scale:2,backgroundColor:'#ffffff'});const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const name='排班_'+schedDate+'.png';
     const file=new File([blob],name,{type:'image/png'});
     if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'排班 '+schedDate});return}catch(e){if(e.name==='AbortError')return}}
@@ -1203,7 +1230,7 @@ const pad5=a=>(a||[]).concat(Array(5).fill('')).slice(0,Math.max(5,(a||[]).lengt
 const pad4=a=>(a||[]).concat(Array(4).fill('')).slice(0,4);
 const toCrew=c=>({site:c.site||'',siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:pad8(c.workers),tasks:pad5(c.tasks),note:c.note||''});
 const blankCrew=()=>toCrew({});
-function openSchedEditor(){schedEdit=true;
+function openSchedEditor(){schedEdit=true;edSel=new Set();edAnchor=null;
   const src=crewsOf(schedDate);const rest=restOf(schedDate);
   draft={date:schedDate,restD:pad4(rest.drivers),restW:pad4(rest.workers),crews:src.map(toCrew)};
   while(draft.crews.length<8)draft.crews.push(blankCrew());draft.snap=snapOf();renderSchedEditor()}
@@ -1223,6 +1250,11 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
    '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
    '<button class="btn" id="undoBtn" data-e="undo" title="復原上一步（⌘/Ctrl+Z）"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
    '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+edSuggest(D)+
+   '<div class="clrbar"><details class="clrmenu"><summary>🧹 一次清除</summary><div class="clrpop"><div class="foot">清掉這天所有的：</div>'+
+     '<button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="sites">案場</button><button data-e="clr" data-v="all" class="danger">全部清空</button>'+
+     '<div class="foot">清錯了可以按「↶ 復原」。</div></div></details>'+
+     '<span class="selhint">像試算表一樣：<b>拖曳</b>或 <b>Shift＋點</b> 選一整塊，<b>⌘/Ctrl＋點</b> 加選，點左邊泰文欄選整組，<b>⌘/Ctrl＋A</b> 全選，按 <b>Delete</b> 清除</span>'+
+     '<div class="selbar" id="selbar" hidden></div></div>'+
    '<div class="boardwrap"><table class="board edit"><tbody>'+
    '<tr><td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td>'+
      D.restD.map((v,j)=>'<td class="restv">'+gsel('rd|'+j,L.concat(allPeople.filter(x=>SPECIAL.test(x))),v,usedPeople('rd|'+j))+'</td>').join('')+'<td class="restv"></td></tr>'+
@@ -1230,8 +1262,8 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
      D.restW.map((v,j)=>'<td class="restv">'+gsel('rw|'+j,W,v,usedPeople('rw|'+j))+'</td>').join('')+'<td class="restv"></td></tr>'+
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
-    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div></td>'+
-      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div></td>'+
+      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
         '<button type="button" class="gcell gsite'+('s|'+i===gpopKey?' act':'')+'" data-g="s|'+i+'">'+(siteList.length?'＋ 再加一個':'＋ 選案場')+'</button>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
       '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
@@ -1244,7 +1276,7 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
   h+='</tbody></table></div>'+
    '<div class="actions"><button class="btn" data-e="add">＋ 新增一組</button></div>'+
    '<div class="foot">點任何格子會跳出選單，直接點名字就填好。選工人時會自動跳到下一格，可以連續點。案場由北到南排列。每改一格都會自動存到雲端（跟 Google 試算表一樣），司機那邊重新整理就看得到；泰文也會自動翻譯。改完按「完成」回到總表。</div>';
-  const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;keepDraft()}
+  const sx=(el.querySelector('.boardwrap')||{}).scrollLeft||0;el.innerHTML=h;const bw=el.querySelector('.boardwrap');if(bw)bw.scrollLeft=sx;paintSel();keepDraft()}
 // 檢查：漏填或怪怪的地方（不擋儲存，只提醒）
 function edChecks(D){const w=[];D.crews.forEach((c,i)=>{const any=c.site||c.leader||c.car||c.workers.some(Boolean)||c.tasks.some(Boolean);if(!any)return;const g='第'+(i+1)+'組';
     const special=crewSites(c).length&&crewSites(c).every(l=>SPECIAL_SITES.includes(l));
@@ -1317,6 +1349,44 @@ document.addEventListener('click',e=>{const pop=$('gpop');if(!pop)return;
   if(!e.target.closest('.gcell'))closePick()});
 document.addEventListener('input',e=>{if(e.target.id!=='gpq')return;const q=norm(e.target.value).toLowerCase();
   document.querySelectorAll('#gpop [data-pv]').forEach(b=>b.hidden=!!q&&!norm(b.dataset.pv).toLowerCase().includes(q))});
+// ---- 範圍選取（像試算表）：拖曳、Shift＋點、⌘/Ctrl＋點、整組、全選 ----
+let edSel=new Set(),edAnchor=null,edDown=false,edDragged=false;
+// 每一格在表格上的位置：r0~r1 是列（每組上下兩列），c 是欄
+function cellPos(k){const p=k.split('|'),t=p[0],i=+p[1],j=+p[2];
+  if(t==='rd')return {r0:-2,r1:-2,c:3+i};if(t==='rw')return {r0:-1,r1:-1,c:3+i};
+  if(t==='s')return {r0:2*i,r1:2*i+1,c:0};if(t==='l')return {r0:2*i,r1:2*i+1,c:1};if(t==='c')return {r0:2*i,r1:2*i+1,c:2};
+  if(t==='w')return j<4?{r0:2*i,r1:2*i,c:3+j}:{r0:2*i+1,r1:2*i+1,c:3+j-4};
+  if(t==='t')return {r0:2*i,r1:2*i+1,c:7+j};if(t==='n')return {r0:2*i,r1:2*i+1,c:12};return null}
+function allKeys(){const k=[];draft.restD.forEach((_,j)=>k.push('rd|'+j));draft.restW.forEach((_,j)=>k.push('rw|'+j));
+  draft.crews.forEach((c,i)=>{k.push('s|'+i,'l|'+i,'c|'+i);for(let j=0;j<8;j++)k.push('w|'+i+'|'+j);for(let j=0;j<5;j++)k.push('t|'+i+'|'+j);k.push('n|'+i)});return k}
+function rectKeys(a,b){const A=cellPos(a),B=cellPos(b);if(!A||!B)return new Set([b]);const r0=Math.min(A.r0,B.r0),r1=Math.max(A.r1,B.r1),c0=Math.min(A.c,B.c),c1=Math.max(A.c,B.c);
+  return new Set(allKeys().filter(k=>{const P=cellPos(k);return P.c>=c0&&P.c<=c1&&P.r1>=r0&&P.r0<=r1}))}
+const groupKeys=i=>allKeys().filter(k=>{const p=k.split('|');return p[0]!=='rd'&&p[0]!=='rw'&&+p[1]===i});
+function keyTd(k){if(k[0]==='n'){const t=document.querySelector('textarea[data-note="'+k.split('|')[1]+'"]');return t&&t.closest('td')}const b=document.querySelector('[data-g="'+k+'"]');return b&&b.closest('td')}
+function paintSel(){document.querySelectorAll('.board.edit td.sel').forEach(x=>x.classList.remove('sel'));edSel.forEach(k=>{const td=keyTd(k);if(td)td.classList.add('sel')});
+  const bar=$('selbar');if(!bar)return;const n=[...edSel].filter(k=>cellVal2(k)).length;
+  if(edSel.size<2){bar.hidden=true;return}bar.hidden=false;
+  bar.innerHTML='已選 '+edSel.size+' 格（有內容 '+n+' 格）<button data-e="selclr" data-v="all" class="danger">清除（Delete）</button><button data-e="selclr" data-v="people">只清人員／車</button><button data-e="selclr" data-v="tasks">只清施作</button><button data-e="selclr" data-v="notes">只清備註</button><button data-e="selnone">取消選取（Esc）</button>'}
+function cellVal2(k){const p=k.split('|');const c=draft.crews[+p[1]];if(p[0]==='s')return c&&c.site;if(p[0]==='n')return c&&c.note;return cellVal(k)}
+const KIND={people:/^(l|c|w|rd|rw)$/,tasks:/^t$/,notes:/^n$/,sites:/^s$/,all:/./};
+function clearKeys(keys,kind){let n=0;keys.forEach(k=>{const p=k.split('|');if(!KIND[kind||'all'].test(p[0])||!cellVal2(k))return;n++;const c=draft.crews[+p[1]];
+    if(p[0]==='s'){c.site='';c.siteIds=[]}else if(p[0]==='n')c.note='';else setCell(k,'')});return n}
+function doClear(keys,kind){closePick();const n=clearKeys(keys,kind);renderSchedEditor();toast(n?'已清除 '+n+' 格，清錯了可以按「↶ 復原」':'選取的格子裡沒有可以清的')}
+$('todayPage').addEventListener('mousedown',e=>{if(!schedEdit||e.button!==0)return;const g=e.target.closest('.gcell'),th=e.target.closest('td.thsite[data-grp]');
+  if(th&&!e.target.closest('button')){e.preventDefault();closePick();const i=+th.dataset.grp;const ks=groupKeys(i);
+    if(e.shiftKey&&edAnchor){const a=+edAnchor.split('|')[1]||0;const lo=Math.min(a,i),hi=Math.max(a,i);edSel=new Set();for(let x=lo;x<=hi;x++)groupKeys(x).forEach(k=>edSel.add(k))}
+    else if(e.metaKey||e.ctrlKey)ks.forEach(k=>edSel.add(k));else{edSel=new Set(ks);edAnchor='s|'+i}paintSel();return}
+  if(!g)return;const k=g.dataset.g;edDown=true;edDragged=false;
+  if(e.shiftKey&&edAnchor){e.preventDefault();edSel=rectKeys(edAnchor,k);edDragged=true}
+  else if(e.metaKey||e.ctrlKey){e.preventDefault();if(edSel.has(k))edSel.delete(k);else edSel.add(k);edAnchor=k;edDragged=true}
+  else{edSel=new Set([k]);edAnchor=k}paintSel()});
+$('todayPage').addEventListener('mouseover',e=>{if(!schedEdit||!edDown)return;const g=e.target.closest('.gcell');if(!g||!edAnchor)return;const k=g.dataset.g;
+  if(k!==edAnchor||edDragged){edDragged=true;closePick();edSel=rectKeys(edAnchor,k);paintSel()}});
+document.addEventListener('mouseup',()=>{edDown=false});
+document.addEventListener('keydown',e=>{if(!schedEdit)return;const t=e.target;const typing=t.tagName==='TEXTAREA'||t.tagName==='INPUT';
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='a'&&!typing){e.preventDefault();closePick();edSel=new Set(allKeys());paintSel();return}
+  if(e.key==='Escape'&&edSel.size&&!$('gpop')){edSel=new Set();paintSel();return}
+  if((e.key==='Delete'||e.key==='Backspace')&&!typing&&edSel.size>1){e.preventDefault();e.stopImmediatePropagation();doClear(edSel,'all')}},true);
 // Delete／Backspace 直接清掉目前選的格子（搜尋框有字時照常刪字）
 document.addEventListener('keydown',e=>{if(!schedEdit||(e.key!=='Delete'&&e.key!=='Backspace'))return;
   const t=e.target;if(t.id==='gpq'&&t.value)return;if(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.id!=='gpq'))return;
@@ -1361,10 +1431,14 @@ function restoreDraft(){if(draftChecked||schedEdit)return;draftChecked=true;let 
   setTimeout(()=>{showTab('today');toast('找到上次還沒存到雲端的排班（'+mdw(d.date)+'），正在補存')},300)}
 window.addEventListener('beforeunload',e=>{if((schedEdit&&draft&&(saving||snapOf()!==draft.snap))||(wk&&wk.dirty)){e.preventDefault();e.returnValue=''}});
 $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
-  const g=e.target.closest('.gcell');if(g){e.stopPropagation();if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
+  const g=e.target.closest('.gcell');if(g){e.stopPropagation();if(edDragged||e.shiftKey||e.metaKey||e.ctrlKey){edDragged=false;return}if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
   const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();closePick();const act=b.dataset.e,i=+b.dataset.i;
   if(act==='day'){if(b.dataset.v!==draft.date)switchEditDay(b.dataset.v);return}
   if(act==='undo'){undoDraft();return}
+  if(act==='clr'){const v=b.dataset.v;const det=b.closest('details');if(det)det.open=false;doClear(allKeys(),v);return}
+  if(act==='selclr'){doClear(edSel,b.dataset.v);return}
+  if(act==='selnone'){edSel=new Set();paintSel();return}
+  if(act==='quote'){const c=draft.crews[i];const s=siteMatch(c,b.dataset.v)||sites.find(x=>x.name===b.dataset.v);openQuotesModal(s,b.dataset.v);return}
   if(act==='sugg'){const nm=b.dataset.v;let k=draft.crews.findIndex(c=>!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean));if(k<0){draft.crews.push(blankCrew());k=draft.crews.length-1}
     addSiteLine(k,nm);setTimeout(()=>openPick('l|'+k),50);return}
   if(act==='add'){draft.crews.push(blankCrew());renderSchedEditor()}
