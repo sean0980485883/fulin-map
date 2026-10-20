@@ -1129,8 +1129,12 @@ function autoThaiFill(){if(thaiFilled||!isAdmin())return;const miss=(DB.sites||[
   api('thai_fill',{}).then(r=>{const d=r.data||{};if(d.sites||d.sched){toast('已補翻泰文：案場 '+(d.sites||0)+' 個、排班 '+(d.sched||0)+' 列');load()}}).catch(()=>{thaiFilled=false})}
 // ---- 報價單：從雲端硬碟資料夾自動找這個客人的報價單 ----
 let QUOTES=null,quotesLoading=null;
-function getQuotes(force){if(QUOTES&&!force)return Promise.resolve(QUOTES);
-  if(!quotesLoading||force)quotesLoading=api('quotes',{force:!!force}).then(r=>{QUOTES=r.data;return QUOTES}).finally(()=>{quotesLoading=null});return quotesLoading}
+// 報價單清單記在這台電腦：打開馬上有，背景再更新（10 分鐘內不重抓）
+try{const c=JSON.parse(localStorage.getItem('fulin-quotes')||'null');if(c&&c.files){QUOTES=c;QUOTES._t=c._t||0}}catch(e){}
+function fetchQuotes(force){if(!quotesLoading||force)quotesLoading=api('quotes',{force:!!force}).then(r=>{QUOTES=r.data;QUOTES._t=Date.now();try{localStorage.setItem('fulin-quotes',JSON.stringify(QUOTES))}catch(e){}return QUOTES}).finally(()=>{quotesLoading=null});return quotesLoading}
+function getQuotes(force){if(QUOTES&&!force){if(Date.now()-(QUOTES._t||0)>600000)fetchQuotes().catch(()=>{});return Promise.resolve(QUOTES)}return fetchQuotes(force)}
+// 管理密碼登入後先在背景抓好，點的時候就不用等
+setTimeout(()=>{if(isAdmin())getQuotes().catch(()=>{})},2500);
 const qIcon=m=>/spreadsheet|excel|sheet/.test(m)?'📊':/pdf/.test(m)?'📄':/image/.test(m)?'🖼️':/document|word/.test(m)?'📝':'📎';
 // 對應方式：手動連結的 → 檔名或資料夾名有「完整案名」→ 有「人名」（去掉地區）→ 有電話號碼
 function quoteMatch(s,files){const core=coreName(s.name),full=norm(s.name),ph=phoneKey(s.phone),manual=new Set(s.quotes||[]);
