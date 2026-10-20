@@ -1167,7 +1167,7 @@ function localSite(id,patch){let x=(DB.sites||[]).find(y=>y.id===id);if(!x){x={i
 // ---- 泰文：新增案場後背景翻譯；有沒翻到的一次補齊 ----
 function bgThai(id){api('site_thai',{id}).then(r=>{const th=r.data&&r.data.thai;if(th){localSite(id,{thai:th});toast('泰文名已翻好：'+th)}}).catch(()=>{})}
 let thaiFilled=false;
-function autoThaiFill(){if(thaiFilled||!isAdmin())return;const miss=(DB.sites||[]).filter(x=>x.name&&!x.thai).length;if(!miss)return;thaiFilled=true;
+function autoThaiFill(){if(thaiFilled||!isAdmin())return;try{if(localStorage.getItem('fulin-thaifill')===DB.today)return;localStorage.setItem('fulin-thaifill',DB.today)}catch(e){}const miss=(DB.sites||[]).filter(x=>x.name&&!x.thai).length;if(!miss)return;thaiFilled=true;
   api('thai_fill',{}).then(r=>{const d=r.data||{};if(d.sites||d.sched){toast('已補翻泰文：案場 '+(d.sites||0)+' 個、排班 '+(d.sched||0)+' 列');load()}}).catch(()=>{thaiFilled=false})}
 // ---- 報價單：從雲端硬碟資料夾自動找這個客人的報價單 ----
 let QUOTES=null,quotesLoading=null;
