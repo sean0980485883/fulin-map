@@ -546,6 +546,19 @@ details.esg summary{list-style:none;cursor:pointer}
 .dragging-site .board.edit td.site{outline:2px dashed #9DB8F0;outline-offset:-3px}
 .board.edit td.dropok{background:#CFE0FF!important}
 @media (max-width:1100px){.edlayout{grid-template-columns:1fr}.edside{position:static;max-height:320px}}
+
+/* 編輯排班：小的「＋」、同案場按鈕在左欄 */
+.board.edit .gcell.gsite.more{min-height:20px;width:auto;display:inline-block;padding:0 10px;font-size:12px;line-height:18px;margin-top:3px}
+.board.edit td.thsite .dupbtn{display:block;width:auto;margin:6px auto 0;font-size:11px;padding:2px 8px}
+/* 施工紀錄 */
+.hppl{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0 8px;font-size:12px}.hppl>span{color:var(--muted);margin-right:4px}
+.hppl i{font-style:normal;background:#F2F4F1;border:1px solid var(--line);border-radius:12px;padding:1px 8px}.hppl i b{color:#1F5C55}
+.hlist{display:grid;gap:6px}
+.hrow{display:grid;grid-template-columns:78px 1fr;gap:8px;font-size:13px;border-top:1px dashed var(--line);padding-top:6px}
+.hrow .hd{border:0;background:none;padding:0;text-align:left;font:inherit;font-weight:700;color:#1F4FB0;cursor:pointer;text-decoration:underline}
+.hrow .hd small{display:block;font-weight:400;color:var(--muted);text-decoration:none}
+.hrow .hcar{font-size:11px;background:#FFF1B8;border-radius:4px;padding:0 4px}
+.hrow .ht{color:#555;font-size:12px}.hrow .hn{color:#B42318;font-size:12px}
 </style>
 </head>
 <body>
@@ -772,8 +785,8 @@ function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=n
     (s.issue?'<div><div class="mono" style="color:var(--muted);margin-bottom:4px">'+(s.status==='issue'?'問題描述':'備註')+'</div><div class="'+(s.status==='issue'?'issuebox':'note')+'">'+esc(s.issue)+'</div></div>':'')+
     '<dl class="kv">'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('')+'</dl>'+
     (nav?'<div class="actions"><a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a></div>':'')+
-    (canField()?adminDetailHtml(s):'')+(isAdmin()?'<div class="adminbox" id="quoteBox"><h4>報價單</h4><div class="foot">讀取中…</div></div>':'')+reportsHtml(s)+'</div>';
-  if(isAdmin())fillQuotes(s)}
+    (canField()?adminDetailHtml(s):'')+(isAdmin()?'<div class="adminbox" id="quoteBox"><h4>報價單</h4><div class="foot">讀取中…</div></div>':'')+(canField()?'<div class="adminbox" id="histBox"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>':'')+reportsHtml(s)+'</div>';
+  if(isAdmin())fillQuotes(s);if(canField())fillHist(s)}
 // ---------- 滑鼠連動：列表 ↔ 地圖標記 ----------
 let hoverId=null;const pinHandles={};
 function setHover(id){
@@ -1102,6 +1115,26 @@ function openQuoteLink(s){getQuotes().then(q=>{const files=(q.files||[]).slice()
 $('pbody').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(!b)return;const s=sites.find(x=>x.id===selected);if(!s)return;
   if(b.dataset.q==='link')openQuoteLink(s);
   if(b.dataset.q==='refresh'){b.disabled=true;b.textContent='讀取中…';getQuotes(true).then(()=>fillQuotes(s)).catch(err=>{toast(err.message);fillQuotes(s)})}});
+// ---- 施工紀錄：這個案場哪幾天、誰去過、做了什麼 ----
+const histCache={};let histAll={};
+async function fillHist(s){let list,partial=false;const hit=histCache[s.id];
+  try{if(hit&&Date.now()-hit.t<60000)list=hit.list;else{list=(await api('site_hist',{id:s.id,name:s.name})).data.list||[];histCache[s.id]={t:Date.now(),list}}}
+  catch(err){partial=true;// 後台還沒更新：先用網站上有的近期排班
+    list=(DB.sched||[]).filter(c=>(c.siteIds||[]).includes(s.id)||crewSites(c).includes(s.name)).map(c=>({date:c.date,no:c.no,site:c.site,leader:c.leader,car:c.car,workers:c.workers,tasks:c.tasks,note:c.note})).sort((a,b)=>b.date.localeCompare(a.date))}
+  const box=$('histBox');if(!box||selected!==s.id)return;
+  if(!list.length){box.innerHTML='<h4>施工紀錄</h4><div class="foot">還沒有排班紀錄。'+(partial?'（後台更新後可以看到全部歷史）':'')+'</div>';return}
+  const days=[...new Set(list.map(x=>x.date))];const cnt={},last={};
+  list.forEach(x=>[x.leader].concat(x.workers).filter(n=>n&&!SPECIAL.test(n)).forEach(n=>{cnt[n]=(cnt[n]||0)+1;if(!last[n])last[n]=x.date}));
+  const ppl=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);const all=!!histAll[s.id];const shown=all?list:list.slice(0,8);
+  box.innerHTML='<h4>施工紀錄 <small style="font-weight:400;color:var(--muted)">共 '+days.length+' 天'+(partial?'（只有近期，後台更新後可看全部）':'')+'</small></h4>'+
+    '<div class="hppl"><span>去過的人</span>'+ppl.map(n=>'<i title="最後一次 '+esc(mdw(last[n]))+'">'+esc(n)+' <b>'+cnt[n]+'</b></i>').join('')+'</div>'+
+    '<div class="hlist">'+shown.map(x=>'<div class="hrow"><button class="hd" data-h="'+esc(x.date)+'" title="打開這天的排班">'+esc(mdw(x.date))+'<small>第 '+x.no+' 組</small></button><div>'+
+      '<div><b>'+esc(x.leader||'—')+'</b>'+(x.car?' <span class="hcar">'+esc(x.car)+'</span>':'')+(x.workers.length?'｜'+esc(x.workers.join('、')):'')+'</div>'+
+      (x.tasks.length?'<div class="ht">'+esc(x.tasks.join('、'))+'</div>':'')+(x.note?'<div class="hn">'+esc(x.note)+'</div>':'')+'</div></div>').join('')+'</div>'+
+    (list.length>8?'<button class="btn" data-h="more">'+(all?'收起':'顯示全部 '+list.length+' 筆')+'</button>':'')}
+$('pbody').addEventListener('click',e=>{const b=e.target.closest('[data-h]');if(!b)return;const s=sites.find(x=>x.id===selected);
+  if(b.dataset.h==='more'){if(s){histAll[s.id]=!histAll[s.id];fillHist(s)}return}
+  schedDate=b.dataset.h;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';showTab('today');renderToday()});
 // ---- 在地圖上點位置 ----
 function startPick(s){stopPick();showTab('map');document.body.classList.add('picking');
   const bar=document.createElement('div');bar.className='pickbar';bar.id='pickbar';
@@ -1285,9 +1318,9 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
      D.restW.map((v,j)=>'<td class="restv">'+gsel('rw|'+j,W,v,usedPeople('rw|'+j))+'</td>').join('')+'<td class="restv"></td></tr>'+
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
-    h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div></td>'+
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
       '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
-        '<button type="button" class="gcell gsite'+('s|'+i===gpopKey?' act':'')+'" data-g="s|'+i+'">'+(siteList.length?'＋ 再加一個':'＋ 選案場')+'</button>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
+        '<button type="button" class="gcell gsite'+(siteList.length?' more':'')+('s|'+i===gpopKey?' act':'')+'" title="'+(siteList.length?'再加一個案場':'選案場')+'" data-g="s|'+i+'">'+(siteList.length?'＋':'＋ 選案場')+'</button></td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
       '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
       c.workers.slice(0,4).map((v,j)=>'<td class="wk">'+gsel('w|'+i+'|'+j,W,v,usedPeople('w|'+i+'|'+j))+'</td>').join('')+
