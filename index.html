@@ -603,6 +603,42 @@ details.esg summary{list-style:none;cursor:pointer}
 .edwarn{padding:4px 10px;margin-top:4px;font-size:12px}
 .clrbar{margin:4px 0}.selhint{font-size:11px}
 .edside{max-height:calc(100vh - 16px)}
+
+/* 手機版排班編輯 */
+.mhead{position:sticky;top:0;z-index:20;background:var(--bg,#F4F4F2);padding:6px 0 8px;display:grid;gap:6px}
+.mtop{display:flex;align-items:center;gap:8px}.mtop b{font-size:18px;flex:1}
+.mhead .daytabs{display:flex}.mhead .daytabs button{flex:1}
+.mtools{display:flex;gap:6px;align-items:center}.mtools .btn{padding:6px 10px;font-size:13px}
+.mtools .clrmenu summary{padding:6px 10px;font-size:13px}.mtools .clrpop{left:auto;right:0}
+.mfree{font-size:12px;color:var(--muted);background:#F4FAF8;border-radius:10px;padding:6px 10px}.mfree b{color:var(--ink)}
+.mbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:8px}
+.mbox summary{font-weight:700;cursor:pointer}.mbox summary small{font-weight:400;color:var(--muted)}
+.mbox .eslist{max-height:280px;overflow:auto;padding:0}
+.mcards{display:grid;gap:8px;margin-top:10px}
+.mcard{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mcard.empty{opacity:.75}
+.mcard.open{border-color:#1F5C55;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.mch{width:100%;display:flex;align-items:center;gap:10px;border:0;background:#E0FBEB;padding:10px 12px;text-align:left;font:inherit;cursor:pointer}
+.mcard:nth-child(even) .mch{background:#fff}
+.mno{width:26px;height:26px;border-radius:50%;background:#1F5C55;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.mcs{flex:1;min-width:0}.mcs b{display:block;color:#1F4FB0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mcs small{color:#555;font-size:13px}
+.mch i{font-style:normal;color:var(--muted);font-size:12px}
+.mcb{padding:10px 12px;display:grid;gap:10px}
+.mrow>span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}.mrow>span b{color:#1F5C55}
+.mrow.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mrow.two span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.mchips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mchips em{font-style:normal;font-weight:700;color:#1F4FB0;background:#EEF3FF;border-radius:16px;padding:4px 4px 4px 10px;display:inline-flex;align-items:center;gap:2px}
+.mchips em button{border:0;background:none;color:#9AA6A4;font-size:16px;padding:0 6px;cursor:pointer}
+.mthai{font-size:13px;color:#555;margin-top:-6px}
+.mgrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.mgrid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mcb .gcell,.mbox .gcell{border:1px solid var(--line);background:#FAFBFA;border-radius:10px;min-height:42px;padding:6px 4px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;width:100%;color:var(--ink)}
+.mcb .gcell.empty i,.mbox .gcell.empty i{font-style:normal;color:#C5CCCA;font-weight:400}
+.mcb .gcell.act,.mbox .gcell.act{border-color:#1F63E0;background:#E6F0FF}
+.mbox .mchips .gcell{width:auto;min-width:64px}
+.mcb .gcell.madd{width:auto;border-style:dashed;color:#1F5C55;font-weight:600;padding:6px 12px}
+.mcb .mgrid4 .gcell{font-style:italic;font-size:14px}
+.mnote{width:100%;border:1px solid var(--line)!important;border-radius:10px;min-height:44px;font-size:14px;color:#C0201B}
+.mops{display:flex;flex-wrap:wrap;gap:6px}.mops .btn{padding:6px 10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -1354,7 +1390,7 @@ function usedPeople(skip){const u=new Set();const add=(v,k)=>{if(v&&k!==skip&&!S
   draft.crews.forEach((c,i)=>{add(c.leader,'l|'+i);c.workers.forEach((v,j)=>add(v,'w|'+i+'|'+j))});return u}
 function usedCars(skip){const u=new Set();draft.crews.forEach((c,i)=>{if(c.car&&'c|'+i!==skip)u.add(c.car)});return u}
 function gsel(key,opts,v,used){return '<button type="button" class="gcell'+(v?'':' empty')+(key===gpopKey?' act':'')+'" data-g="'+key+'">'+(v?esc(v):'<i>＋</i>')+'</button>'}
-function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDate(D.date);
+function renderSchedEditor(){if(isPhone())return renderSchedMobile();const el=$('todayPage');const D=draft;const dd=toDate(D.date);
   const allPeople=DB.people.map(p=>p.name);const L=leaders(),W=workersL(),C=DB.cars,TK=DB.tasks.map(t=>t.zh);
   const usedSite=new Set();D.crews.forEach(c=>crewSites(c).forEach(l=>usedSite.add(l)));
   const total=D.crews.reduce((a,c)=>a+c.workers.filter(Boolean).length,0);
@@ -1434,9 +1470,44 @@ $('todayPage').addEventListener('dragover',e=>{if(!schedEdit)return;const i=drop
   document.querySelectorAll('.dropok').forEach(x=>x.classList.remove('dropok'));const td=document.querySelector('td.thsite[data-grp="'+i+'"]');if(td){td.classList.add('dropok');td.nextElementSibling&&td.nextElementSibling.classList.add('dropok')}});
 $('todayPage').addEventListener('drop',e=>{if(!schedEdit)return;const i=dropRow(e);if(i<0)return;e.preventDefault();const v=e.dataTransfer.getData('text/plain');document.body.classList.remove('dragging-site');
   if(v){addSiteLine(i,v);toast('已把「'+v+'」加到第 '+(i+1)+' 組');const c=draft.crews[i];if(!c.leader)setTimeout(()=>openPick('l|'+i),50)}});
+// ================= 手機版排班編輯：一組一張卡片，點開來填 =================
+const isPhone=()=>window.matchMedia('(max-width:760px)').matches;
+let mOpen=new Set([0]);
+function renderSchedMobile(){const el=$('todayPage');const D=draft;const dd=toDate(D.date);
+  const free=DB.people.map(p=>p.name).filter(n=>!usedPeople('').has(n)&&!SPECIAL.test(n));
+  const restCnt=D.restD.filter(Boolean).length+D.restW.filter(Boolean).length;
+  let h='<div class="mhead"><div class="mtop"><b>編輯排班</b><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div>'+
+    dayTabs(D.date,'e')+
+    '<div class="mtools"><button class="btn" id="undoBtn" data-e="undo"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button>'+
+    '<details class="clrmenu"><summary>🧹 清除</summary><div class="clrpop"><button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="all" class="danger">全部清空</button></div></details></div></div>'+
+    '<div class="mfree"><b>還沒排到</b> '+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
+    '<details class="mbox"><summary>🏖 休息人員 <small>'+(restCnt?restCnt+' 位':'')+'</small></summary><div class="mrow"><span>司機</span><div class="mchips">'+D.restD.map((v,j)=>gsel('rd|'+j,[],v,new Set())).join('')+'</div></div>'+
+      '<div class="mrow"><span>工人</span><div class="mchips">'+D.restW.map((v,j)=>gsel('rw|'+j,[],v,new Set())).join('')+'</div></div></details>'+
+    '<details class="mbox"'+(D.crews.some(c=>crewSites(c).length)?'':' open')+'><summary>📍 近期需進場（點一下加入）</summary><div class="eslist">'+edSideList(D)+'</div></details>'+
+    '<div class="mcards">';
+  D.crews.forEach((c,i)=>{const sl=crewSites(c);const nW=c.workers.filter(Boolean).length;const open=mOpen.has(i);
+    const empty=!sl.length&&!c.leader&&!c.car&&!nW;
+    h+='<section class="mcard'+(open?' open':'')+(empty?' empty':'')+'">'+
+      '<button class="mch" data-e="mtog" data-i="'+i+'"><span class="mno">'+(i+1)+'</span><span class="mcs"><b>'+(sl.length?esc(sl.join('、')):'（還沒選案場）')+'</b>'+
+        '<small>'+esc([c.leader,c.car,nW?nW+' 人':''].filter(Boolean).join('｜')||'點這裡填')+'</small></span><i>'+(open?'▲':'▼')+'</i></button>';
+    if(open){h+='<div class="mcb">'+
+      '<div class="mrow"><span>案場</span><div class="mchips">'+sl.map((l,j)=>'<em>'+esc(l)+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></em>').join('')+
+        '<button type="button" class="gcell madd" data-g="s|'+i+'">＋ 案場</button></div></div>'+
+      (sl.length?'<div class="mthai">'+esc(crewThai(c)).replace(/\n/g,'、')+'</div>':'')+
+      '<div class="mrow two"><div><span>帶頭</span>'+gsel('l|'+i,[],c.leader,new Set())+'</div><div><span>車</span>'+gsel('c|'+i,[],c.car,new Set())+'</div></div>'+
+      '<div class="mrow"><span>工人 <b>'+nW+'</b></span><div class="mgrid4">'+c.workers.slice(0,8).map((v,j)=>gsel('w|'+i+'|'+j,[],v,new Set())).join('')+'</div></div>'+
+      '<div class="mrow"><span>施作</span><div class="mgrid3">'+c.tasks.slice(0,5).map((v,j)=>gsel('t|'+i+'|'+j,[],v,new Set())).join('')+'</div></div>'+
+      '<div class="mrow"><span>備註</span><textarea class="gnote mnote" data-note="'+i+'" rows="2">'+esc(c.note)+'</textarea></div>'+
+      '<div class="mops">'+(sl.length?'<button class="btn" data-e="dup" data-i="'+i+'">⧉ 同案場再派一組</button>':'')+(i?'<button class="btn" data-e="up" data-i="'+i+'">↑ 上移</button>':'')+'<button class="btn" data-e="del" data-i="'+i+'">✕ 清空</button></div></div>'}
+    h+='</section>'});
+  h+='</div><div class="actions"><button class="btn" data-e="add">＋ 新增一組</button></div>';
+  const y=window.scrollY;const ls=(el.querySelector('.mbox .eslist')||{}).scrollTop||0;el.innerHTML=h;window.scrollTo(0,y);const l2=el.querySelector('.mbox .eslist');if(l2)l2.scrollTop=ls;keepDraft()}
+$('todayPage').addEventListener('click',e=>{if(!schedEdit||!isPhone())return;const b=e.target.closest('[data-e="mtog"]');if(!b)return;e.stopPropagation();const i=+b.dataset.i;
+  if(mOpen.has(i))mOpen.delete(i);else mOpen.add(i);renderSchedMobile()},true);
+let rsT=null;window.addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{if(schedEdit&&draft)renderSchedEditor()},200)});
 function crewThai(c){const known={};(DB.sched||[]).forEach(x=>{crewSites(x).forEach((l,k)=>{const t=String(x.siteThai||'').split('\n')[k];if(t)known[l]=t})});
   sites.forEach(s=>{if(s.thai)known[s.name]=s.thai});return crewSites(c).map(l=>known[l]||'').join('\n')}
-function addSiteLine(i,v){v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
+function addSiteLine(i,v){mOpen.add(i);v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
   const s=sites.find(x=>x.name===v);if(s&&!c.siteIds.includes(s.id))c.siteIds.push(s.id);renderSchedEditor()}
 $('todayPage').addEventListener('change',e=>{if(!schedEdit)return;const t=e.target;
   if(t.id==='edDate'&&t.value&&t.value!==draft.date)switchEditDay(t.value)});
@@ -1591,11 +1662,11 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   if(act==='quote'){const c=draft.crews[i];const s=siteMatch(c,b.dataset.v)||sites.find(x=>x.name===b.dataset.v);openQuotesModal(s,b.dataset.v);return}
   if(act==='sugg'){const nm=b.dataset.v;let k=draft.crews.findIndex(c=>!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean));if(k<0){draft.crews.push(blankCrew());k=draft.crews.length-1}
     addSiteLine(k,nm);setTimeout(()=>openPick('l|'+k),50);return}
-  if(act==='add'){draft.crews.push(blankCrew());renderSchedEditor()}
+  if(act==='add'){draft.crews.push(blankCrew());mOpen.add(draft.crews.length-1);renderSchedEditor()}
   else if(act==='dup'){const c=draft.crews[i];const n=blankCrew();n.site=c.site;n.siteIds=c.siteIds.slice();
     // 下面剛好是空的一組就直接用，不然插一組新的
     const nx=draft.crews[i+1];const empty=nx&&!nx.site&&!nx.leader&&!nx.car&&!nx.workers.some(Boolean)&&!nx.tasks.some(Boolean);
-    if(empty)draft.crews[i+1]=n;else draft.crews.splice(i+1,0,n);renderSchedEditor();toast('已在下面加一組「'+crewSites(c).join('、')+'」，選帶頭、車和工人就好');
+    if(empty)draft.crews[i+1]=n;else draft.crews.splice(i+1,0,n);mOpen.add(i+1);renderSchedEditor();toast('已在下面加一組「'+crewSites(c).join('、')+'」，選帶頭、車和工人就好');
     setTimeout(()=>openPick('l|'+(i+1)),50)}
   else if(act==='del'){const c=draft.crews[i];const empty=!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean)&&!c.tasks.some(Boolean);
     if(empty&&draft.crews.length>1)draft.crews.splice(i,1);else draft.crews[i]=blankCrew();renderSchedEditor()}
@@ -1605,7 +1676,7 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
     draft.crews=src.map(toCrew);while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班')}
   else if(act==='done'){b.disabled=true;b.textContent='儲存中…';const ok=await flushSave();b.disabled=false;b.textContent='完成';
     if(!ok){toast('還沒存到雲端（'+(saveSt.m||'網路問題')+'），請再按一次');return}
-    schedDate=draft.date;schedEdit=false;draft=null;dropDraft();renderToday();load()}},true);
+    schedDate=draft.date;schedEdit=false;draft=null;dropDraft();renderToday();api('thai_fill',{}).then(()=>load()).catch(()=>{});load()}},true);
 
 // ================= 庫存 =================
 let stockItems=[];
