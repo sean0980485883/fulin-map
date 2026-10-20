@@ -1514,10 +1514,10 @@ let rsT=null;window.addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTime
 // ---- 從排班截圖匯入：AI 讀表格 → 對應到名單 → 確認後填進這一天 ----
 function schedFromImage(){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
   inp.onchange=async()=>{const f=inp.files[0];if(!f)return;toast('AI 讀取排班圖片中…（約 30～60 秒）');
-    try{const img=await shrink2(f,2600);
+    try{const img=await shrink2(f,2000);
       const lists={people:DB.people.map(p=>p.name),cars:DB.cars,tasks:DB.tasks.map(t=>t.zh),sites:sites.filter(x=>x.status!=='done').map(x=>x.name).slice(0,300)};
       const d=(await api('sched_ocr',{image:img,lists})).data||{};applyOcr(d)}
-    catch(err){toast(/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回 Apps Script 並部署新版本':err.message)}};
+    catch(err){const m=/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回 Apps Script 並部署新版本。':err.message;openModal('從圖片匯入失敗','<div class="foot" style="color:#B42318;font-size:15px">'+esc(m)+'</div><div class="foot">可以截圖這個訊息給我。</div>',[['關閉','close','primary']],async()=>true)}};
   inp.click()}
 // 把 AI 讀到的名字對到名單裡的正式寫法（大小寫、空白、只寫英文名都對得上）
 function matchName(v,list){v=String(v||'').trim();if(!v)return '';const k=norm(v).toLowerCase();
