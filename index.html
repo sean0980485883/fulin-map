@@ -1098,6 +1098,14 @@ async function fillQuotes(s){try{const q=await getQuotes();const box=$('quoteBox
         :'<div class="foot">資料夾裡沒找到檔名有「'+esc(coreName(s.name)||s.name)+'」的報價單，可以按「連結其他報價單」手動選。</div>')+
       '<div class="actions"><button class="btn" data-q="link">🔗 連結其他報價單</button>'+(q.folder?'<a class="btn" href="'+esc(q.folder)+'" target="_blank" rel="noopener">打開資料夾</a>':'')+'<button class="btn" data-q="refresh" title="資料夾有新檔案時按這裡">↻ 重新讀取</button></div>'}
   catch(err){const box=$('quoteBox');if(box)box.innerHTML='<h4>報價單</h4><div class="foot">'+esc(/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回 Apps Script 並重新部署。':err.message)+'</div>'}}
+// 排班裡點案場：施工紀錄（＋管理密碼看得到報價單）
+function openSiteInfo(s,label){if(!s){toast('「'+(label||'')+'」不在案場清單裡');return}
+  openModal(s.name,'<div class="adminbox" id="mHist" style="margin-top:0"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>'+(isAdmin()?'<div class="adminbox" id="mQuote"><h4>報價單</h4><div class="foot">讀取中…</div></div>':''),
+    [['在地圖上看','map'],['關閉','close','primary']],async act=>{if(act==='map'){closeModal();if(schedEdit){toast('請先按「完成」再看地圖');return false}goMap(s.id)}return false},true);
+  fillHist(s,'mHist');
+  if(isAdmin())getQuotes().then(q=>{const el=$('mQuote');if(!el)return;const list=quoteMatch(s,q.files||[]);
+    el.innerHTML='<h4>報價單 <small style="font-weight:400;color:var(--muted)">'+list.length+' 份</small></h4>'+(list.length?list.map(f=>'<a class="qf" href="'+esc(f.url)+'" target="_blank" rel="noopener"><span class="qi">'+qIcon(f.mime)+'</span><span><b>'+esc(f.name)+'</b><small>'+esc([f.path,f.t].filter(Boolean).join('｜'))+'</small></span></a>').join(''):'<div class="foot">沒找到報價單。</div>')})
+   .catch(err=>{const el=$('mQuote');if(el)el.innerHTML='<h4>報價單</h4><div class="foot">'+esc(/未知的動作/.test(err.message)?'後台還沒更新。':err.message)+'</div>'})}
 function openQuotesModal(s,label){if(!s){toast('「'+(label||'')+'」不在案場清單裡，找不到報價單');return}
   openModal('報價單：'+s.name,'<div id="qmBody" class="foot">讀取中…</div>',[['連結其他報價單','link'],['關閉','close','primary']],async act=>{if(act==='link'){closeModal();openQuoteLink(s)}return false},true);
   getQuotes().then(q=>{const el=$('qmBody');if(!el)return;const list=quoteMatch(s,q.files||[]);el.className='';
@@ -1117,11 +1125,11 @@ $('pbody').addEventListener('click',e=>{const b=e.target.closest('[data-q]');if(
   if(b.dataset.q==='refresh'){b.disabled=true;b.textContent='讀取中…';getQuotes(true).then(()=>fillQuotes(s)).catch(err=>{toast(err.message);fillQuotes(s)})}});
 // ---- 施工紀錄：這個案場哪幾天、誰去過、做了什麼 ----
 const histCache={};let histAll={};
-async function fillHist(s){let list,partial=false;const hit=histCache[s.id];
+async function fillHist(s,boxId){boxId=boxId||'histBox';let list,partial=false;const hit=histCache[s.id];
   try{if(hit&&Date.now()-hit.t<60000)list=hit.list;else{list=(await api('site_hist',{id:s.id,name:s.name})).data.list||[];histCache[s.id]={t:Date.now(),list}}}
   catch(err){partial=true;// 後台還沒更新：先用網站上有的近期排班
     list=(DB.sched||[]).filter(c=>(c.siteIds||[]).includes(s.id)||crewSites(c).includes(s.name)).map(c=>({date:c.date,no:c.no,site:c.site,leader:c.leader,car:c.car,workers:c.workers,tasks:c.tasks,note:c.note})).sort((a,b)=>b.date.localeCompare(a.date))}
-  const box=$('histBox');if(!box||selected!==s.id)return;
+  const box=$(boxId);if(!box||(boxId==='histBox'&&selected!==s.id))return;
   if(!list.length){box.innerHTML='<h4>施工紀錄</h4><div class="foot">還沒有排班紀錄。'+(partial?'（後台更新後可以看到全部歷史）':'')+'</div>';return}
   const days=[...new Set(list.map(x=>x.date))];const cnt={},last={};
   list.forEach(x=>[x.leader].concat(x.workers).filter(n=>n&&!SPECIAL.test(n)).forEach(n=>{cnt[n]=(cnt[n]||0)+1;if(!last[n])last[n]=x.date}));
@@ -1131,9 +1139,10 @@ async function fillHist(s){let list,partial=false;const hit=histCache[s.id];
     '<div class="hlist">'+shown.map(x=>'<div class="hrow"><button class="hd" data-h="'+esc(x.date)+'" title="打開這天的排班">'+esc(mdw(x.date))+'<small>第 '+x.no+' 組</small></button><div>'+
       '<div><b>'+esc(x.leader||'—')+'</b>'+(x.car?' <span class="hcar">'+esc(x.car)+'</span>':'')+(x.workers.length?'｜'+esc(x.workers.join('、')):'')+'</div>'+
       (x.tasks.length?'<div class="ht">'+esc(x.tasks.join('、'))+'</div>':'')+(x.note?'<div class="hn">'+esc(x.note)+'</div>':'')+'</div></div>').join('')+'</div>'+
-    (list.length>8?'<button class="btn" data-h="more">'+(all?'收起':'顯示全部 '+list.length+' 筆')+'</button>':'')}
-$('pbody').addEventListener('click',e=>{const b=e.target.closest('[data-h]');if(!b)return;const s=sites.find(x=>x.id===selected);
-  if(b.dataset.h==='more'){if(s){histAll[s.id]=!histAll[s.id];fillHist(s)}return}
+    (list.length>8?'<button class="btn" data-h="more" data-box="'+boxId+'" data-id="'+s.id+'">'+(all?'收起':'顯示全部 '+list.length+' 筆')+'</button>':'')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-h]');if(!b||!(b.closest('#histBox')||b.closest('#mHist')))return;const s=sites.find(x=>x.id===(b.dataset.id||selected));
+  if(b.dataset.h==='more'){if(s){histAll[s.id]=!histAll[s.id];fillHist(s,b.dataset.box)}return}
+  if(b.closest('#mHist')){closeModal();if(schedEdit){switchEditDay(b.dataset.h);return}}
   schedDate=b.dataset.h;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';showTab('today');renderToday()});
 // ---- 在地圖上點位置 ----
 function startPick(s){stopPick();showTab('map');document.body.classList.add('picking');
@@ -1208,7 +1217,7 @@ function boardHtml(d){const meName_=boardPlain?'':meName;const crews=crewsOf(d),
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   crews.forEach((c,i)=>{const band=i%2===0?' band':'';const w=c.workers.concat(Array(8).fill('')).slice(0,Math.max(8,Math.ceil(c.workers.length/4)*4));
     const t=c.tasks.concat(Array(5).fill('')).slice(0,Math.max(5,c.tasks.length));
-    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(c.siteThai||'').replace(/\n/g,'<br>')+'</td><td rowspan="2" class="site">'+(isAdmin()&&!boardPlain?crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="qlink" data-t="quote" data-id="'+s.id+'" title="看報價單">'+esc(l)+' <i>📄</i></button>':esc(l)}).join('<br>'):esc(c.site).replace(/\n/g,'<br>'))+'</td><td rowspan="2" class="lead'+(c.leader&&c.leader===meName_?' me':'')+'">'+esc(c.leader||'')+'</td><td rowspan="2" class="car">'+esc(c.car||'').replace(/^(.*?)\s*(\d{3,})$/,'$1<br>$2')+'</td>'+
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(c.siteThai||'').replace(/\n/g,'<br>')+'</td><td rowspan="2" class="site">'+(canField()&&!boardPlain?crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="qlink" data-t="info" data-id="'+s.id+'" title="施工紀錄'+(isAdmin()?'、報價單':'')+'">'+esc(l)+' <i>🕘</i></button>':esc(l)}).join('<br>'):esc(c.site).replace(/\n/g,'<br>'))+'</td><td rowspan="2" class="lead'+(c.leader&&c.leader===meName_?' me':'')+'">'+esc(c.leader||'')+'</td><td rowspan="2" class="car">'+esc(c.car||'').replace(/^(.*?)\s*(\d{3,})$/,'$1<br>$2')+'</td>'+
       w.slice(0,4).map(x=>'<td class="wk'+(x&&x===meName_?' me':'')+'">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="cnt">'+c.workers.length+'</td>'+t.slice(0,5).map(x=>'<td class="tk">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="note">'+esc(c.note||'')+'</td></tr>'+
       '<tr class="th'+band+'">'+w.slice(4,8).map(x=>'<td class="wk'+(x&&x===meName_?' me':'')+'">'+esc(x)+'</td>').join('')+t.slice(0,5).map(x=>'<td class="tk">'+esc(x?(taskTh(x)||x):'')+'</td>').join('')+'</tr>'});
   if(!crews.length)h+='<tr class="emptyrow"><td colspan="15" style="padding:24px">這天還沒有排班</td></tr>';
@@ -1221,7 +1230,7 @@ function cardsHtml(d){const crews=crewsOf(d);if(!crews.length)return '<div class
       (c.tasks.length?'<div class="kvrow"><span>施作</span><div class="tasks">'+c.tasks.map(t=>'<span class="task"><b>'+esc(t)+'</b>'+(taskTh(t)&&taskTh(t)!==t?'<small>'+esc(taskTh(t))+'</small>':'')+'</span>').join('')+'</div></div>':'')+
       (need.length?'<div class="kvrow"><span>可能用料</span><div class="need">'+need.map(n=>'<i class="'+(n.st==='out'||n.st==='neg'?'out':n.st==='low'?'low':'')+'">'+esc(n.label)+' '+fmtN(n.total)+'</i>').join('')+'</div></div>':'')+
       (c.note?'<div class="note">'+esc(c.note)+'</div>':'')+'</div>'+
-    '<div class="cf">'+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(isAdmin()?'<button class="btn" data-t="quote" data-id="'+s.id+'">📄 報價單</button>':'')+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
+    '<div class="cf">'+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(canField()?'<button class="btn" data-t="info" data-id="'+s.id+'">🕘 紀錄'+(isAdmin()?'／報價單':'')+'</button>':'')+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
   return '<button data-'+attr+'="day" data-v="'+x+'" aria-pressed="'+(x===d)+'">'+['昨天','今天','明天'][o+1]+'<small>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+'</small></button>'}).join('')+'</div>'}
 function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEditor();if(!schedDate)return;
@@ -1237,7 +1246,7 @@ function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEd
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
-  else if(t==='board'||t==='cards'||t==='week'){schedView=t;renderToday()}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
+  else if(t==='board'||t==='cards'||t==='week'){schedView=t;renderToday()}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
 $('todayPage').addEventListener('change',e=>{if(e.target.id==='sdPick'&&e.target.value){schedDate=e.target.value;renderToday()}
   if(e.target.id==='meSel'){meName=e.target.value;try{localStorage.setItem('fulin-me',meName)}catch(_){}renderToday()}});
 // 找人：這個人今天在哪一組（司機、泰籍工人手機上看最方便）
@@ -1319,7 +1328,7 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
     h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
-      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
+      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
         '<button type="button" class="gcell gsite'+(siteList.length?' more':'')+('s|'+i===gpopKey?' act':'')+'" title="'+(siteList.length?'再加一個案場':'選案場')+'" data-g="s|'+i+'">'+(siteList.length?'＋':'＋ 選案場')+'</button></td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
       '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
@@ -1356,7 +1365,7 @@ function edSideList(D){const used=new Set();D.crews.forEach(c=>crewSites(c).forE
   const dn=d=>Math.round((toDate(d)-toDate(D.date))/864e5);const ns=sitesNS().filter(ok);
   const card=s=>{const b=BK[bucket(s)];const other=(ls[s.name]||[]).filter(d=>d!==D.date);const lastD=other.length?other[other.length-1]:'';
     return '<div class="sidecard'+(used.has(s.name)?' used':'')+'" draggable="true" data-e="sugg" data-v="'+esc(s.name)+'" style="--c:var('+b.c+')">'+
-      '<div class="scn"><i></i><b>'+esc(s.name)+'</b>'+(isAdmin()?'<button data-e="squote" data-v="'+esc(s.name)+'" title="看報價單">📄</button>':'')+'</div>'+
+      '<div class="scn"><i></i><b>'+esc(s.name)+'</b>'+'<button data-e="shist" data-v="'+esc(s.name)+'" title="施工紀錄">🕘</button>'+(isAdmin()?'<button data-e="squote" data-v="'+esc(s.name)+'" title="看報價單">📄</button>':'')+'</div>'+
       '<small>'+esc([String(s.address||'').slice(0,12),s.startDate?dLabel(daysUntil(s.startDate)):''].filter(Boolean).join('｜'))+'</small>'+
       (used.has(s.name)?'<em class="ok">✓ 這天已排</em>':lastD?'<em>上次排：'+esc(mdw(lastD))+'</em>':'')+'</div>'};
   let h='';
@@ -1522,6 +1531,8 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   const g=e.target.closest('.gcell');if(g){e.stopPropagation();if(edDragged||e.shiftKey||e.metaKey||e.ctrlKey){edDragged=false;return}if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
   const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();closePick();const act=b.dataset.e,i=+b.dataset.i;
   if(act==='day'){if(b.dataset.v!==draft.date)switchEditDay(b.dataset.v);return}
+  if(act==='hist'){const c=draft.crews[i];openSiteInfo((c&&siteMatch(c,b.dataset.v))||sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
+  if(act==='shist'){openSiteInfo(sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
   if(act==='squote'){openQuotesModal(sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
   if(act==='undo'){undoDraft();return}
   if(act==='clr'){const v=b.dataset.v;const det=b.closest('details');if(det)det.open=false;doClear(allKeys(),v);return}
