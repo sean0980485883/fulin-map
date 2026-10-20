@@ -669,6 +669,22 @@ details.esg summary{list-style:none;cursor:pointer}
 .mev{background:#12A37A;color:#fff}.mev small{font-weight:400;opacity:.85;margin-left:4px}
 .mpl{background:#fff;color:#1F63E0;border:1.5px solid #1F63E0}.mpl[draggable=true]{cursor:grab}
 @media (max-width:760px){.mday{min-height:84px;padding:1px}.mev,.mpl{font-size:10px;padding:1px 3px}.mev small{display:none}.mlegend em{display:none}}
+
+/* 月曆：雙擊預定進場 */
+.mday.pick{background:#E8F5EF;box-shadow:inset 0 0 0 2px #12A37A}
+.mday{cursor:default;user-select:none}
+.mplan{position:fixed;top:64px;right:16px;bottom:16px;width:360px;background:var(--panel,#fff);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.22);z-index:60;display:flex;flex-direction:column;gap:10px;padding:12px}
+.mph{display:flex;align-items:center;gap:10px}.mph b{font-size:17px;flex:1}.mph .x{border:0;background:none;font-size:20px;cursor:pointer;padding:4px 8px}
+.mpname{font:inherit;font-size:20px;font-weight:700;padding:12px;border:2px solid #12A37A;border-radius:10px;width:100%;box-sizing:border-box}
+.mpdate{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}.mpdate input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.mplist{overflow:auto;display:flex;flex-direction:column;gap:4px;flex:1}
+.mpcap{font-size:12px;color:var(--muted);padding:4px 2px}
+.mpi{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 10px;text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px}
+.mpi:hover{border-color:#12A37A}.mpi.on{background:#E8F5EF;border-color:#12A37A}.mpi small{color:var(--muted);font-size:12px}
+.mpi.new{border-style:dashed;color:#1F63E0}
+@media (min-width:761px){body.planning .page{margin-right:390px}}
+@media (max-width:420px){.tab{padding:14px 7px 11px;font-size:13px}.tab .cnt{margin-left:3px}}
+@media (max-width:760px){.mplan{top:auto;left:0;right:0;bottom:0;width:auto;height:72vh;border-radius:16px 16px 0 0}}
 </style>
 </head>
 <body>
@@ -677,6 +693,7 @@ details.esg summary{list-style:none;cursor:pointer}
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="map" aria-selected="true">案場地圖</button>
     <button class="tab" role="tab" data-tab="today" aria-selected="false">排班<span class="cnt" id="cntToday">–</span></button>
+    <button class="tab" role="tab" data-tab="cal" aria-selected="false">月曆</button>
     <button class="tab" role="tab" data-tab="stock" aria-selected="false">庫存<span class="cnt" id="cntStock">–</span></button>
     <button class="tab" role="tab" data-tab="manage" aria-selected="false" id="tabManage" hidden>管理</button>
   </nav><div style="flex:1"></div><button class="loginbtn" id="loginBtn">登入</button></header>
@@ -1016,10 +1033,13 @@ let toastT;function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;c
 
 // ================= 分頁 =================
 const TABS=['map','today','stock','manage'];
-function showTab(t){if(!TABS.includes(t))t='map';if(t==='manage'&&!isAdmin())t='map';
-  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+function syncTabs(t){t=t||(document.querySelector('.tab[aria-selected=true]')||{dataset:{}}).dataset.tab;if(t==='today'||t==='cal')t=schedView==='month'?'cal':'today';document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t))}
+function showTab(t){if(t==='cal'){schedView='month';if(schedEdit)schedEdit=false;t='today';if(typeof renderToday==='function'&&DB&&DB.today)renderToday()}
+  else if(t==='today'&&schedView==='month'){schedView=isPhone()?'cards':'board';if(typeof renderToday==='function'&&DB&&DB.today)renderToday()}
+  if(!TABS.includes(t))t='map';if(t==='manage'&&!isAdmin())t='map';if(t!=='today')closePlan();
+  syncTabs(t);
   TABS.forEach(x=>$('v-'+x).hidden=x!==t);
-  try{history.replaceState(null,'','#'+t)}catch(e){}
+  try{history.replaceState(null,'','#'+(t==='today'&&schedView==='month'?'cal':t))}catch(e){}
   if(t==='map'&&M&&M.resize)setTimeout(()=>M.resize(),0);
   if(t==='manage')renderManage()}
 document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)showTab(b.dataset.tab)});
@@ -1353,7 +1373,7 @@ function cardsHtml(d){const crews=crewsOf(d);if(!crews.length)return '<div class
     '<div class="cf">'+(crewNavStops(c).length>1?'<a class="btn primary" href="'+esc(crewNavUrl(c))+'" target="_blank" rel="noopener">🧭 全部導航（'+crewNavStops(c).length+' 站）</a>':'')+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(canField()?'<button class="btn" data-t="info" data-id="'+s.id+'">🕘 紀錄'+(isAdmin()?'／報價單':'')+'</button>':'')+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
   return '<button data-'+attr+'="day" data-v="'+x+'" aria-pressed="'+(x===d)+'">'+['昨天','今天','明天'][o+1]+'<small>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+'</small></button>'}).join('')+'</div>'}
-function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEditor();if(!schedDate)return;
+function renderToday(){const el=$('todayPage');if(!$('v-today').hidden)syncTabs('today');if(schedView!=='month')closePlan();if(schedEdit)return renderSchedEditor();if(!schedDate)return;
   const d=schedDate,isT=d===DB.today;
   el.innerHTML='<div class="pagehead"><h2>排班<small>'+mdw(d)+(isT?'（今天）':d===addDays(DB.today,1)?'（明天）':d===addDays(DB.today,-1)?'（昨天）':'')+'</small></h2>'+
     '<div class="dnav">'+dayTabs(d,'t')+'<button class="btn" data-t="prev" aria-label="前一天">‹</button><button class="btn" data-t="next" aria-label="後一天">›</button><input type="date" id="sdPick" value="'+d+'"></div></div>'+
@@ -1366,7 +1386,7 @@ function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEd
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
-  else if(t==='board'||t==='cards'||t==='week'||t==='month'){schedView=t;renderToday()}else if(t==='mprev'||t==='mnext'){const x=toDate(schedDate);x.setDate(1);x.setMonth(x.getMonth()+(t==='mprev'?-1:1));schedDate=ymd(x);renderToday();return}else if(t==='mday'){schedDate=b.dataset.v;if(isAdmin()&&b.dataset.edit){openSchedEditor();return}schedView=isPhone()?'cards':'board';renderToday();return}else if(t==='msite'){goMap(b.dataset.id);return}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
+  else if(t==='board'||t==='cards'||t==='week'||t==='month'){schedView=t;renderToday()}else if(t==='mprev'||t==='mnext'){const x=toDate(schedDate);x.setDate(1);x.setMonth(x.getMonth()+(t==='mprev'?-1:1));schedDate=ymd(x);renderToday();return}else if(t==='mday'){const v=b.dataset.v,ed=isAdmin()&&b.dataset.edit;if(e.detail>1){clearTimeout(mdayT);return}clearTimeout(mdayT);mdayT=setTimeout(()=>{if($('mplan'))return;schedDate=v;if(ed){openSchedEditor();return}schedView=isPhone()?'cards':'board';renderToday()},260);return}else if(t==='mplan'){openPlan(schedDate);return}else if(t==='msite'){goMap(b.dataset.id);return}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
 $('todayPage').addEventListener('change',e=>{if(e.target.id==='sdPick'&&e.target.value){schedDate=e.target.value;renderToday()}
   if(e.target.id==='meSel'){meName=e.target.value;try{localStorage.setItem('fulin-me',meName)}catch(_){}renderToday()}});
 // 找人：這個人今天在哪一組（司機、泰籍工人手機上看最方便）
@@ -1379,6 +1399,7 @@ function meBanner(d){const n=meName;const rest=restOf(d);const crews=crewsOf(d);
     '<div class="mekv">帶頭 '+esc(c.leader||'—')+'｜車 '+esc(c.car||'—')+'｜同組 '+esc(c.workers.filter(w=>w!==n).join('、')||'—')+'</div>'+
     (c.tasks.length?'<div class="mekv">施作 '+c.tasks.map(t=>esc(t)+(taskTh(t)&&taskTh(t)!==t?'（'+esc(taskTh(t))+'）':'')).join('、')+'</div>':'')+(nav?'<div class="actions">'+nav+'</div>':'')+'</div>'}
 // ================= 月曆（像 TimeTree）：每天要去哪些案場 =================
+let mdayT=0;
 const lunarFmt=(()=>{try{return new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{month:'numeric',day:'numeric'})}catch(e){return null}})();
 function lunar(d){if(!lunarFmt)return '';try{const p=lunarFmt.formatToParts(toDate(d));const m=(p.find(x=>x.type==='month')||{}).value,dd=(p.find(x=>x.type==='day')||{}).value;return m&&dd?m+'.'+dd:''}catch(e){return ''}}
 function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();const first=new Date(y,mo,1);const start=new Date(y,mo,1-first.getDay());
@@ -1386,7 +1407,7 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
   while(days.length>35&&toDate(days[days.length-7]).getMonth()!==mo)days.splice(-7);
   const A=isAdmin();
   let h='<div class="mcal"><div class="mcalbar"><button class="btn" data-t="mprev">‹</button><b>'+y+' 年 '+(mo+1)+' 月</b><button class="btn" data-t="mnext">›</button>'+
-    '<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>拖曳藍色的可以改進場日；點日期空白處編輯那天排班</em>':'')+'</span></div>'+
+    (A?'<button class="btn primary" data-t="mplan">＋ 預定進場</button>':'')+'<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>雙擊空白處＝預定進場；拖曳藍色＝改日期；點日期數字＝編輯那天排班</em>':'')+'</span></div>'+
     '<div class="mgrid"><div class="mwd">日</div><div class="mwd">一</div><div class="mwd">二</div><div class="mwd">三</div><div class="mwd">四</div><div class="mwd">五</div><div class="mwd">六</div>';
   days.forEach(dd=>{const t=toDate(dd);const other=t.getMonth()!==mo;const wd=t.getDay();const crews=crewsOf(dd);const inSched=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inSched.add(l)));
     const plan=sites.filter(s=>s.startDate===dd&&s.status!=='done'&&!inSched.has(s.name));
@@ -1400,9 +1421,40 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
 $('todayPage').addEventListener('dragstart',e=>{const b=e.target.closest&&e.target.closest('.mpl');if(!b||!isAdmin())return;e.dataTransfer.setData('text/fulin-site',b.dataset.id);e.dataTransfer.effectAllowed='move'});
 $('todayPage').addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||!e.dataTransfer.types.includes('text/fulin-site'))return;e.preventDefault();document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));c.classList.add('drop')});
 $('todayPage').addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.mday');const id=e.dataTransfer.getData('text/fulin-site');if(!c||!id)return;e.preventDefault();
-  const day=c.dataset.day;const base=(DB.sites||[]).find(x=>x.id===id);if(!base||base.startDate===day){renderToday();return}const old=base.startDate;
-  localSite(id,{startDate:day});renderToday();toast('「'+base.name+'」進場日改成 '+mdw(day));
-  try{await api('site_save',{site:Object.assign({},base,{startDate:day})})}catch(err){localSite(id,{startDate:old});renderToday();toast('沒存到：'+err.message)}});
+  setStartDate(id,c.dataset.day)});
+// 改進場日（月曆拖曳／雙擊預定共用）：畫面先改、背景存雲端；原本是「問題件」的改成「預定進場」，地圖圖釘也跟著變
+async function setStartDate(id,day){const base=(DB.sites||[]).find(x=>x.id===id);if(!base){renderToday();return}
+  const old={startDate:base.startDate,status:base.status};const st=parseStatus(base.status)==='issue'&&!/維修|客訴/.test(base.status)||!base.status?'預定進場':base.status;
+  if(base.startDate===day&&st===base.status){renderToday();return}
+  localSite(id,{startDate:day,status:st});renderToday();toast('「'+base.name+'」預定 '+mdw(day)+' 進場，地圖已更新');
+  try{await api('site_save',{site:Object.assign({},base,{startDate:day,status:st})})}catch(err){localSite(id,old);renderToday();toast('沒存到：'+err.message)}}
+// 雙擊月曆某一天：右側開「預定進場」小窗，只要打案場名稱
+function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');return}closePlan();
+  const p=document.createElement('div');p.className='mplan';p.id='mplan';
+  p.innerHTML='<div class="mph"><button class="x" data-p="close" aria-label="關閉">✕</button><b>預定進場</b><button class="btn primary" data-p="save" disabled>儲存</button></div>'+
+    '<input id="mpName" class="mpname" placeholder="案場名稱（必填）" autocomplete="off">'+
+    '<label class="mpdate">進場日 <input type="date" id="mpDate" value="'+day+'"></label>'+
+    '<div class="mplist" id="mpList"></div>';
+  document.body.appendChild(p);document.body.classList.add('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'));const cell=document.querySelector('.mday[data-day="'+day+'"]');if(cell)cell.classList.add('pick');
+  let pick=null;const inp=$('mpName'),list=$('mpList'),sv=p.querySelector('[data-p=save]');
+  const norm=t=>String(t||'').replace(/[\s　]/g,'').toLowerCase();
+  function draw(){const q=norm(inp.value);
+    const pool=sites.filter(x=>x.status!=='done');
+    const hit=q?sites.filter(x=>norm(x.name+x.owner+x.contact+x.address+x.phone).includes(q)).sort((a,b)=>(a.status==='done')-(b.status==='done')).slice(0,30):pool.filter(x=>!x.startDate||x.startDate>=DB.today).sort((a,b)=>(a.startDate||'9').localeCompare(b.startDate||'9')).slice(0,30);
+    list.innerHTML=(q?'':'<div class="mpcap">還沒完工的案場（點一下選）</div>')+hit.map(x=>'<button class="mpi'+(pick===x.id?' on':'')+'" data-p="pick" data-id="'+x.id+'"><b>'+esc(x.name)+'</b><small>'+esc(x.statusText||'')+(x.startDate?'｜進場 '+mdw(x.startDate):'｜還沒定進場日')+(x.lat==null?'｜沒座標':'')+'</small></button>').join('')+
+      (q&&!hit.some(x=>norm(x.name)===q)?'<button class="mpi new" data-p="new"><b>＋ 新增案場「'+esc(inp.value.trim())+'」</b><small>會打開新增表單，可以補地址／電話</small></button>':'')+
+      (!hit.length&&!q?'<div class="mpcap">沒有案場</div>':'');
+    sv.disabled=!pick}
+  inp.addEventListener('input',()=>{const x=pick&&sites.find(y=>y.id===pick);if(!x||x.name!==inp.value)pick=null;draw()});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const f=list.querySelector('.mpi');if(pick)sv.click();else if(f)f.click()}else if(e.key==='Escape')closePlan()});
+  p.addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const t=b.dataset.p;
+    if(t==='close')closePlan();
+    else if(t==='pick'){pick=b.dataset.id;const x=sites.find(y=>y.id===pick);inp.value=x?x.name:'';draw();sv.focus()}
+    else if(t==='new'){const nm=inp.value.trim(),dd=$('mpDate').value||day;closePlan();openSiteModal(null);setTimeout(()=>{if($('fName'))$('fName').value=nm;if($('fDate'))$('fDate').value=dd;if($('fSt'))$('fSt').value='預定進場'},0)}
+    else if(t==='save'&&pick){const dd=$('mpDate').value||day;closePlan();setStartDate(pick,dd)}});
+  draw();setTimeout(()=>inp.focus(),0)}
+function closePlan(){const p=$('mplan');if(p)p.remove();document.body.classList.remove('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'))}
+$('todayPage').addEventListener('dblclick',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||e.target.closest('.mev,.mpl'))return;e.preventDefault();openPlan(c.dataset.day)});
 // 一週總覽：週一到週日，每一天每一組去哪裡
 function weekHtml(d){const mon=mondayOf(d);const days=[0,1,2,3,4,5,6].map(k=>addDays(mon,k));const n=meName;
   const leaders=[];days.forEach(x=>crewsOf(x).forEach(c=>{const k=c.leader||'（未填帶頭）';if(!leaders.includes(k))leaders.push(k)}));
