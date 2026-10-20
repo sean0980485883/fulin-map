@@ -650,6 +650,25 @@ details.esg summary{list-style:none;cursor:pointer}
 .board td.navh{font-size:11px;color:var(--muted);vertical-align:bottom}
 .navbtn{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;background:#1F5C55;color:#fff;border-radius:10px;padding:5px 4px;font-size:18px;line-height:1}
 .navbtn small{font-size:10px;font-weight:600}.navbtn:hover{background:#174a44}
+
+/* 月曆 */
+.mcal{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mcalbar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}.mcalbar b{font-size:18px}
+.mlegend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-left:auto;flex-wrap:wrap}
+.mlegend i{width:12px;height:12px;border-radius:3px;display:inline-block}.mlegend i.ev{background:#12A37A}.mlegend i.pl{background:#fff;border:2px solid #1F63E0}.mlegend em{font-style:normal;margin-left:8px}
+.mcal .mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0}
+.mwd{text-align:center;font-size:13px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--line)}
+.mday{min-height:118px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:2px 3px 4px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mday:nth-child(7n+7){border-right:0}
+.mday.other{background:#FAFAF8}.mday.other .mdh b{color:#B8BDBB}
+.mday.sel{box-shadow:inset 0 0 0 2px #1F5C55}.mday.drop{background:#E6F0FF}
+.mdh{border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:2px 0;font:inherit;width:100%}
+.mdh b{font-size:15px;font-weight:600}.mdh b.sun{color:#D93025}.mdh b.sat{color:#1F63E0}.mdh small{font-size:11px;color:var(--muted)}
+.mday.today .mdh b{background:#1F5C55;color:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center}
+.mev,.mpl{border:0;border-radius:4px;padding:2px 5px;font:inherit;font-size:12px;font-weight:700;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.mev{background:#12A37A;color:#fff}.mev small{font-weight:400;opacity:.85;margin-left:4px}
+.mpl{background:#fff;color:#1F63E0;border:1.5px solid #1F63E0}.mpl[draggable=true]{cursor:grab}
+@media (max-width:760px){.mday{min-height:84px;padding:1px}.mev,.mpl{font-size:10px;padding:1px 3px}.mev small{display:none}.mlegend em{display:none}}
 </style>
 </head>
 <body>
@@ -1338,16 +1357,16 @@ function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEd
   const d=schedDate,isT=d===DB.today;
   el.innerHTML='<div class="pagehead"><h2>排班<small>'+mdw(d)+(isT?'（今天）':d===addDays(DB.today,1)?'（明天）':d===addDays(DB.today,-1)?'（昨天）':'')+'</small></h2>'+
     '<div class="dnav">'+dayTabs(d,'t')+'<button class="btn" data-t="prev" aria-label="前一天">‹</button><button class="btn" data-t="next" aria-label="後一天">›</button><input type="date" id="sdPick" value="'+d+'"></div></div>'+
-    '<div class="sbar"><div class="seg"><button data-t="board" aria-pressed="'+(schedView==='board')+'">總表</button><button data-t="cards" aria-pressed="'+(schedView==='cards')+'">卡片</button><button data-t="week" aria-pressed="'+(schedView==='week')+'">一週</button></div>'+
+    '<div class="sbar"><div class="seg"><button data-t="board" aria-pressed="'+(schedView==='board')+'">總表</button><button data-t="cards" aria-pressed="'+(schedView==='cards')+'">卡片</button><button data-t="week" aria-pressed="'+(schedView==='week')+'">一週</button><button data-t="month" aria-pressed="'+(schedView==='month')+'">月曆</button></div>'+
     '<label class="mesel">找人 ค้นหาชื่อ <select id="meSel"><option value="">全部</option>'+DB.people.map(p=>'<option'+(p.name===meName?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></label>'+
     '<div class="actions" style="margin-left:auto">'+(isAdmin()?'<button class="btn primary" data-t="edit">編輯這天排班</button>':'')+'<button class="btn" data-t="img">存成圖片</button><button class="btn" data-t="share">分享文字</button></div></div>'+
-    (meName&&schedView!=='week'?meBanner(d):'')+
-    (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':schedView==='week'?weekHtml(d):cardsHtml(d))+
+    (meName&&schedView!=='week'&&schedView!=='month'?meBanner(d):'')+
+    (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':schedView==='week'?weekHtml(d):schedView==='month'?monthHtml(d):cardsHtml(d))+
     '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>'}
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
-  else if(t==='board'||t==='cards'||t==='week'){schedView=t;renderToday()}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
+  else if(t==='board'||t==='cards'||t==='week'||t==='month'){schedView=t;renderToday()}else if(t==='mprev'||t==='mnext'){const x=toDate(schedDate);x.setDate(1);x.setMonth(x.getMonth()+(t==='mprev'?-1:1));schedDate=ymd(x);renderToday();return}else if(t==='mday'){schedDate=b.dataset.v;if(isAdmin()&&b.dataset.edit){openSchedEditor();return}schedView=isPhone()?'cards':'board';renderToday();return}else if(t==='msite'){goMap(b.dataset.id);return}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
 $('todayPage').addEventListener('change',e=>{if(e.target.id==='sdPick'&&e.target.value){schedDate=e.target.value;renderToday()}
   if(e.target.id==='meSel'){meName=e.target.value;try{localStorage.setItem('fulin-me',meName)}catch(_){}renderToday()}});
 // 找人：這個人今天在哪一組（司機、泰籍工人手機上看最方便）
@@ -1359,6 +1378,31 @@ function meBanner(d){const n=meName;const rest=restOf(d);const crews=crewsOf(d);
   return '<div class="mebar"><div><b>'+esc(n)+'</b> '+mdw(d)+'：第 '+(i+1)+' 組</div><div class="mesite">'+esc(c.site).replace(/\n/g,'、')+(c.siteThai?'<small>'+esc(c.siteThai).replace(/\n/g,'、')+'</small>':'')+'</div>'+
     '<div class="mekv">帶頭 '+esc(c.leader||'—')+'｜車 '+esc(c.car||'—')+'｜同組 '+esc(c.workers.filter(w=>w!==n).join('、')||'—')+'</div>'+
     (c.tasks.length?'<div class="mekv">施作 '+c.tasks.map(t=>esc(t)+(taskTh(t)&&taskTh(t)!==t?'（'+esc(taskTh(t))+'）':'')).join('、')+'</div>':'')+(nav?'<div class="actions">'+nav+'</div>':'')+'</div>'}
+// ================= 月曆（像 TimeTree）：每天要去哪些案場 =================
+const lunarFmt=(()=>{try{return new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{month:'numeric',day:'numeric'})}catch(e){return null}})();
+function lunar(d){if(!lunarFmt)return '';try{const p=lunarFmt.formatToParts(toDate(d));const m=(p.find(x=>x.type==='month')||{}).value,dd=(p.find(x=>x.type==='day')||{}).value;return m&&dd?m+'.'+dd:''}catch(e){return ''}}
+function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();const first=new Date(y,mo,1);const start=new Date(y,mo,1-first.getDay());
+  const days=[];for(let i=0;i<42;i++){const t=new Date(start);t.setDate(start.getDate()+i);days.push(ymd(t))}
+  while(days.length>35&&toDate(days[days.length-7]).getMonth()!==mo)days.splice(-7);
+  const A=isAdmin();
+  let h='<div class="mcal"><div class="mcalbar"><button class="btn" data-t="mprev">‹</button><b>'+y+' 年 '+(mo+1)+' 月</b><button class="btn" data-t="mnext">›</button>'+
+    '<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>拖曳藍色的可以改進場日；點日期空白處編輯那天排班</em>':'')+'</span></div>'+
+    '<div class="mgrid"><div class="mwd">日</div><div class="mwd">一</div><div class="mwd">二</div><div class="mwd">三</div><div class="mwd">四</div><div class="mwd">五</div><div class="mwd">六</div>';
+  days.forEach(dd=>{const t=toDate(dd);const other=t.getMonth()!==mo;const wd=t.getDay();const crews=crewsOf(dd);const inSched=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inSched.add(l)));
+    const plan=sites.filter(s=>s.startDate===dd&&s.status!=='done'&&!inSched.has(s.name));
+    h+='<div class="mday'+(other?' other':'')+(dd===DB.today?' today':'')+(dd===d?' sel':'')+'" data-day="'+dd+'">'+
+      '<button class="mdh" data-t="mday" data-v="'+dd+'"'+(A?' data-edit="1" title="編輯這天排班"':'')+'><b class="'+(wd===0?'sun':wd===6?'sat':'')+'">'+t.getDate()+'</b><small>'+lunar(dd)+'</small></button>'+
+      crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev" data-t="mday" data-v="'+dd+'" title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+esc(crewSites(c).join('、'))+(c.leader?'<small>'+esc(c.leader)+'</small>':'')+'</button>').join('')+
+      plan.map(s=>'<button class="mpl" data-t="msite" data-id="'+s.id+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+'</button>').join('')+
+      '</div>'});
+  return h+'</div></div>'}
+// 拖曳「預定進場」到別天：改進場日
+$('todayPage').addEventListener('dragstart',e=>{const b=e.target.closest&&e.target.closest('.mpl');if(!b||!isAdmin())return;e.dataTransfer.setData('text/fulin-site',b.dataset.id);e.dataTransfer.effectAllowed='move'});
+$('todayPage').addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||!e.dataTransfer.types.includes('text/fulin-site'))return;e.preventDefault();document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));c.classList.add('drop')});
+$('todayPage').addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.mday');const id=e.dataTransfer.getData('text/fulin-site');if(!c||!id)return;e.preventDefault();
+  const day=c.dataset.day;const base=(DB.sites||[]).find(x=>x.id===id);if(!base||base.startDate===day){renderToday();return}const old=base.startDate;
+  localSite(id,{startDate:day});renderToday();toast('「'+base.name+'」進場日改成 '+mdw(day));
+  try{await api('site_save',{site:Object.assign({},base,{startDate:day})})}catch(err){localSite(id,{startDate:old});renderToday();toast('沒存到：'+err.message)}});
 // 一週總覽：週一到週日，每一天每一組去哪裡
 function weekHtml(d){const mon=mondayOf(d);const days=[0,1,2,3,4,5,6].map(k=>addDays(mon,k));const n=meName;
   const leaders=[];days.forEach(x=>crewsOf(x).forEach(c=>{const k=c.leader||'（未填帶頭）';if(!leaders.includes(k))leaders.push(k)}));
