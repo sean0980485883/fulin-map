@@ -639,6 +639,9 @@ details.esg summary{list-style:none;cursor:pointer}
 .mcb .mgrid4 .gcell{font-style:italic;font-size:14px}
 .mnote{width:100%;border:1px solid var(--line)!important;border-radius:10px;min-height:44px;font-size:14px;color:#C0201B}
 .mops{display:flex;flex-wrap:wrap;gap:6px}.mops .btn{padding:6px 10px;font-size:13px}
+
+.ocrlist{display:grid;gap:6px;max-height:50vh;overflow:auto;margin:8px 0}.ocrlist>div{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:14px}
+.ocrlist small{display:block;color:#555;font-size:12px;margin-top:2px}.ocrlist i{color:#B42318;font-style:normal}
 </style>
 </head>
 <body>
@@ -1397,7 +1400,7 @@ function renderSchedEditor(){if(isPhone())return renderSchedMobile();const el=$(
   const free=allPeople.filter(n=>!usedPeople('').has(n)&&!SPECIAL.test(n));
   let h='<div class="pagehead"><h2>編輯排班<small>點格子 → 點名字。選過的人和車不會再出現</small></h2>'+dayTabs(D.date,'e')+'<div class="actions">'+
    '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
-   '<button class="btn" id="undoBtn" data-e="undo" title="復原上一步（⌘/Ctrl+Z）"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
+   '<button class="btn" id="undoBtn" data-e="undo" title="復原上一步（⌘/Ctrl+Z）"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr" title="上傳舊的排班截圖，AI 自動填入">📷 從圖片匯入</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
    '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
    '<div class="clrbar"><details class="clrmenu"><summary>🧹 一次清除</summary><div class="clrpop"><div class="foot">清掉這天所有的：</div>'+
      '<button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="sites">案場</button><button data-e="clr" data-v="all" class="danger">全部清空</button>'+
@@ -1478,7 +1481,7 @@ function renderSchedMobile(){const el=$('todayPage');const D=draft;const dd=toDa
   const restCnt=D.restD.filter(Boolean).length+D.restW.filter(Boolean).length;
   let h='<div class="mhead"><div class="mtop"><b>編輯排班</b><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div>'+
     dayTabs(D.date,'e')+
-    '<div class="mtools"><button class="btn" id="undoBtn" data-e="undo"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button>'+
+    '<div class="mtools"><button class="btn" id="undoBtn" data-e="undo"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr">📷 匯入</button>'+
     '<details class="clrmenu"><summary>🧹 清除</summary><div class="clrpop"><button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="all" class="danger">全部清空</button></div></details></div></div>'+
     '<div class="mfree"><b>還沒排到</b> '+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
     '<details class="mbox"><summary>🏖 休息人員 <small>'+(restCnt?restCnt+' 位':'')+'</small></summary><div class="mrow"><span>司機</span><div class="mchips">'+D.restD.map((v,j)=>gsel('rd|'+j,[],v,new Set())).join('')+'</div></div>'+
@@ -1505,6 +1508,34 @@ function renderSchedMobile(){const el=$('todayPage');const D=draft;const dd=toDa
 $('todayPage').addEventListener('click',e=>{if(!schedEdit||!isPhone())return;const b=e.target.closest('[data-e="mtog"]');if(!b)return;e.stopPropagation();const i=+b.dataset.i;
   if(mOpen.has(i))mOpen.delete(i);else mOpen.add(i);renderSchedMobile()},true);
 let rsT=null;window.addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{if(schedEdit&&draft)renderSchedEditor()},200)});
+// ---- 從排班截圖匯入：AI 讀表格 → 對應到名單 → 確認後填進這一天 ----
+function schedFromImage(){const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=async()=>{const f=inp.files[0];if(!f)return;toast('AI 讀取排班圖片中…（約 30～60 秒）');
+    try{const img=await shrink2(f,2600);
+      const lists={people:DB.people.map(p=>p.name),cars:DB.cars,tasks:DB.tasks.map(t=>t.zh),sites:sites.filter(x=>x.status!=='done').map(x=>x.name).slice(0,300)};
+      const d=(await api('sched_ocr',{image:img,lists})).data||{};applyOcr(d)}
+    catch(err){toast(/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回 Apps Script 並部署新版本':err.message)}};
+  inp.click()}
+// 把 AI 讀到的名字對到名單裡的正式寫法（大小寫、空白、只寫英文名都對得上）
+function matchName(v,list){v=String(v||'').trim();if(!v)return '';const k=norm(v).toLowerCase();
+  return list.find(x=>norm(x).toLowerCase()===k)||list.find(x=>{const y=norm(x).toLowerCase();return y.includes(k)||k.includes(y)})||v}
+function matchCar(v){v=String(v||'').trim();if(!v)return '';const dg=v.replace(/\D/g,'');return (dg.length>=3&&DB.cars.find(c=>c.replace(/\D/g,'')===dg))||matchName(v,DB.cars)}
+function matchSite(v){v=String(v||'').trim();if(!v)return '';const k=norm(v);const s=sites.find(x=>norm(x.name)===k)||sites.find(x=>coreName(x.name).length>=2&&k.includes(coreName(x.name)));return s?s.name:v}
+function applyOcr(d){const P=DB.people.map(p=>p.name),TK=DB.tasks.map(t=>t.zh);
+  const crews=(d.crews||[]).map(c=>{const ss=(c.sites||[]).map(matchSite).filter(Boolean);const ids=ss.map(n=>(sites.find(x=>x.name===n)||{}).id).filter(Boolean);
+    return toCrew({site:ss.join('\n'),siteIds:ids,leader:matchName(c.leader,P),car:matchCar(c.car),workers:(c.workers||[]).map(w=>matchName(w,P)).filter(Boolean).slice(0,8),tasks:(c.tasks||[]).map(t=>matchName(t,TK)).filter(Boolean).slice(0,5),note:String(c.note||'')})})
+    .filter(c=>c.site||c.leader||c.car||c.workers.some(Boolean));
+  if(!crews.length){toast('AI 沒有讀到排班內容，請確認圖片清楚、是整張排班表');return}
+  const nW=crews.reduce((a,c)=>a+c.workers.filter(Boolean).length,0);
+  const unknown=[...new Set(crews.flatMap(c=>[c.leader].concat(c.workers)).filter(n=>n&&!P.includes(n)))];
+  openModal('從圖片匯入排班','<div class="foot">AI 讀到 <b>'+crews.length+' 組</b>、<b>'+nW+' 位工人</b>'+(d.date?'（圖片日期 '+esc(d.date)+'）':'')+'。</div>'+
+    '<div class="ocrlist">'+crews.map((c,i)=>'<div><b>'+(i+1)+'. '+esc(crewSites(c).join('、')||'（沒有案場）')+'</b><small>'+esc([c.leader,c.car,c.workers.filter(Boolean).join('、')].filter(Boolean).join('｜'))+(c.tasks.some(Boolean)?'<br>'+esc(c.tasks.filter(Boolean).join('、')):'')+(c.note?'<br><i>'+esc(c.note)+'</i>':'')+'</small></div>').join('')+'</div>'+
+    (unknown.length?'<div class="foot" style="color:#B42318">名單裡沒有的名字：'+esc(unknown.join('、'))+'（會照原樣填入，可以之後再改）</div>':'')+
+    '<div class="foot">要填進「'+esc(mdw(draft.date))+'」嗎？會取代這一天目前的內容，填錯可以按「↶ 復原」。</div>',
+    [['取消','close'],['填入這一天','ok','primary']],async act=>{if(act!=='ok')return true;
+      draft.crews=crews;while(draft.crews.length<8)draft.crews.push(blankCrew());
+      if(d.restD)draft.restD=pad4((d.restD||[]).map(n=>matchName(n,P)).filter(Boolean));if(d.restW)draft.restW=pad4((d.restW||[]).map(n=>matchName(n,P)).filter(Boolean));
+      mOpen=new Set([0]);renderSchedEditor();toast('已填入 '+crews.length+' 組，會自動存到雲端');return true},true)}
 function crewThai(c){const known={};(DB.sched||[]).forEach(x=>{crewSites(x).forEach((l,k)=>{const t=String(x.siteThai||'').split('\n')[k];if(t)known[l]=t})});
   sites.forEach(s=>{if(s.thai)known[s.name]=s.thai});return crewSites(c).map(l=>known[l]||'').join('\n')}
 function addSiteLine(i,v){mOpen.add(i);v=v.trim();if(!v)return;const c=draft.crews[i];const lines=crewSites(c);if(lines.includes(v))return;lines.push(v);c.site=lines.join('\n');
@@ -1655,6 +1686,7 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   if(act==='hist'){const c=draft.crews[i];openSiteInfo((c&&siteMatch(c,b.dataset.v))||sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
   if(act==='shist'){openSiteInfo(sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
   if(act==='squote'){openQuotesModal(sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
+  if(act==='ocr'){schedFromImage();return}
   if(act==='undo'){undoDraft();return}
   if(act==='clr'){const v=b.dataset.v;const det=b.closest('details');if(det)det.open=false;doClear(allKeys(),v);return}
   if(act==='selclr'){doClear(edSel,b.dataset.v);return}
