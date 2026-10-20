@@ -559,6 +559,50 @@ details.esg summary{list-style:none;cursor:pointer}
 .hrow .hd small{display:block;font-weight:400;color:var(--muted);text-decoration:none}
 .hrow .hcar{font-size:11px;background:#FFF1B8;border-radius:4px;padding:0 4px}
 .hrow .ht{color:#555;font-size:12px}.hrow .hn{color:#B42318;font-size:12px}
+
+/* 編輯排班：緊湊版（跟原本試算表差不多大小）；操作按鈕滑過才出現 */
+.board.edit td{height:22px}
+.board.edit .gcell{min-height:22px;padding:1px 4px;line-height:1.25}
+.board.edit td.lead .gcell{font-size:17px}
+.board.edit td.wk .gcell{font-size:13px;min-width:52px}
+.board.edit td.tk .gcell{font-size:14px;min-width:96px}
+.board.edit tr.th td.tk{padding:1px 4px;font-size:13px}
+.board.edit td.thsite{padding:2px 6px;font-size:13px;min-width:150px}
+.board.edit td.site{padding:2px 6px;min-width:140px}
+.sitechips{gap:0}.sitechips span{font-size:15px;line-height:1.3}
+.sitechips span button{display:none}
+.board.edit td.site:hover .sitechips span button{display:inline}
+.board.edit .gcell.gsite.more{position:absolute;top:2px;right:2px;margin:0;padding:0 6px;min-height:16px;line-height:16px;font-size:12px;display:none;background:#fff}
+.board.edit td.site:hover .gcell.gsite.more,.board.edit .gcell.gsite.more.act{display:block}
+.board.edit .gcell.gsite:not(.more){min-height:24px;margin:0}
+.board.edit td.thsite .rowops{position:absolute;left:4px;bottom:3px;margin:0;display:none;opacity:1}
+.board.edit td.thsite .dupbtn{position:absolute;right:4px;bottom:3px;margin:0;display:none;font-size:11px;padding:1px 6px;width:auto}
+.board.edit td.thsite:hover .rowops,.board.edit td.thsite:hover .dupbtn{display:flex}
+.board.edit td.note{padding:0}.board.edit .gnote{min-height:46px;height:100%;padding:2px 4px;font-size:13px;color:#C0201B;font-weight:700;font-style:italic;text-align:center}
+.board.edit td.cnt{padding:0 4px}
+
+/* 編輯排班：再壓縮，一頁看完約 17 組 */
+#v-today .page{padding-top:8px}
+.board.edit td{height:18px}
+.board.edit th,.board.edit td{padding:0 3px}
+.board.edit .gcell{min-height:18px;padding:0 3px;font-size:13px;line-height:18px}
+.board.edit td.lead .gcell{font-size:15px}
+.board.edit td.wk .gcell{font-size:12px;min-width:44px}
+.board.edit td.tk .gcell{font-size:13px;min-width:80px}
+.board.edit tr.th td.tk{font-size:12px;line-height:1.15}
+.board.edit td.thsite{font-size:12px;line-height:1.2;min-width:130px}
+.board.edit td.site{min-width:120px}
+.sitechips span{font-size:14px;line-height:1.2}
+.board.edit td.car .gcell{font-size:12px;min-width:64px}
+.board.edit td.note{min-width:110px}.board.edit .gnote{min-height:36px;font-size:12px;line-height:1.2}
+.board.edit .dt{font-size:15px;padding:1px 4px}
+.board.edit .ttl{font-size:20px}
+.board.edit td.rest,.board.edit td.restv{font-size:12px}
+.board.edit tr:first-child td,.board.edit tr:nth-child(2) td{height:20px}
+.freebox{padding:4px 10px;font-size:12px}
+.edwarn{padding:4px 10px;margin-top:4px;font-size:12px}
+.clrbar{margin:4px 0}.selhint{font-size:11px}
+.edside{max-height:calc(100vh - 16px)}
 </style>
 </head>
 <body>
@@ -1346,7 +1390,7 @@ function renderSchedEditor(){const el=$('todayPage');const D=draft;const dd=toDa
 // 檢查：漏填或怪怪的地方（不擋儲存，只提醒）
 function edChecks(D){const w=[];D.crews.forEach((c,i)=>{const any=c.site||c.leader||c.car||c.workers.some(Boolean)||c.tasks.some(Boolean);if(!any)return;const g='第'+(i+1)+'組';
     const special=crewSites(c).length&&crewSites(c).every(l=>SPECIAL_SITES.includes(l));
-    if(!c.site)w.push(g+'沒有案場');if(c.site&&!c.leader&&!special)w.push(g+'沒有帶頭');if((c.leader||c.workers.some(Boolean))&&!c.car&&!special)w.push(g+'沒有車');
+    if(!c.site)w.push(g+'沒有案場');if(c.site&&!c.leader&&!special&&(c.workers.some(Boolean)||c.car))w.push(g+'沒有帶頭');if((c.leader||c.workers.some(Boolean))&&!c.car&&!special)w.push(g+'沒有車');
     crewSites(c).forEach(l=>{const s=sites.find(x=>x.name===l);if(s&&s.status==='done')w.push(g+'「'+l+'」已完工')})});
   return w.length?'<div class="edwarn">⚠ '+w.map(esc).join('　')+'</div>':''}
 // 建議：進場中、7 天內要進場、問題單，這天還沒排到的案場；點一下就加進空的一組
