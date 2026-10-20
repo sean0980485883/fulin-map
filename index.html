@@ -642,6 +642,9 @@ details.esg summary{list-style:none;cursor:pointer}
 
 .ocrlist{display:grid;gap:6px;max-height:50vh;overflow:auto;margin:8px 0}.ocrlist>div{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:14px}
 .ocrlist small{display:block;color:#555;font-size:12px;margin-top:2px}.ocrlist i{color:#B42318;font-style:normal}
+
+.lrow.acc{grid-template-columns:1fr 1fr 70px auto auto}.accon{display:flex;align-items:center;gap:3px;font-size:12px;white-space:nowrap}
+.edothers{background:#FDECEA;color:#9B1C1C;border:1px solid #F3C1BC;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:600;margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -1052,12 +1055,12 @@ function logout(){PIN='';ROLE='';try{localStorage.removeItem('fulin-pin');localS
 $('loginBtn').onclick=()=>{
   if(canField()){logout();toast('已登出');return}
   openModal('登入','<div class="fld"><label for="pinIn">密碼（管理或現場）</label><input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password"></div>'+
-    '<div class="fld"><label for="byIn">你的名字（記錄是誰填的）</label><input id="byIn" value="'+esc(BY)+'" placeholder="例：阿明"></div><div class="merr" id="merr" hidden></div>',
+    '<div class="fld"><label for="byIn">你的名字（用個人帳號密碼登入的話不用填）</label><input id="byIn" value="'+esc(BY)+'" placeholder="例：阿明"></div><div class="merr" id="merr" hidden></div>',
     [['取消','close'],['登入','ok','primary']],async act=>{if(act!=='ok')return true;
-      const v=val('pinIn');if(!v)return false;if(!val('byIn')){showErr('請填名字');return false}
+      const v=val('pinIn');if(!v)return false;
       PIN=v;BY=val('byIn');
-      try{const j=await api('ping');ROLE=j.role;try{localStorage.setItem('fulin-pin',v);localStorage.setItem('fulin-role',ROLE);localStorage.setItem('fulin-by',BY)}catch(e){}
-        setAdminUI();render();renderToday();renderStock();toast(ROLE==='admin'?'已用管理密碼登入':'已用現場密碼登入：可回報問題、登記出貨');return true}
+      try{const j=await api('ping');ROLE=j.role;if(j.who)BY=j.who;if(!BY){PIN='';ROLE='';showErr('這是共用密碼，請填名字');return false}try{localStorage.setItem('fulin-pin',v);localStorage.setItem('fulin-role',ROLE);localStorage.setItem('fulin-by',BY)}catch(e){}
+        setAdminUI();render();renderToday();renderStock();toast((BY?BY+'，':'')+(ROLE==='admin'?'已用管理權限登入':'已用現場權限登入：可回報問題、登記出貨'));return true}
       catch(e){PIN='';ROLE='';showErr(e.message);return false}});
   setTimeout(()=>$('pinIn')&&$('pinIn').focus(),50)};
 
@@ -1382,7 +1385,7 @@ const pad5=a=>(a||[]).concat(Array(5).fill('')).slice(0,Math.max(5,(a||[]).lengt
 const pad4=a=>(a||[]).concat(Array(4).fill('')).slice(0,4);
 const toCrew=c=>({site:c.site||'',siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:pad8(c.workers),tasks:pad5(c.tasks),note:c.note||''});
 const blankCrew=()=>toCrew({});
-function openSchedEditor(){schedEdit=true;edSel=new Set();edAnchor=null;
+function openSchedEditor(){schedEdit=true;edOthers=[];setTimeout(()=>{if(draft)api('ed_ping',{date:draft.date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})},300);edSel=new Set();edAnchor=null;
   const src=crewsOf(schedDate);const rest=restOf(schedDate);
   draft={date:schedDate,restD:pad4(rest.drivers),restW:pad4(rest.workers),crews:src.map(toCrew)};
   while(draft.crews.length<8)draft.crews.push(blankCrew());draft.snap=snapOf();renderSchedEditor()}
@@ -1401,7 +1404,7 @@ function renderSchedEditor(){if(isPhone())return renderSchedMobile();const el=$(
   let h='<div class="pagehead"><h2>編輯排班<small>點格子 → 點名字。選過的人和車不會再出現</small></h2>'+dayTabs(D.date,'e')+'<div class="actions">'+
    '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
    '<button class="btn" id="undoBtn" data-e="undo" title="復原上一步（⌘/Ctrl+Z）"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr" title="上傳舊的排班截圖，AI 自動填入">📷 從圖片匯入</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
-   '<div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
+   '<div class="edothers" id="edOthers"'+(edOthers.length?'':' hidden')+'>'+othersText()+'</div><div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
    '<div class="clrbar"><details class="clrmenu"><summary>🧹 一次清除</summary><div class="clrpop"><div class="foot">清掉這天所有的：</div>'+
      '<button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="sites">案場</button><button data-e="clr" data-v="all" class="danger">全部清空</button>'+
      '<div class="foot">清錯了可以按「↶ 復原」。</div></div></details>'+
@@ -1483,7 +1486,7 @@ function renderSchedMobile(){const el=$('todayPage');const D=draft;const dd=toDa
     dayTabs(D.date,'e')+
     '<div class="mtools"><button class="btn" id="undoBtn" data-e="undo"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr">📷 匯入</button>'+
     '<details class="clrmenu"><summary>🧹 清除</summary><div class="clrpop"><button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="all" class="danger">全部清空</button></div></details></div></div>'+
-    '<div class="mfree"><b>還沒排到</b> '+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
+    '<div class="edothers" id="edOthers"'+(edOthers.length?'':' hidden')+'>'+othersText()+'</div><div class="mfree"><b>還沒排到</b> '+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
     '<details class="mbox"><summary>🏖 休息人員 <small>'+(restCnt?restCnt+' 位':'')+'</small></summary><div class="mrow"><span>司機</span><div class="mchips">'+D.restD.map((v,j)=>gsel('rd|'+j,[],v,new Set())).join('')+'</div></div>'+
       '<div class="mrow"><span>工人</span><div class="mchips">'+D.restW.map((v,j)=>gsel('rw|'+j,[],v,new Set())).join('')+'</div></div></details>'+
     '<details class="mbox"'+(D.crews.some(c=>crewSites(c).length)?'':' open')+'><summary>📍 近期需進場（點一下加入）</summary><div class="eslist">'+edSideList(D)+'</div></details>'+
@@ -1656,6 +1659,11 @@ $('todayPage').addEventListener('toggle',e=>{if(draft&&e.target.classList&&e.tar
 function undoDraft(){if(!draft||!draft.hist||!draft.hist.length){toast('沒有可以復原的了');return}const prev=draft.hist.pop();const a=JSON.parse(prev);
   draft.date=a[0];draft.restD=a[1];draft.restW=a[2];draft.crews=a[3];draft.last=prev;closePick();renderSchedEditor();toast('已復原上一步')}
 document.addEventListener('keydown',e=>{if(!schedEdit||!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='z'||e.shiftKey)return;const t=e.target;if(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.id!=='gpq'))return;e.preventDefault();undoDraft()});
+// ---- 誰也在編輯這一天（每 30 秒問一次）----
+let edOthers=[];
+function showOthers(list){edOthers=list||[];const el=$('edOthers');if(el){el.hidden=!edOthers.length;el.innerHTML=othersText()}}
+function othersText(){return edOthers.length?'⚠ '+edOthers.map(o=>esc(o.name)).join('、')+' 也正在編輯這一天，同一組請不要同時改（後存的會蓋掉先存的）':''}
+setInterval(()=>{if(schedEdit&&draft&&isAdmin())api('ed_ping',{date:draft.date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})},30000);
 // ---- 像 Google 試算表一樣自動存到雲端 ----
 let saveTimer=null,saving=false,saveSt={s:'',m:'',t:''};
 function saveText(){return {wait:'編輯中…',saving:'儲存中…',ok:'✓ 已自動存到雲端 '+saveSt.t,err:'⚠ 沒存到，稍後自動重試'}[saveSt.s]||'會自動儲存'}
@@ -1666,7 +1674,7 @@ function payloadOf(d){return {date:d.date,auto:true,restD:d.restD.filter(Boolean
 function localSched(p){DB.sched=(DB.sched||[]).filter(x=>x.date!==p.date).concat(p.crews.map((c,i)=>({id:'local'+i,date:p.date,no:i+1,siteIds:c.siteIds,site:c.site,siteThai:crewThai(c),leader:c.leader,car:c.car,workers:c.workers,tasks:c.tasks,note:c.note})));
   DB.rest=(DB.rest||[]).filter(x=>x.date!==p.date).concat([{date:p.date,drivers:p.restD,workers:p.restW}]);matchToday()}
 async function cloudSave(){clearTimeout(saveTimer);if(!draft||saving)return;const snap=snapOf();if(snap===draft.snap)return;const p=payloadOf(draft);saving=true;setSaveState('saving');
-  try{await api('sched_save',p);localSched(p);if(draft&&draft.date===p.date)draft.snap=snap;saving=false;setSaveState('ok');keepDraft()}
+  try{const rs=await api('sched_save',p);showOthers((rs.data||{}).others);localSched(p);if(draft&&draft.date===p.date)draft.snap=snap;saving=false;setSaveState('ok');keepDraft()}
   catch(e){saving=false;setSaveState('err',e.message);saveTimer=setTimeout(cloudSave,8000);return}
   if(draft&&snapOf()!==draft.snap){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,600)}}
 async function flushSave(){for(let n=0;n<60;n++){if(!draft||(!saving&&snapOf()===draft.snap))return true;
@@ -1945,18 +1953,28 @@ function shrink2(file,max){return new Promise((res,rej)=>{const fr=new FileReade
 
 // ================= 管理：名單 =================
 let mdraft=null,mdirty=false;
+let accDraft=null;
+function renderAcc(){const el=$('accCard');if(!el)return;if(!accDraft){el.querySelector('.foot').textContent='讀取中…';return}
+  el.innerHTML='<h3>登入帳號 <button class="btn primary" data-acc="save">儲存</button></h3><div class="foot">每個人一組自己的密碼，紀錄會寫是誰改的。密碼留空＝不變。原本的共用密碼還是能用。</div>'+
+   accDraft.map((u,i)=>'<div class="lrow acc"><input data-ak="name" data-i="'+i+'" value="'+esc(u.name)+'" placeholder="名字"><input data-ak="pin" data-i="'+i+'" value="'+esc(u.pin||'')+'" placeholder="'+(u.hasPin?'密碼（不改留空）':'設定密碼')+'" inputmode="numeric" autocomplete="off"><select data-ak="role" data-i="'+i+'"><option'+(u.role==='管理'?' selected':'')+'>管理</option><option'+(u.role==='現場'?' selected':'')+'>現場</option></select><label class="accon"><input type="checkbox" data-ak="on" data-i="'+i+'"'+(u.on!==false?' checked':'')+'>啟用</label><button data-adel="'+i+'" aria-label="刪除">×</button></div>').join('')+
+   '<button class="btn" data-acc="add">＋ 新增帳號</button>'}
+function loadAcc(){api('users_list',{}).then(r=>{accDraft=(r.data.users||[]).map(u=>Object.assign({},u,{pin:''}));renderAcc()}).catch(err=>{const el=$('accCard');if(el)el.querySelector('.foot').textContent=/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回並部署新版本':err.message})}
 function renderManage(){const el=$('managePage');if(!isAdmin()){el.innerHTML='';return}
   if(!mdraft||!mdirty)mdraft={people:DB.people.map(p=>({name:p.name,kind:p.kind})),cars:DB.cars.map(c=>({name:c})),tasks:DB.tasks.map(t=>({zh:t.zh,th:t.th}))};
   const kinds=['帶頭','工人','其他'];
   el.innerHTML='<div class="pagehead"><h2>管理<small>名單與設定</small></h2>'+(DB.sheetUrl?'<a class="btn" href="'+DB.sheetUrl+'" target="_blank" rel="noopener">打開資料庫試算表（備份）</a>':'')+'</div>'+
   '<div class="mgrid">'+
+  '<div class="mcard" id="accCard"><h3>登入帳號 <button class="btn primary" data-acc="save">儲存</button></h3><div class="foot">讀取中…</div></div>'+
   '<div class="mcard"><h3>人員 <button class="btn primary" data-ms="people">儲存</button></h3>'+mdraft.people.map((p,i)=>'<div class="lrow"><input data-mk="people" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><select data-mk="people" data-i="'+i+'" data-f="kind">'+kinds.map(k=>'<option'+(k===p.kind?' selected':'')+'>'+k+'</option>').join('')+'</select><button data-mdel="people" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="people">＋ 新增人員</button></div>'+
   '<div class="mcard"><h3>車輛 <button class="btn primary" data-ms="cars">儲存</button></h3>'+mdraft.cars.map((p,i)=>'<div class="lrow" style="grid-template-columns:1fr auto"><input data-mk="cars" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><button data-mdel="cars" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="cars">＋ 新增車輛</button></div>'+
   '<div class="mcard"><h3>施作項目（中／泰） <button class="btn primary" data-ms="tasks">儲存</button></h3><div class="foot">泰文留空，儲存時會自動翻譯。</div>'+mdraft.tasks.map((p,i)=>'<div class="lrow t2"><input data-mk="tasks" data-i="'+i+'" data-f="zh" value="'+esc(p.zh)+'"><input data-mk="tasks" data-i="'+i+'" data-f="th" value="'+esc(p.th)+'"><button data-mdel="tasks" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="tasks">＋ 新增項目</button></div>'+
-  '</div><div class="foot">密碼在 Apps Script 的「指令碼屬性」修改：ADMIN_PIN（管理）、FIELD_PIN（現場）。每一筆寫入都記錄在資料庫的「紀錄」分頁。</div>'}
-$('managePage').addEventListener('input',e=>{const t=e.target;if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
-$('managePage').addEventListener('change',e=>{const t=e.target;if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
-$('managePage').addEventListener('click',async e=>{const a=e.target.closest('[data-madd]');if(a){const k=a.dataset.madd;mdirty=true;mdraft[k].push(k==='people'?{name:'',kind:'工人'}:k==='cars'?{name:''}:{zh:'',th:''});renderManage();return}
+  '</div><div class="foot">密碼在 Apps Script 的「指令碼屬性」修改：ADMIN_PIN（管理）、FIELD_PIN（現場）。每一筆寫入都記錄在資料庫的「紀錄」分頁。</div>';if(accDraft)renderAcc();else loadAcc()}
+$('managePage').addEventListener('input',e=>{const t=e.target;if(t.dataset.ak&&accDraft){const u=accDraft[+t.dataset.i];u[t.dataset.ak]=t.type==='checkbox'?t.checked:t.value;return}if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
+$('managePage').addEventListener('change',e=>{const t=e.target;if(t.dataset.ak&&accDraft){const u=accDraft[+t.dataset.i];u[t.dataset.ak]=t.type==='checkbox'?t.checked:t.value;return}if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
+$('managePage').addEventListener('click',async e=>{const ac=e.target.closest('[data-acc],[data-adel]');if(ac&&accDraft){
+    if(ac.dataset.adel!==undefined){accDraft.splice(+ac.dataset.adel,1);renderAcc();return}
+    if(ac.dataset.acc==='add'){accDraft.push({name:'',pin:'',role:'管理',on:true});renderAcc();return}
+    if(ac.dataset.acc==='save'){ac.disabled=true;ac.textContent='儲存中…';try{await api('users_save',{users:accDraft});toast('帳號已儲存');accDraft=null;loadAcc()}catch(err){toast(err.message);ac.disabled=false;ac.textContent='儲存'}return}}const a=e.target.closest('[data-madd]');if(a){const k=a.dataset.madd;mdirty=true;mdraft[k].push(k==='people'?{name:'',kind:'工人'}:k==='cars'?{name:''}:{zh:'',th:''});renderManage();return}
   const d=e.target.closest('[data-mdel]');if(d){mdirty=true;mdraft[d.dataset.mdel].splice(+d.dataset.i,1);renderManage();return}
   const s=e.target.closest('[data-ms]');if(s){const k=s.dataset.ms;s.disabled=true;s.textContent='儲存中…';
     try{await api('list_save',{kind:k,rows:mdraft[k].filter(x=>(x.name||x.zh||'').trim())});toast('已儲存');mdraft=null;mdirty=false;await load();renderManage()}catch(err){toast(err.message);s.disabled=false;s.textContent='儲存'}}});
