@@ -1457,9 +1457,10 @@ function openPick(key){closePick();const anchor=document.querySelector('[data-g=
   else if(k==='rw'){title='休息的工人';opts=workersL().filter(o=>o===cur||!usedPeople(key).has(o))}
   else if(k==='l'){title='第 '+(i+1)+' 組・帶頭／司機';opts=leaders().filter(o=>o===cur||!usedPeople(key).has(o))}
   else if(k==='c'){title='第 '+(i+1)+' 組・車';opts=DB.cars.filter(o=>o===cur||!usedCars(key).has(o))}
-  else if(k==='w'){title='第 '+(i+1)+' 組・工人（點完自動跳下一格）';const u=usedPeople(key);opts=workersL().filter(o=>o===cur||!u.has(o));
-    groups=[['工人',opts.map(v=>({v}))],['司機／帶頭',leaders().filter(o=>o===cur||!u.has(o)).map(v=>({v}))]]}
-  else if(k==='t'){title='第 '+(i+1)+' 組・施作項目';opts=DB.tasks.map(t=>t.zh);free=true}
+  else if(k==='w'){title='';const u=usedPeople(key);
+    // 工人格只列「工人」，不放司機／帶頭和全員上班這類特殊選項
+    opts=DB.people.filter(p=>p.kind==='工人'&&!SPECIAL.test(p.name)).map(p=>p.name).filter(o=>o===cur||!u.has(o));if(cur&&!opts.includes(cur))opts.unshift(cur)}
+  else if(k==='t'){title='施作項目（點完自動跳下一格）';opts=DB.tasks.map(t=>t.zh);free=true}
   else if(k==='s'){title='第 '+(i+1)+' 組・案場（可複選，由北到南）';free=true;const mine=crewSites(draft.crews[i]);const other={};
     draft.crews.forEach((c,j)=>{if(j!==i)crewSites(c).forEach(l=>(other[l]=other[l]||[]).push(j+1))});
     const mk=(v,b)=>({v,b,on:mine.includes(v),tag:other[v]&&!SPECIAL_SITES.includes(v)?'第'+other[v].join('、')+'組':''});
@@ -1467,7 +1468,7 @@ function openPick(key){closePick();const anchor=document.querySelector('[data-g=
     groups=[['常用',SPECIAL_SITES.map(x=>mk(x))],['案場',extra.map(x=>mk(x)).concat(ns.filter(x=>x.status!=='done').map(x=>mk(x.name,bucket(x))))],['已完工',ns.filter(x=>x.status==='done').map(x=>mk(x.name,'done'))]]}
   if(!groups)groups=[['',opts.map(v=>({v}))]];
   const pop=document.createElement('div');pop.id='gpop';
-  pop.innerHTML='<div class="gph"><b>'+esc(title)+'</b><button data-pk="x" aria-label="關閉">✕</button></div>'+
+  pop.innerHTML='<div class="gph"><b>'+esc(title||'')+'</b><button data-pk="x" aria-label="關閉">✕</button></div>'+
     ((free||opts.length>12||k==='s')?'<input id="gpq" placeholder="'+(free?'搜尋，或直接打字按 Enter':'搜尋')+'" autocomplete="off">':'')+
     '<div class="gpl">'+groups.filter(g=>g[1].length).map(g=>(g[0]?'<div class="gpg">'+g[0]+'</div>':'')+'<div class="gpb">'+g[1].map(o=>'<button data-pv="'+esc(o.v)+'" class="'+(o.v===cur||o.on?'on':'')+'">'+(o.on?'✓ ':'')+(o.b?'<span class="dot" style="background:var(--'+BK[o.b].c.slice(2)+')"></span>':'')+esc(o.v)+(o.tag?'<em>'+o.tag+'</em>':'')+'</button>').join('')+'</div>').join('')+
     (groups.every(g=>!g[1].length)?'<div class="foot">都排完了</div>':'')+'</div>'+
@@ -1483,7 +1484,8 @@ function pickValue(v){const key=gpopKey;if(!key)return;const p=key.split('|'),k=
     else{closePick();addSiteLine(i,v)}
     openPick(key);const l=document.querySelector('#gpop .gpl');if(l)l.scrollTop=sc;return}
   setCell(key,v);closePick();renderSchedEditor();
-  if(k==='w'&&v){const ws=draft.crews[i].workers;for(let j=+p[2]+1;j<8;j++)if(!ws[j]){openPick('w|'+i+'|'+j);return}}}
+  if(k==='w'&&v){const ws=draft.crews[i].workers;for(let j=+p[2]+1;j<8;j++)if(!ws[j]){openPick('w|'+i+'|'+j);return}}
+  if(k==='t'&&v){const ts=draft.crews[i].tasks;for(let j=+p[2]+1;j<5;j++)if(!ts[j]){openPick('t|'+i+'|'+j);return}}}
 document.addEventListener('click',e=>{const pop=$('gpop');if(!pop)return;
   if(pop.contains(e.target)){const b=e.target.closest('[data-pv],[data-pk]');if(!b)return;
     if(b.dataset.pk==='x')closePick();else if(b.dataset.pk==='clear'){setCell(gpopKey,'');closePick();renderSchedEditor()}else pickValue(b.dataset.pv);return}
