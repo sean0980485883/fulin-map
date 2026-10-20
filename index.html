@@ -645,6 +645,11 @@ details.esg summary{list-style:none;cursor:pointer}
 
 .lrow.acc{grid-template-columns:1fr 1fr 70px auto auto}.accon{display:flex;align-items:center;gap:3px;font-size:12px;white-space:nowrap}
 .edothers{background:#FDECEA;color:#9B1C1C;border:1px solid #F3C1BC;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:600;margin-bottom:6px}
+
+.board td.navc{border:0;background:transparent!important;padding:0 6px 0 0;width:52px}
+.board td.navh{font-size:11px;color:var(--muted);vertical-align:bottom}
+.navbtn{display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;background:#1F5C55;color:#fff;border-radius:10px;padding:5px 4px;font-size:18px;line-height:1}
+.navbtn small{font-size:10px;font-weight:600}.navbtn:hover{background:#174a44}
 </style>
 </head>
 <body>
@@ -1299,15 +1304,21 @@ function matchToday(){todayBySite={};crewsOf(DB.today).forEach(c=>crewSites(c).f
 function goMap(id){showTab('map');const s=sites.find(x=>x.id===id);if(s){selected=id;routeMode=false;render();setTimeout(()=>{if(M){M.resize&&M.resize();if(s.lat!=null)M.setView(s.lat,s.lng,14)}},50)}}
 
 let boardPlain=false;
+// 一組的所有案場串成一條 Google 地圖導航（從目前位置出發，依序經過，最後一站是終點）
+function crewNavStops(c){return crewSites(c).filter(l=>!SPECIAL_SITES.includes(l)).map(l=>{const s=siteMatch(c,l);return s&&s.lat!=null?s.lat+','+s.lng:(s&&s.address?s.address:'')}).filter(Boolean)}
+function crewNavUrl(c){const stops=crewNavStops(c);
+  if(!stops.length)return '';const dest=stops[stops.length-1],way=stops.slice(0,-1).slice(0,9);
+  return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(dest)+(way.length?'&waypoints='+encodeURIComponent(way.join('|')):'')}
 function boardHtml(d){const meName_=boardPlain?'':meName;const crews=crewsOf(d),rest=restOf(d);const dd=toDate(d);
   const total=crews.reduce((a,c)=>a+c.workers.length,0);
   let h='<table class="board" id="boardTbl"><tbody>'+
-   '<tr><td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td><td class="restv" colspan="5">'+esc(rest.drivers.join('、')||'')+'</td></tr>'+
+   '<tr>'+(boardPlain?'':'<td rowspan="3" class="navc navh">導航</td>')+'<td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td><td class="restv" colspan="5">'+esc(rest.drivers.join('、')||'')+'</td></tr>'+
    '<tr><td colspan="2" class="dt">'+WK[dd.getDay()]+'</td><td class="rest">休息人員-工人</td><td class="restv" colspan="5">'+esc(rest.workers.join('、')||'')+'</td></tr>'+
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   crews.forEach((c,i)=>{const band=i%2===0?' band':'';const w=c.workers.concat(Array(8).fill('')).slice(0,Math.max(8,Math.ceil(c.workers.length/4)*4));
     const t=c.tasks.concat(Array(5).fill('')).slice(0,Math.max(5,c.tasks.length));
-    h+='<tr class="'+band+'"><td rowspan="2" class="thsite">'+esc(c.siteThai||'').replace(/\n/g,'<br>')+'</td><td rowspan="2" class="site">'+(canField()&&!boardPlain?crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="qlink" data-t="info" data-id="'+s.id+'" title="施工紀錄'+(isAdmin()?'、報價單':'')+'">'+esc(l)+' <i>🕘</i></button>':esc(l)}).join('<br>'):esc(c.site).replace(/\n/g,'<br>'))+'</td><td rowspan="2" class="lead'+(c.leader&&c.leader===meName_?' me':'')+'">'+esc(c.leader||'')+'</td><td rowspan="2" class="car">'+esc(c.car||'').replace(/^(.*?)\s*(\d{3,})$/,'$1<br>$2')+'</td>'+
+    const nv=boardPlain?'':crewNavUrl(c);const nst=crewNavStops(c).length;
+    h+='<tr class="'+band+'">'+(boardPlain?'':'<td rowspan="2" class="navc">'+(nv?'<a class="navbtn" href="'+esc(nv)+'" target="_blank" rel="noopener" title="Google 地圖導航：'+esc(crewSites(c).join(' → '))+'">🧭<small>'+(nst>1?nst+' 站':'導航')+'</small></a>':'')+'</td>')+'<td rowspan="2" class="thsite">'+esc(c.siteThai||'').replace(/\n/g,'<br>')+'</td><td rowspan="2" class="site">'+(canField()&&!boardPlain?crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="qlink" data-t="info" data-id="'+s.id+'" title="施工紀錄'+(isAdmin()?'、報價單':'')+'">'+esc(l)+' <i>🕘</i></button>':esc(l)}).join('<br>'):esc(c.site).replace(/\n/g,'<br>'))+'</td><td rowspan="2" class="lead'+(c.leader&&c.leader===meName_?' me':'')+'">'+esc(c.leader||'')+'</td><td rowspan="2" class="car">'+esc(c.car||'').replace(/^(.*?)\s*(\d{3,})$/,'$1<br>$2')+'</td>'+
       w.slice(0,4).map(x=>'<td class="wk'+(x&&x===meName_?' me':'')+'">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="cnt">'+c.workers.length+'</td>'+t.slice(0,5).map(x=>'<td class="tk">'+esc(x)+'</td>').join('')+'<td rowspan="2" class="note">'+esc(c.note||'')+'</td></tr>'+
       '<tr class="th'+band+'">'+w.slice(4,8).map(x=>'<td class="wk'+(x&&x===meName_?' me':'')+'">'+esc(x)+'</td>').join('')+t.slice(0,5).map(x=>'<td class="tk">'+esc(x?(taskTh(x)||x):'')+'</td>').join('')+'</tr>'});
   if(!crews.length)h+='<tr class="emptyrow"><td colspan="15" style="padding:24px">這天還沒有排班</td></tr>';
@@ -1320,7 +1331,7 @@ function cardsHtml(d){const crews=crewsOf(d);if(!crews.length)return '<div class
       (c.tasks.length?'<div class="kvrow"><span>施作</span><div class="tasks">'+c.tasks.map(t=>'<span class="task"><b>'+esc(t)+'</b>'+(taskTh(t)&&taskTh(t)!==t?'<small>'+esc(taskTh(t))+'</small>':'')+'</span>').join('')+'</div></div>':'')+
       (need.length?'<div class="kvrow"><span>可能用料</span><div class="need">'+need.map(n=>'<i class="'+(n.st==='out'||n.st==='neg'?'out':n.st==='low'?'low':'')+'">'+esc(n.label)+' '+fmtN(n.total)+'</i>').join('')+'</div></div>':'')+
       (c.note?'<div class="note">'+esc(c.note)+'</div>':'')+'</div>'+
-    '<div class="cf">'+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(canField()?'<button class="btn" data-t="info" data-id="'+s.id+'">🕘 紀錄'+(isAdmin()?'／報價單':'')+'</button>':'')+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
+    '<div class="cf">'+(crewNavStops(c).length>1?'<a class="btn primary" href="'+esc(crewNavUrl(c))+'" target="_blank" rel="noopener">🧭 全部導航（'+crewNavStops(c).length+' 站）</a>':'')+crewSites(c).map(l=>{const s=siteMatch(c,l);return s?'<button class="btn" data-t="map" data-id="'+s.id+'">地圖：'+esc(l)+'</button>'+(canField()?'<button class="btn" data-t="info" data-id="'+s.id+'">🕘 紀錄'+(isAdmin()?'／報價單':'')+'</button>':'')+(navUrl(s)?'<a class="btn primary" href="'+navUrl(s)+'" target="_blank" rel="noopener">導航</a>':''):''}).join('')+'</div></article>'}).join('')+'</div>'}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
   return '<button data-'+attr+'="day" data-v="'+x+'" aria-pressed="'+(x===d)+'">'+['昨天','今天','明天'][o+1]+'<small>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+'</small></button>'}).join('')+'</div>'}
 function renderToday(){const el=$('todayPage');if(schedEdit)return renderSchedEditor();if(!schedDate)return;
