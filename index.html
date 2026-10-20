@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant" translate="no" class="notranslate">
 <head>
+<meta name="robots" content="noindex,nofollow">
 <meta charset="utf-8">
 <meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -685,9 +686,27 @@ details.esg summary{list-style:none;cursor:pointer}
 @media (min-width:761px){body.planning .page{margin-right:390px}}
 @media (max-width:420px){.tab{padding:14px 7px 11px;font-size:13px}.tab .cnt{margin-left:3px}}
 @media (max-width:760px){.mplan{top:auto;left:0;right:0;bottom:0;width:auto;height:72vh;border-radius:16px 16px 0 0}}
+
+/* 登入畫面 */
+.gate{position:fixed;inset:0;z-index:200;background:#1F5C55;display:grid;place-items:center;padding:16px}
+.gate[hidden]{display:none}
+body.gated>*:not(.gate):not(script){visibility:hidden}
+.gbox{background:#fff;border-radius:16px;padding:28px 22px;width:min(360px,100%);display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.glogo{font-size:24px;font-weight:800;color:#1F5C55;text-align:center}.gsub{text-align:center;color:var(--muted);font-size:14px;margin-top:-6px}
+.gbox input{font:inherit;font-size:18px;padding:12px;border:1.5px solid var(--line);border-radius:10px;width:100%;box-sizing:border-box}
+.gbox input:focus{outline:none;border-color:#12A37A}
+.gbox .btn{font-size:17px;padding:12px}.gerr{color:#D93025;font-size:14px;min-height:1em;text-align:center}
+.gfoot{font-size:12px;color:var(--muted);text-align:center}
 </style>
 </head>
-<body>
+<body class="gated">
+<div class="gate" id="gate"><div class="gbox">
+  <div class="glogo">富林組合屋</div><div class="gsub">內部工作台・請先登入</div>
+  <input id="gPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="密碼">
+  <div id="gByRow" hidden><input id="gBy" placeholder="你的名字（共用密碼才要填）" autocomplete="name"></div>
+  <button id="gGo" class="btn primary">登入</button><div class="gerr" id="gErr"></div>
+  <div class="gfoot">登入一次後，這台裝置會記住；按右上角「登出」會清掉這台裝置上的資料。</div>
+</div></div>
 <div class="shell">
 <header class="topbar"><div class="brand">富林組合屋</div>
   <nav class="tabs" role="tablist">
@@ -1061,10 +1080,19 @@ async function readJson(r){const t=await r.text();if(/^\s*</.test(t)){
   throw new Error('後台回傳錯誤頁面：請確認 API_URL 是結尾為 /exec 的部署網址，並已重新部署最新版本')}
   try{return JSON.parse(t)}catch(e){throw new Error('後台回傳格式不正確')}}
 let firstLoad=true,loading=false;
+// 讀資料：用 POST 帶密碼（不登入拿不到）；後台還是舊版的話自動退回舊的讀法
+async function getData(action,params){
+  const r=await fetch(CFG.API_URL,{method:'POST',body:JSON.stringify(Object.assign({action,pin:PIN,by:BY},params||{}))});const j=await readJson(r);
+  if(j.ok)return j;
+  if(j.code==='auth'){logout(true);throw new Error('請重新登入')}
+  if(/未知的動作/.test(j.error||'')){const q=Object.keys(params||{}).map(k=>'&'+k+'='+encodeURIComponent(params[k])).join('');
+    const r2=await fetch(CFG.API_URL+'?action='+action+q+'&t='+Date.now());const j2=await readJson(r2);if(!j2.ok)throw new Error(j2.error||'讀取失敗');return j2}
+  throw new Error(j.error||'讀取失敗')}
 async function load(){
   if(!CFG.API_URL){fail('尚未設定後台網址（API_URL）。');return}
+  if(!canField()){showGate(true);return}
   if(loading)return;loading=true;
-  try{const r=await fetch(CFG.API_URL+'?action=all&t='+Date.now());const j=await readJson(r);if(!j.ok)throw new Error(j.error||'讀取失敗');
+  try{const j=await getData('all');
     DB=j.data;try{localStorage.setItem('fulin-db',JSON.stringify(DB))}catch(e){}applyData();setTimeout(autoThaiFill,3000);
     const d=new Date();$('updated').textContent='更新 '+pad(d.getHours())+':'+pad(d.getMinutes());
     if(firstLoad){firstLoad=false;fitAll()}
@@ -1093,11 +1121,25 @@ function setAdminUI(){const b=$('loginBtn');b.innerHTML=canField()?'<span class=
 async function api(action,payload){
   const r=await fetch(CFG.API_URL,{method:'POST',body:JSON.stringify(Object.assign({action,pin:PIN,by:BY},payload||{}))});
   const j=await readJson(r);
-  if(!j.ok){if(j.code==='auth')logout();throw new Error(j.error||'寫入失敗')}
+  if(!j.ok){if(j.code==='auth'&&canField())logout(true);throw new Error(j.error||'寫入失敗')}
   return j}
-function logout(){PIN='';ROLE='';try{localStorage.removeItem('fulin-pin');localStorage.removeItem('fulin-role')}catch(e){}schedEdit=false;setAdminUI();if(!$('v-manage').hidden)showTab('map');render();renderToday();renderStock()}
+async function logout(expired){if(!expired&&schedEdit){try{await Promise.race([flushSave(),new Promise(r=>setTimeout(r,8000))])}catch(e){}}
+  PIN='';ROLE='';try{['fulin-pin','fulin-role','fulin-db','fulin-quotes'].forEach(k=>localStorage.removeItem(k));Object.keys(localStorage).filter(k=>/^fulin-wk\|/.test(k)).forEach(k=>localStorage.removeItem(k))}catch(e){}
+  schedEdit=false;setTimeout(()=>location.reload(),expired?0:300)}
+// ---- 登入畫面：沒登入看不到任何資料 ----
+function showGate(on){const g=$('gate');if(!g)return;g.hidden=!on;document.body.classList.toggle('gated',on);if(on)setTimeout(()=>$('gPin')&&$('gPin').focus(),50)}
+async function gateLogin(){const v=$('gPin').value.trim(),nm=$('gBy').value.trim(),er=$('gErr'),bt=$('gGo');if(!v){er.textContent='請輸入密碼';return}
+  er.textContent='';bt.disabled=true;bt.textContent='登入中…';PIN=v;BY=nm;
+  try{const j=await api('ping');ROLE=j.role;if(j.who)BY=j.who;
+    if(!BY){PIN='';ROLE='';$('gByRow').hidden=false;$('gBy').focus();er.textContent='這是共用密碼，請填你的名字';return}
+    try{localStorage.setItem('fulin-pin',v);localStorage.setItem('fulin-role',ROLE);localStorage.setItem('fulin-by',BY)}catch(e){}
+    showGate(false);setAdminUI();toast((BY?BY+'，':'')+'歡迎');load()}
+  catch(e){PIN='';ROLE='';er.textContent=/密碼/.test(e.message)?'密碼不對，再試一次':e.message}
+  finally{bt.disabled=false;bt.textContent='登入'}}
+$('gGo').onclick=gateLogin;['gPin','gBy'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')gateLogin()}));
 $('loginBtn').onclick=()=>{
-  if(canField()){logout();toast('已登出');return}
+  if(canField()){toast('已登出');logout();return}
+  showGate(true);return;
   openModal('登入','<div class="fld"><label for="pinIn">密碼（管理或現場）</label><input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password"></div>'+
     '<div class="fld"><label for="byIn">你的名字（用個人帳號密碼登入的話不用填）</label><input id="byIn" value="'+esc(BY)+'" placeholder="例：阿明"></div><div class="merr" id="merr" hidden></div>',
     [['取消','close'],['登入','ok','primary']],async act=>{if(act!=='ok')return true;
@@ -1894,7 +1936,7 @@ async function openHistory(it){if(!it)return;
   openModal('紀錄：'+itemLabel(it),'<div class="foot">讀取中…</div>',(isAdmin()?[['編輯品項','edit']]:[]).concat(canField()?[['登記出貨／進貨','reg']]:[]).concat([['關閉','close','primary']]),async act=>{if(act==='edit'){closeModal();openItemModal(it);return false}
     if(act==='reg'){closeModal();openMoveModal(it);return false}
     if(act==='delmove')return false;return true},true);
-  try{const r=await fetch(CFG.API_URL+'?action=moves&item='+encodeURIComponent(it.id));const j=await r.json();const list=j.data||[];
+  try{const j=await getData('moves',{item:it.id});const list=j.data||[];
     const box=document.querySelector('#modalBg .mb');if(!box)return;
     box.innerHTML='<div class="foot">大倉 '+fmtN(it.big)+'｜油車 '+fmtN(it.oil)+'｜合計 '+fmtN(it.total)+'（最近 100 筆）</div><div class="hist">'+list.map(m=>'<div><span>'+esc(m.date)+'</span><span>'+esc(m.place)+'</span><span>'+esc(m.kind)+'</span><span>'+esc(m.by||'')+'</span><span>'+esc([m.site,m.note].filter(Boolean).join('｜'))+'</span><span class="q'+(m.qty<0?' neg':'')+'">'+(m.qty>0?'+':'')+fmtN(m.qty)+(isAdmin()?' <button class="mini" data-dm="'+m.id+'" title="刪除這筆">×</button>':'')+'</span></div>').join('')+'</div>'+(list.length?'':'<div class="foot">還沒有紀錄</div>');
     box.addEventListener('click',async e=>{const b=e.target.closest('[data-dm]');if(!b)return;if(b.dataset.ok!=='1'){b.dataset.ok='1';b.textContent='確定?';return}
@@ -1964,7 +2006,7 @@ async function openWeek(){stockMode='sheet';sheetInit();renderStock()}
 async function loadWeek(){const ck='fulin-wk|'+wk.place+'|'+wk.from;
   if(!wk.data){try{const c=JSON.parse(localStorage.getItem(ck)||'null');if(c)fillWeek(c)}catch(e){}}
   wk.loading=true;renderSheet();
-  try{const r=await fetch(CFG.API_URL+'?action=week&place='+encodeURIComponent(wk.place)+'&from='+wk.from+'&t='+Date.now());const j=await readJson(r);if(!j.ok)throw new Error(j.error);
+  try{const j=await getData('week',{place:wk.place,from:wk.from});
     if(wk.dirty){wk.loading=false;renderSheet();return}fillWeek(j.data);try{localStorage.setItem(ck,JSON.stringify(j.data))}catch(e){}}
   catch(e){if(!wk.data)wk.data={entries:{},counts:{},other:{},err:e.message};toast('讀不到這週資料：'+e.message)}
   wk.loading=false;wk.dirty=false;renderSheet()}
@@ -2091,8 +2133,7 @@ setAdminUI();
 showTab((location.hash||'#map').slice(1));
 initMap();render();
 // 先用上次的資料立刻顯示，同時在背景抓最新的
-(function(){try{const c=JSON.parse(localStorage.getItem('fulin-db')||'null');if(c&&c.sites){DB=c;applyData();$('updated').textContent='更新中…'}}catch(e){}})();
-load();
+if(canField()){showGate(false);(function(){try{const c=JSON.parse(localStorage.getItem('fulin-db')||'null');if(c&&c.sites){DB=c;applyData();$('updated').textContent='更新中…'}}catch(e){}})();load()}else showGate(true);
 setInterval(()=>{if(!schedEdit&&!document.getElementById('modalBg'))load()},(CFG.REFRESH_MINUTES||5)*60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!schedEdit&&!document.getElementById('modalBg'))load()});
 })();
