@@ -668,7 +668,7 @@ details.esg summary{list-style:none;cursor:pointer}
 .mday.today .mdh b{background:#1F5C55;color:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center}
 .mev,.mpl{border:0;border-radius:4px;padding:2px 5px;font:inherit;font-size:12px;font-weight:700;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
 .mev{background:#12A37A;color:#fff}.mev small{font-weight:400;opacity:.85;margin-left:4px}
-.mpl{background:#fff;color:#1F63E0;border:1.5px solid #1F63E0}.mpl[draggable=true]{cursor:grab}
+.mpl{background:#fff;color:#1F63E0;border:1.5px solid #1F63E0}.mpl[draggable=true],.mev[draggable=true]{cursor:grab}
 @media (max-width:760px){.mday{min-height:84px;padding:1px}.mev,.mpl{font-size:10px;padding:1px 3px}.mev small{display:none}.mlegend em{display:none}}
 
 /* 月曆：雙擊預定進場 */
@@ -1449,21 +1449,32 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
   while(days.length>35&&toDate(days[days.length-7]).getMonth()!==mo)days.splice(-7);
   const A=isAdmin();
   let h='<div class="mcal"><div class="mcalbar"><button class="btn" data-t="mprev">‹</button><b>'+y+' 年 '+(mo+1)+' 月</b><button class="btn" data-t="mnext">›</button>'+
-    (A?'<button class="btn primary" data-t="mplan">＋ 預定進場</button>':'')+'<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>雙擊空白處＝預定進場；拖曳藍色＝改日期；點日期數字＝編輯那天排班</em>':'')+'</span></div>'+
+    (A?'<button class="btn primary" data-t="mplan">＋ 預定進場</button>':'')+'<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>雙擊空白處＝預定進場；拖曳綠色／藍色＝改日期；點日期數字＝編輯那天排班</em>':'')+'</span></div>'+
     '<div class="mgrid"><div class="mwd">日</div><div class="mwd">一</div><div class="mwd">二</div><div class="mwd">三</div><div class="mwd">四</div><div class="mwd">五</div><div class="mwd">六</div>';
   days.forEach(dd=>{const t=toDate(dd);const other=t.getMonth()!==mo;const wd=t.getDay();const crews=crewsOf(dd).filter(c=>String(c.leader||'').trim());const inSched=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inSched.add(l)));
     const plan=sites.filter(s=>s.startDate===dd&&s.status!=='done'&&!inSched.has(s.name));
     h+='<div class="mday'+(other?' other':'')+(dd===DB.today?' today':'')+(dd===d?' sel':'')+'" data-day="'+dd+'">'+
       '<button class="mdh" data-t="mday" data-v="'+dd+'"'+(A?' data-edit="1" title="編輯這天排班"':'')+'><b class="'+(wd===0?'sun':wd===6?'sat':'')+'">'+t.getDate()+'</b><small>'+lunar(dd)+'</small></button>'+
-      crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev" data-t="mday" data-v="'+dd+'" title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+esc(crewSites(c).join('、'))+(c.leader?'<small>'+esc(c.leader)+'</small>':'')+'</button>').join('')+
+      crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev" data-t="mday" data-v="'+dd+'" data-no="'+c.no+'"'+(A?' draggable="true"':'')+' title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+esc(crewSites(c).join('、'))+(c.leader?'<small>'+esc(c.leader)+'</small>':'')+'</button>').join('')+
       plan.map(s=>'<button class="mpl" data-t="msite" data-id="'+s.id+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+'</button>').join('')+
       '</div>'});
   return h+'</div></div>'}
 // 拖曳「預定進場」到別天：改進場日
-$('todayPage').addEventListener('dragstart',e=>{const b=e.target.closest&&e.target.closest('.mpl');if(!b||!isAdmin())return;e.dataTransfer.setData('text/fulin-site',b.dataset.id);e.dataTransfer.effectAllowed='move'});
-$('todayPage').addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||!e.dataTransfer.types.includes('text/fulin-site'))return;e.preventDefault();document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));c.classList.add('drop')});
-$('todayPage').addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.mday');const id=e.dataTransfer.getData('text/fulin-site');if(!c||!id)return;e.preventDefault();
+$('todayPage').addEventListener('dragstart',e=>{if(!isAdmin()||!e.target.closest)return;const b=e.target.closest('.mpl');if(b){e.dataTransfer.setData('text/fulin-site',b.dataset.id);e.dataTransfer.effectAllowed='move';return}
+  const g=e.target.closest('.mev');if(g){e.dataTransfer.setData('text/fulin-crew',g.dataset.v+'|'+g.dataset.no);e.dataTransfer.effectAllowed='move'}});
+$('todayPage').addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||!(e.dataTransfer.types.includes('text/fulin-site')||e.dataTransfer.types.includes('text/fulin-crew')))return;e.preventDefault();document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));c.classList.add('drop')});
+$('todayPage').addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.mday');document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));const cr=e.dataTransfer.getData('text/fulin-crew');if(c&&cr){e.preventDefault();const [fd,no]=cr.split('|');moveCrew(fd,+no,c.dataset.day);return}
+  const id=e.dataTransfer.getData('text/fulin-site');if(!c||!id)return;e.preventDefault();
   setStartDate(id,c.dataset.day)});
+// 月曆拖曳綠色（已排班）到別天：整組搬過去（帶頭、車、工人、施作都跟著）
+function dayPayload(d,crews){const r=restOf(d);return {date:d,auto:true,restD:(r.drivers||[]).filter(Boolean),restW:(r.workers||[]).filter(Boolean),
+  crews:crews.map(c=>({site:c.site,siteIds:c.siteIds||[],leader:c.leader||'',car:c.car||'',workers:(c.workers||[]).filter(Boolean),tasks:(c.tasks||[]).filter(Boolean),note:c.note||''}))}}
+async function moveCrew(from,no,to){if(from===to)return;const A=crewsOf(from);const cw=A.find(c=>c.no===no);if(!cw)return;
+  const B=crewsOf(to);const ppl=c=>[c.leader,c.car].concat(c.workers||[]).filter(Boolean);const busy=new Set();B.forEach(c=>ppl(c).forEach(x=>busy.add(x)));const clash=ppl(cw).filter(x=>busy.has(x));
+  const pa=dayPayload(from,A.filter(c=>c!==cw)),pb=dayPayload(to,B.concat([cw]));const old=(DB.sched||[]).slice();
+  localSched(pa);localSched(pb);renderToday();const nm=crewSites(cw).join('、')||cw.leader;
+  toast('「'+nm+'」從 '+mdw(from)+' 搬到 '+mdw(to)+(clash.length?'（注意：'+clash.join('、')+' 那天已經有排）':''));
+  try{await api('sched_save',pb);await api('sched_save',pa)}catch(err){DB.sched=old;matchToday();renderToday();toast('沒搬成功：'+err.message);load()}}
 // 改進場日（月曆拖曳／雙擊預定共用）：畫面先改、背景存雲端；原本是「問題件」的改成「預定進場」，地圖圖釘也跟著變
 async function setStartDate(id,day){const base=(DB.sites||[]).find(x=>x.id===id);if(!base){renderToday();return}
   const old={startDate:base.startDate,status:base.status};const st=parseStatus(base.status)==='issue'&&!/維修|客訴/.test(base.status)||!base.status?'預定進場':base.status;
