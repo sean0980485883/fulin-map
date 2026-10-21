@@ -33,6 +33,7 @@ window.FULIN_CONFIG = {
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .shell{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
 .page{grid-template-columns:minmax(0,1fr)}
 .topbar,.tabs{min-width:0}
@@ -849,6 +850,16 @@ select option{background:#1C2A38;color:var(--ink)}
 .boardwrap input,.boardwrap select{color:#1E2A2C}
 .foot{color:var(--muted)}
 @media (max-width:420px){.brand{font-size:0;gap:0;letter-spacing:0}.topbar{gap:8px}}
+
+/* 手機：整頁不亂縮，表格自己縮放 */
+@media (pointer:coarse){html,body{touch-action:pan-x pan-y}}
+.zbar{display:flex;align-items:center;gap:6px;justify-content:flex-end;margin:0 0 6px;font-size:12px;color:var(--muted)}
+.zbar span{margin-right:auto}
+.zbar button{min-width:38px;height:34px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink);border-radius:8px;font:inherit;font-size:15px;font-weight:700}
+.zbar button[data-z=fit]{font-size:13px;padding:0 10px;color:var(--accent);border-color:rgba(45,226,180,.4)}
+.zbar b{min-width:44px;text-align:center;font-family:var(--mono);color:var(--ink)}
+.boardwrap{-webkit-overflow-scrolling:touch}
+@media (pointer:coarse) and (max-height:500px){.tab{padding:8px 10px 7px}.brand{padding:6px 0}.page{padding-block:8px 24px;gap:8px}.pagehead h2{font-size:18px}.zbar span{display:none}.zbar{margin:0}.zbar button{height:30px}}
 </style>
 </head>
 <body class="gated">
@@ -1212,7 +1223,7 @@ function showTab(t){if(t==='cal'){schedView='month';if(schedEdit)schedEdit=false
   TABS.forEach(x=>$('v-'+x).hidden=x!==t);
   try{history.replaceState(null,'','#'+(t==='today'&&schedView==='month'?'cal':t))}catch(e){}
   if(t==='map'&&M&&M.resize)setTimeout(()=>M.resize(),0);
-  if(t==='manage')renderManage()}
+  if(t==='manage')renderManage();if(typeof applyZoom==='function')setTimeout(()=>applyZoom(false),0)}
 document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(b)showTab(b.dataset.tab)});
 
 // ================= 資料（後台 API） =================
@@ -2292,6 +2303,31 @@ $('managePage').addEventListener('click',async e=>{const ac=e.target.closest('[d
     try{await api('list_save',{kind:k,rows:mdraft[k].filter(x=>(x.name||x.zh||'').trim())});toast('已儲存');mdraft=null;mdirty=false;await load();renderManage()}catch(err){toast(err.message);s.disabled=false;s.textContent='儲存'}}});
 
 // ================= 啟動 =================
+
+// ================= 手機：表格自己縮放（兩指捏、＋－鈕），整頁不亂縮 =================
+const touchDev=()=>window.matchMedia('(pointer:coarse)').matches&&window.innerWidth<1100;
+let TZ={};try{TZ=JSON.parse(localStorage.getItem('fulin-tz')||'{}')}catch(e){}
+function tzKey(t){return t.classList.contains('sheet')?'sheet':t.classList.contains('wkview')?'week':'board'}
+function tzSave(){try{localStorage.setItem('fulin-tz',JSON.stringify(TZ))}catch(e){}}
+function tzFit(t){const w=t.parentElement;const old=t.style.zoom;t.style.zoom=1;const f=Math.min(1,(w.clientWidth-2)/t.scrollWidth);t.style.zoom=old;return f}
+function tzSet(t,z,keep){const k=tzKey(t);const f=tzFit(t);z=Math.max(f*0.9,Math.min(2.5,z));t.style.zoom=z;if(keep!==false){TZ[k]=Math.abs(z-f)<0.01?0:z;tzSave()}
+  const bar=t.parentElement.previousElementSibling;if(bar&&bar.classList.contains('zbar'))bar.querySelector('b').textContent=Math.round(z*100)+'%'}
+function applyZoom(force){const on=touchDev();document.querySelectorAll('.boardwrap>table:not(.edit)').forEach(t=>{const w=t.parentElement;if(on&&!t.offsetParent)return;
+  let bar=w.previousElementSibling;if(!on){t.style.zoom='';if(bar&&bar.classList.contains('zbar'))bar.remove();return}
+  if(!bar||!bar.classList.contains('zbar')){bar=document.createElement('div');bar.className='zbar';bar.innerHTML='<span>兩指捏可以放大縮小</span><button data-z="-">－</button><b></b><button data-z="+">＋</button><button data-z="fit">符合螢幕</button>';w.parentElement.insertBefore(bar,w)}
+  if(t.dataset.tzi&&!force)return;t.dataset.tzi='1';const z=TZ[tzKey(t)]||tzFit(t);tzSet(t,z,false)})}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.zbar [data-z]');if(!b)return;const w=b.parentElement.nextElementSibling;const t=w&&w.querySelector(':scope>table');if(!t)return;
+  const z=parseFloat(t.style.zoom)||1;const v=b.dataset.z;if(v==='fit'){TZ[tzKey(t)]=0;tzSave();tzSet(t,tzFit(t),false)}else tzSet(t,z*(v==='+'?1.25:0.8))});
+let pin=null;
+document.addEventListener('touchstart',e=>{if(e.touches.length!==2)return;const w=e.target.closest&&e.target.closest('.boardwrap');const t=w&&w.querySelector(':scope>table:not(.edit)');if(!t||!touchDev())return;
+  const a=e.touches[0],b=e.touches[1];const r=w.getBoundingClientRect();pin={t,w,d0:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),z0:parseFloat(t.style.zoom)||1,cx:(a.clientX+b.clientX)/2-r.left,cy:(a.clientY+b.clientY)/2-r.top,sl:w.scrollLeft,st:document.scrollingElement.scrollTop}},{passive:true});
+document.addEventListener('touchmove',e=>{if(!pin||e.touches.length!==2)return;e.preventDefault();const a=e.touches[0],b=e.touches[1];const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+  const z0=pin.z0;tzSet(pin.t,z0*d/pin.d0,false);const z=parseFloat(pin.t.style.zoom)||1;pin.w.scrollLeft=(pin.sl+pin.cx)*z/z0-pin.cx},{passive:false});
+document.addEventListener('touchend',e=>{if(pin&&e.touches.length<2){tzSet(pin.t,parseFloat(pin.t.style.zoom)||1);pin=null}});
+let tzRaf=0;const tzQueue=()=>{if(tzRaf)return;tzRaf=requestAnimationFrame(()=>{tzRaf=0;applyZoom(false)})};
+new MutationObserver(tzQueue).observe($('todayPage'),{childList:true,subtree:true});
+new MutationObserver(tzQueue).observe($('stockPage'),{childList:true,subtree:true});
+window.addEventListener('resize',()=>setTimeout(()=>applyZoom(true),200));
 setAdminUI();
 showTab((location.hash||'#map').slice(1));
 initMap();render();
