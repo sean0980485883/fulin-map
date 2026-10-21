@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>富林組合屋工作台</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<meta name="theme-color" content="#1F5C55">
+<meta name="theme-color" content="#070B10">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -697,6 +697,158 @@ body.gated>*:not(.gate):not(script){visibility:hidden}
 .gbox input:focus{outline:none;border-color:#12A37A}
 .gbox .btn{font-size:17px;padding:12px}.gerr{color:#D93025;font-size:14px;min-height:1em;text-align:center}
 .gfoot{font-size:12px;color:var(--muted);text-align:center}
+
+/* ================= 深色科技風（整站） ================= */
+:root{
+  --bg:#070B10; --panel:#0D141B; --panel2:#111B24; --ink:#E3ECF1; --muted:#7F92A0; --line:rgba(140,175,200,.15); --hover:rgba(45,226,180,.08);
+  --accent:#2DE2B4; --accent2:#3BA7FF; --accent-ink:#03140F;
+  --issue:#FF5470; --active:#34D399; --week:#4C9AFF; --later:#8DB6FF; --done:#5F7080;
+  --issue-bg:rgba(255,84,112,.12); --active-bg:rgba(52,211,153,.12); --week-bg:rgba(76,154,255,.13); --later-bg:rgba(141,182,255,.10); --done-bg:rgba(95,112,128,.14);
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+  --glow:0 0 0 1px rgba(45,226,180,.35),0 0 22px rgba(45,226,180,.18);
+  --amber:#F5B841; --amber-bg:rgba(245,184,65,.12); --red:#FF6B81; --red-bg:rgba(255,84,112,.12);
+  color-scheme:dark;
+}
+body{background:
+  radial-gradient(1200px 600px at 85% -10%,rgba(59,167,255,.10),transparent 60%),
+  radial-gradient(900px 500px at -10% 110%,rgba(45,226,180,.08),transparent 60%),
+  linear-gradient(rgba(140,175,200,.035) 1px,transparent 1px) 0 0/32px 32px,
+  linear-gradient(90deg,rgba(140,175,200,.035) 1px,transparent 1px) 0 0/32px 32px,
+  var(--bg);background-attachment:fixed}
+::selection{background:rgba(45,226,180,.35)}
+*{scrollbar-color:rgba(140,175,200,.25) transparent}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:rgba(140,175,200,.22);border-radius:10px;border:2px solid transparent;background-clip:padding-box}::-webkit-scrollbar-track{background:transparent}
+
+/* 頂欄 */
+.topbar{background:linear-gradient(180deg,rgba(13,20,27,.92),rgba(7,11,16,.88));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);position:relative;z-index:10}
+.topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);opacity:.7}
+.brand{display:flex;align-items:center;gap:9px;letter-spacing:.12em;font-weight:700}
+.brand::before{content:"";width:16px;height:16px;transform:rotate(45deg);border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 14px rgba(45,226,180,.7);flex:none}
+.tab{color:rgba(227,236,241,.6);position:relative;border-bottom-color:transparent!important;transition:color .15s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:#fff}
+.tab[aria-selected="true"]::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 12px var(--accent)}
+.tab .cnt{background:rgba(45,226,180,.14);color:var(--accent)}
+.tab .cnt.bad{background:rgba(255,84,112,.2);color:#FF8FA3}
+.loginbtn{background:rgba(255,255,255,.04)!important;color:var(--ink)!important;border:1px solid var(--line)!important}
+.loginbtn.on{color:var(--accent)!important;border-color:rgba(45,226,180,.4)!important;box-shadow:0 0 14px rgba(45,226,180,.15)}
+
+/* 按鈕、輸入 */
+.btn{background:rgba(255,255,255,.03);border-color:var(--line);color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
+.btn:hover{border-color:rgba(45,226,180,.5);background:rgba(45,226,180,.06)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#22C3E6);color:var(--accent-ink);border-color:transparent;font-weight:700;box-shadow:0 0 18px rgba(45,226,180,.28)}
+.btn.primary:hover{box-shadow:0 0 26px rgba(45,226,180,.45);filter:brightness(1.05)}
+.btn:disabled{opacity:.45;box-shadow:none}
+input,select,textarea{color:var(--ink)}
+.fld input,.fld select,.fld textarea,.tools input,.sbar input,.lrow input,.lrow select,.wkt input,.mesel select,.mpdate input,.mpname,.gbox input{background:rgba(255,255,255,.035)!important;border-color:var(--line)!important;color:var(--ink)}
+.fld input:focus,.fld select:focus,.fld textarea:focus,.tools input:focus,.sbar input:focus,.mpname:focus,.gbox input:focus{outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(45,226,180,.15)}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.8)}
+select option{background:#0D141B;color:var(--ink)}
+.seg,.segs button,.daytabs{background:rgba(255,255,255,.03)!important;border-color:var(--line)!important}
+.seg button{color:var(--muted)}
+.seg button[aria-pressed="true"],.segs button[aria-pressed="true"]{background:linear-gradient(135deg,var(--accent),#22C3E6)!important;color:var(--accent-ink)!important;font-weight:700}
+.daytabs button{background:transparent!important;color:var(--ink)}
+.daytabs button[aria-pressed="true"],.daytabs button.on{background:linear-gradient(135deg,var(--accent),#22C3E6)!important;color:var(--accent-ink)!important}
+
+/* 卡片／面板：玻璃質感 */
+.panel{background:rgba(13,20,27,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.group h2{background:rgba(13,20,27,.95);color:var(--accent);letter-spacing:.14em;font-family:var(--mono);font-size:11px;text-transform:uppercase}
+.chip{background:rgba(255,255,255,.02)}
+.chip[aria-pressed="true"]{box-shadow:0 0 16px -4px var(--c)}
+.chip b{text-shadow:0 0 12px var(--c)}
+.crew,.tile,.mcard,.mbox,.edside,.mcal,.qf,.sidecard,.mpi,.modal,.legend,.fitbtn{background:linear-gradient(180deg,rgba(17,27,36,.9),rgba(13,20,27,.9))!important;border-color:var(--line)!important}
+.crew:hover,.tile:hover{border-color:rgba(45,226,180,.35)!important}
+.tile b{font-family:var(--mono)}
+.crew .ch,.srow.h,.wkt th,.mch,.mcard:nth-child(even) .mch{background:rgba(45,226,180,.05)!important}
+.crew .note,.ainote,.dupbox,.mebar,.hrow .hcar,.wkt input.ai{background:var(--amber-bg)!important;border-color:rgba(245,184,65,.35)!important;color:var(--ink)}
+.dupnote{background:var(--amber-bg)!important;color:var(--amber)!important;border:1px solid rgba(245,184,65,.35)!important}
+.mebar.rest,.mebar.none{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important}
+.mebar .mesite,.mcs b,.hrow .hd{color:#7DB8FF!important}
+.mebar .mekv{color:var(--ink)!important}
+.car:not(td),.tag2{background:var(--amber-bg)!important;border-color:rgba(245,184,65,.4)!important;color:var(--amber)!important}
+.need i{background:rgba(52,211,153,.12)!important;color:#5EEAB0!important}
+.need i.low,.st.low{background:var(--amber-bg)!important;color:var(--amber)!important}
+.need i.out,.st.out,.errbox,.merr,.edwarn,.edothers,.notice.err{background:var(--red-bg)!important;color:#FF8FA3!important;border-color:rgba(255,84,112,.35)!important}
+.st.ok,.rep .rk.done{background:rgba(52,211,153,.12)!important;color:#5EEAB0!important}
+.st.idle{background:rgba(255,255,255,.05)!important;color:var(--muted)!important}
+.tile.need b{color:#5EEAB0}.tile.low b{color:var(--amber)}.tile.out b,.srow .num.neg,.hist .q.neg{color:#FF8FA3}
+.rep .rk.issue{background:rgba(255,84,112,.2)!important;color:#FF8FA3!important;border-color:transparent!important}
+.routebox,.aibox,.freebox,.edsugg,.mfree,.row.instop{background:rgba(45,226,180,.06)!important}
+.edsugg summary,.esg:not(.late) .esd,.mrow>span b,.hppl i b,.editor .saved,.savest.ok,.sidecard em.ok{color:var(--accent)!important}
+.edsugg button,.rowops button,.clrmenu summary,.clrpop,.clrpop button,.selbar button,.pickbar button,.hppl i,.mchips em,.mcb .gcell,.mbox .gcell{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important;color:var(--ink)!important}
+.clrpop{background:#0F1820!important;box-shadow:var(--shadow)}
+.clrpop .danger,.selbar .danger{color:#FF8FA3!important;border-color:rgba(255,84,112,.35)!important;background:var(--red-bg)!important}
+.edsugg button:hover,.clrpop button:hover,.selbar button:hover,.sidecard:hover,.qf:hover,.qpick:has(input:checked),.mcb .gcell.act,.mbox .gcell.act{border-color:var(--accent2)!important;background:rgba(59,167,255,.1)!important}
+.mchips em{color:#7DB8FF!important}
+.esd{color:#FF8FA3;border-bottom-color:rgba(255,84,112,.3)}
+.sidecard em{color:var(--amber)}
+.notice{background:rgba(76,154,255,.08);color:var(--ink)}
+.toast{background:rgba(13,20,27,.95);color:var(--ink);border:1px solid rgba(45,226,180,.4);box-shadow:var(--glow);backdrop-filter:blur(10px)}
+.modal-bg{background:rgba(2,5,8,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.modal{box-shadow:var(--glow),0 30px 80px rgba(0,0,0,.6)!important}
+.modal header,.modal .mf{background:#0F1820!important}
+.modal header h3,.modal header b{letter-spacing:.04em}
+.pagehead h2{letter-spacing:.06em}
+.pagehead h2::before{content:"";display:inline-block;width:4px;height:.9em;margin-right:10px;border-radius:2px;background:linear-gradient(var(--accent),var(--accent2));box-shadow:0 0 10px var(--accent);vertical-align:-2px}
+
+/* 地圖 */
+#map{background:#0A1016}
+.leaflet-bar a,.leaflet-bar a:hover{background:#0F1820!important;color:var(--ink)!important;border-color:var(--line)!important}
+.leaflet-control-attribution{background:rgba(7,11,16,.7)!important;color:var(--muted)!important}.leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0F1820;color:var(--ink)}
+.pin .lbl{color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 0 6px #000}
+.pin.hl .lbl,.pin:hover .lbl{background:rgba(7,11,16,.92);color:#fff;border:1px solid rgba(45,226,180,.5)}
+.pin .dot{box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 12px var(--c)}
+.legend{backdrop-filter:blur(10px)}
+.issuebox{color:var(--ink)}
+.note{background:rgba(255,255,255,.03)}
+
+/* 排班卡片（手機） */
+.mch{color:var(--ink)}
+
+/* 編輯側欄、選單 */
+#gpop{background:#0F1820!important;border-color:rgba(45,226,180,.35)!important;box-shadow:var(--glow),0 20px 50px rgba(0,0,0,.6)!important;color:var(--ink)}
+#gpop .gpb button{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important;color:var(--ink)!important}
+#gpop .gpb button:hover{background:rgba(59,167,255,.12)!important;border-color:var(--accent2)!important}
+#gpop .gpb button em{background:var(--amber-bg)!important;color:var(--amber)!important}
+#gpop .gpclr{background:transparent!important;color:#FF8FA3!important}
+#gpop input{background:rgba(255,255,255,.04);border-color:var(--line);color:var(--ink)}
+
+/* 月曆 */
+.mcalbar b{letter-spacing:.06em}
+.mwd{color:var(--accent);font-family:var(--mono);letter-spacing:.2em}
+.mday{border-color:var(--line)!important;transition:background .15s}
+.mday:hover{background:rgba(45,226,180,.035)}
+.mday.other{background:rgba(0,0,0,.25)!important}.mday.other .mdh b{color:#3B4A55!important}
+.mday.today .mdh b{background:linear-gradient(135deg,var(--accent),var(--accent2))!important;color:var(--accent-ink)!important;box-shadow:0 0 14px rgba(45,226,180,.6)}
+.mday.sel{box-shadow:inset 0 0 0 1.5px rgba(45,226,180,.7)!important}
+.mday.drop,.mday.pick{background:rgba(59,167,255,.12)!important;box-shadow:inset 0 0 0 2px var(--accent2)!important}
+.mdh b.sat{color:#6FB1FF}.mdh b.sun{color:#FF7A8E}
+.mev{background:linear-gradient(90deg,rgba(45,226,180,.9),rgba(34,195,230,.85))!important;color:#03140F!important;box-shadow:0 0 10px -2px rgba(45,226,180,.6)}
+.mev small{color:#03302A}
+.mpl{background:rgba(76,154,255,.08)!important;color:#8DC2FF!important;border:1px solid rgba(76,154,255,.6)!important}
+.mlegend i.ev{background:var(--accent)!important}.mlegend i.pl{background:transparent!important;border-color:#4C9AFF!important}
+.mplan{background:rgba(13,20,27,.96)!important;border-color:rgba(45,226,180,.35)!important;box-shadow:var(--glow),0 20px 60px rgba(0,0,0,.6)!important;backdrop-filter:blur(14px)}
+.mpi.on{background:rgba(45,226,180,.1)!important;border-color:var(--accent)!important}
+.mpi.new{color:#8DC2FF}
+.mpname{border:2px solid rgba(45,226,180,.6)!important}
+
+/* 登入畫面 */
+.gate{background:radial-gradient(800px 500px at 50% 0%,rgba(45,226,180,.16),transparent 60%),radial-gradient(700px 500px at 100% 100%,rgba(59,167,255,.14),transparent 60%),
+  linear-gradient(rgba(140,175,200,.05) 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,rgba(140,175,200,.05) 1px,transparent 1px) 0 0/32px 32px,#05080C}
+.gbox{background:rgba(13,20,27,.85)!important;border:1px solid rgba(45,226,180,.3);box-shadow:var(--glow),0 30px 80px rgba(0,0,0,.7)!important;backdrop-filter:blur(16px)}
+.glogo{color:#fff!important;letter-spacing:.16em;display:flex;align-items:center;justify-content:center;gap:12px}
+.glogo::before{content:"";width:18px;height:18px;transform:rotate(45deg);border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 18px rgba(45,226,180,.8)}
+.gsub{font-family:var(--mono);letter-spacing:.1em}
+
+/* 「紙本」區：排班總表、週表、庫存表維持白底（存圖、列印、師傅看得清楚） */
+.boardwrap,.board,.sheet,.wkview{--bg:#F3F4F1;--panel:#FFFFFF;--ink:#1E2A2C;--muted:#63706F;--line:#DCE0DA;--hover:#EEF2EB;--accent:#1F5C55;--accent-ink:#FFFFFF;--issue:#1E1E1E;color:var(--ink);color-scheme:light}
+.boardwrap{background:#fff!important;border:1px solid rgba(45,226,180,.4)!important;box-shadow:0 0 0 1px rgba(45,226,180,.12),0 0 30px rgba(45,226,180,.10),0 16px 40px rgba(0,0,0,.5)}
+.boardwrap .btn{background:#fff;color:#1E2A2C;border-color:#DCE0DA}
+.boardwrap .btn.primary{background:#1F5C55;color:#fff;box-shadow:none}
+.boardwrap input,.boardwrap select{color:#1E2A2C}
+.foot{color:var(--muted)}
+@media (max-width:420px){.brand{font-size:0;gap:0;letter-spacing:0}.topbar{gap:8px}}
 </style>
 </head>
 <body class="gated">
