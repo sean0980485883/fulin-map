@@ -1451,7 +1451,7 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
   let h='<div class="mcal"><div class="mcalbar"><button class="btn" data-t="mprev">‹</button><b>'+y+' 年 '+(mo+1)+' 月</b><button class="btn" data-t="mnext">›</button>'+
     (A?'<button class="btn primary" data-t="mplan">＋ 預定進場</button>':'')+'<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>雙擊空白處＝預定進場；拖曳藍色＝改日期；點日期數字＝編輯那天排班</em>':'')+'</span></div>'+
     '<div class="mgrid"><div class="mwd">日</div><div class="mwd">一</div><div class="mwd">二</div><div class="mwd">三</div><div class="mwd">四</div><div class="mwd">五</div><div class="mwd">六</div>';
-  days.forEach(dd=>{const t=toDate(dd);const other=t.getMonth()!==mo;const wd=t.getDay();const crews=crewsOf(dd);const inSched=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inSched.add(l)));
+  days.forEach(dd=>{const t=toDate(dd);const other=t.getMonth()!==mo;const wd=t.getDay();const crews=crewsOf(dd).filter(c=>String(c.leader||'').trim());const inSched=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inSched.add(l)));
     const plan=sites.filter(s=>s.startDate===dd&&s.status!=='done'&&!inSched.has(s.name));
     h+='<div class="mday'+(other?' other':'')+(dd===DB.today?' today':'')+(dd===d?' sel':'')+'" data-day="'+dd+'">'+
       '<button class="mdh" data-t="mday" data-v="'+dd+'"'+(A?' data-edit="1" title="編輯這天排班"':'')+'><b class="'+(wd===0?'sun':wd===6?'sat':'')+'">'+t.getDate()+'</b><small>'+lunar(dd)+'</small></button>'+
