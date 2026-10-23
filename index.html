@@ -869,6 +869,18 @@ select option{background:#1C2A38;color:var(--ink)}
 .board.edit tr.rowdrag>td{opacity:.35}
 .board.edit tr.dropbefore>td{box-shadow:inset 0 3px 0 #1F63E0}
 .board.edit tr.dropafter>td{box-shadow:inset 0 -3px 0 #1F63E0}
+
+.board.edit td.site{cursor:pointer;user-select:none;-webkit-user-select:none}
+.board.edit td.site:hover{background:#E6F0FF}
+
+/* 排班編輯：＋案場移到泰文格；案場後面 ✕ 可刪 */
+.board.edit .gcell.gsite.more{display:none!important}
+.board.edit td.thsite .addsite{position:absolute;right:3px;top:3px;display:none;border:1px solid #1F63E0;background:#fff;color:#1F63E0;border-radius:6px;font:inherit;font-size:11px;font-weight:700;padding:1px 6px;cursor:pointer;z-index:2}
+.board.edit td.thsite:hover .addsite{display:block}
+.board.edit td.thsite .addsite:hover{background:#1F63E0;color:#fff}
+.board.edit .sitechips span button[data-e=rmsite]{display:inline-flex!important;align-items:center;justify-content:center;width:18px;height:18px;margin-left:3px;border-radius:50%;color:#D93025!important;font-size:11px;font-weight:700;background:#FDECEA!important;opacity:.55}
+.board.edit td.site:hover .sitechips span button[data-e=rmsite]{opacity:1}
+.board.edit .sitechips span button[data-e=rmsite]:hover{background:#D93025!important;color:#fff!important}
 </style>
 </head>
 <body class="gated">
@@ -1749,8 +1761,8 @@ function renderSchedEditor(){if(isPhone())return renderSchedMobile();const el=$(
      D.restW.map((v,j)=>'<td class="restv">'+gsel('rw|'+j,W,v,usedPeople('rw|'+j))+'</td>').join('')+'<td class="restv"></td></tr>'+
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
-    h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）"><span class="grip" draggable="true" data-gi="'+i+'" title="按住拖曳，可以把這組拉到別的順序">⠿</span>'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
-      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）"><span class="grip" draggable="true" data-gi="'+i+'" title="按住拖曳，可以把這組拉到別的順序">⠿</span>'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<button type="button" class="addsite" data-e="addsite" data-i="'+i+'" title="這組再加一個案場">＋案場</button><div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
+      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="刪掉這個案場" title="刪掉這個案場">✕</button></span>').join('')+'</div>'+
         '<button type="button" class="gcell gsite'+(siteList.length?' more':'')+('s|'+i===gpopKey?' act':'')+'" title="'+(siteList.length?'再加一個案場':'選案場')+'" data-g="s|'+i+'">'+(siteList.length?'＋':'＋ 選案場')+'</button></td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
       '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
@@ -1932,7 +1944,7 @@ function openPick(key){closePick();const anchor=document.querySelector('[data-g=
     (groups.every(g=>!g[1].length)?'<div class="foot">都排完了</div>':'')+'</div>'+
     (k==='s'?'<button data-pk="x" class="gpdone">完成</button>':cur?'<button data-pk="clear" class="gpclr">清除這格（也可以按 Delete）</button>':'');
   document.body.appendChild(pop);
-  if(innerWidth>640){const r=anchor.getBoundingClientRect();const w=pop.offsetWidth,h=pop.offsetHeight;
+  if(innerWidth>640){const r=(anchor.offsetParent?anchor:(anchor.closest('td')||anchor)).getBoundingClientRect();const w=pop.offsetWidth,h=pop.offsetHeight;
     let x=r.left+scrollX,y=r.bottom+scrollY+4;if(x+w>scrollX+innerWidth-8)x=scrollX+innerWidth-w-8;if(r.bottom+h>innerHeight-8&&r.top-h>8)y=r.top+scrollY-h-4;
     pop.style.left=Math.max(8,x)+'px';pop.style.top=y+'px'}
   const q=$('gpq');if(q&&innerWidth>640)q.focus()}
@@ -1947,7 +1959,7 @@ function pickValue(v){const key=gpopKey;if(!key)return;const p=key.split('|'),k=
 document.addEventListener('click',e=>{const pop=$('gpop');if(!pop)return;
   if(pop.contains(e.target)){const b=e.target.closest('[data-pv],[data-pk]');if(!b)return;
     if(b.dataset.pk==='x')closePick();else if(b.dataset.pk==='clear'){setCell(gpopKey,'');closePick();renderSchedEditor()}else pickValue(b.dataset.pv);return}
-  if(!e.target.closest('.gcell'))closePick()});
+  if(!cellOf(e))closePick()});
 document.addEventListener('input',e=>{if(e.target.id!=='gpq')return;const q=norm(e.target.value).toLowerCase();
   document.querySelectorAll('#gpop [data-pv]').forEach(b=>b.hidden=!!q&&!norm(b.dataset.pv).toLowerCase().includes(q))});
 // ---- 範圍選取（像試算表）：拖曳、Shift＋點、⌘/Ctrl＋點、整組、全選 ----
@@ -1973,7 +1985,9 @@ const KIND={people:/^(l|c|w|rd|rw)$/,tasks:/^t$/,notes:/^n$/,sites:/^s$/,all:/./
 function clearKeys(keys,kind){let n=0;keys.forEach(k=>{const p=k.split('|');if(!KIND[kind||'all'].test(p[0])||!cellVal2(k))return;n++;const c=draft.crews[+p[1]];
     if(p[0]==='s'){c.site='';c.siteIds=[]}else if(p[0]==='n')c.note='';else setCell(k,'')});return n}
 function doClear(keys,kind){closePick();const n=clearKeys(keys,kind);renderSchedEditor();toast(n?'已清除 '+n+' 格，清錯了可以按「↶ 復原」':'選取的格子裡沒有可以清的')}
-$('todayPage').addEventListener('mousedown',e=>{if(!schedEdit||e.button!==0)return;const g=e.target.closest('.gcell'),th=e.target.closest('td.thsite[data-grp]');
+// 案場格：點文字、空白處也算點到這格（之前只有點到小＋才有反應）
+function cellOf(e){const g=e.target.closest&&e.target.closest('.gcell');if(g)return g;const td=e.target.closest&&e.target.closest('.board.edit td.site');if(td&&!e.target.closest('button'))return td.querySelector('.gcell.gsite');return null}
+$('todayPage').addEventListener('mousedown',e=>{if(!schedEdit||e.button!==0)return;const g=cellOf(e),th=e.target.closest('td.thsite[data-grp]');
   if(th&&!e.target.closest('button,.grip')){e.preventDefault();closePick();const i=+th.dataset.grp;const ks=groupKeys(i);
     if(e.shiftKey&&edAnchor){const a=+edAnchor.split('|')[1]||0;const lo=Math.min(a,i),hi=Math.max(a,i);edSel=new Set();for(let x=lo;x<=hi;x++)groupKeys(x).forEach(k=>edSel.add(k))}
     else if(e.metaKey||e.ctrlKey)ks.forEach(k=>edSel.add(k));else{edSel=new Set(ks);edAnchor='s|'+i}paintSel();return}
@@ -1981,7 +1995,7 @@ $('todayPage').addEventListener('mousedown',e=>{if(!schedEdit||e.button!==0)retu
   if(e.shiftKey&&edAnchor){e.preventDefault();edSel=rectKeys(edAnchor,k);edDragged=true}
   else if(e.metaKey||e.ctrlKey){e.preventDefault();if(edSel.has(k))edSel.delete(k);else edSel.add(k);edAnchor=k;edDragged=true}
   else{edSel=new Set([k]);edAnchor=k}paintSel()});
-$('todayPage').addEventListener('mouseover',e=>{if(!schedEdit||!edDown)return;const g=e.target.closest('.gcell');if(!g||!edAnchor)return;const k=g.dataset.g;
+$('todayPage').addEventListener('mouseover',e=>{if(!schedEdit||!edDown)return;const g=cellOf(e);if(!g||!edAnchor)return;const k=g.dataset.g;
   if(k!==edAnchor||edDragged){edDragged=true;closePick();edSel=rectKeys(edAnchor,k);paintSel()}});
 document.addEventListener('mouseup',()=>{edDown=false});
 document.addEventListener('keydown',e=>{if(!schedEdit)return;const t=e.target;const typing=t.tagName==='TEXTAREA'||t.tagName==='INPUT';
@@ -2037,7 +2051,7 @@ function restoreDraft(){if(draftChecked||schedEdit)return;draftChecked=true;let 
   setTimeout(()=>{showTab('today');toast('找到上次還沒存到雲端的排班（'+mdw(d.date)+'），正在補存')},300)}
 window.addEventListener('beforeunload',e=>{if((schedEdit&&draft&&(saving||snapOf()!==draft.snap))||(wk&&wk.dirty)){e.preventDefault();e.returnValue=''}});
 $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
-  const g=e.target.closest('.gcell');if(g){e.stopPropagation();if(edDragged||e.shiftKey||e.metaKey||e.ctrlKey){edDragged=false;return}if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
+  const g=cellOf(e);if(g){e.stopPropagation();if(edDragged||e.shiftKey||e.metaKey||e.ctrlKey){edDragged=false;return}if(gpopKey===g.dataset.g)closePick();else openPick(g.dataset.g);return}
   const b=e.target.closest('[data-e]');if(!b)return;e.stopPropagation();closePick();const act=b.dataset.e,i=+b.dataset.i;
   if(act==='day'){if(b.dataset.v!==draft.date)switchEditDay(b.dataset.v);return}
   if(act==='hist'){const c=draft.crews[i];openSiteInfo((c&&siteMatch(c,b.dataset.v))||sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
@@ -2052,6 +2066,7 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   if(act==='sugg'){const nm=b.dataset.v;let k=draft.crews.findIndex(c=>!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean));if(k<0){draft.crews.push(blankCrew());k=draft.crews.length-1}
     addSiteLine(k,nm);setTimeout(()=>openPick('l|'+k),50);return}
   if(act==='add'){draft.crews.push(blankCrew());mOpen.add(draft.crews.length-1);renderSchedEditor()}
+  else if(act==='addsite'){setTimeout(()=>openPick('s|'+i),0)}
   else if(act==='dup'){const c=draft.crews[i];const n=blankCrew();n.site=c.site;n.siteIds=c.siteIds.slice();
     // 下面剛好是空的一組就直接用，不然插一組新的
     const nx=draft.crews[i+1];const empty=nx&&!nx.site&&!nx.leader&&!nx.car&&!nx.workers.some(Boolean)&&!nx.tasks.some(Boolean);
