@@ -901,9 +901,183 @@ select option{background:#1C2A38;color:var(--ink)}
 .albt{font-size:13px;color:var(--muted);margin-bottom:6px}.albt span{display:block;color:var(--ink);margin-top:2px}
 .albgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
 .albgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:rgba(255,255,255,.05)}
+
+/* ================= 萬聖節主題（右上角 🎃 可以切換） ================= */
+/* ================= 深色科技風（整站） ================= */
+html.hw{
+  --bg:#140C1C; --panel:#1E1329; --panel2:#261833; --ink:#F6EEE3; --muted:#B19FC2; --line:rgba(200,160,255,.17); --hover:rgba(255,138,31,.08);
+  --accent:#FF8A1F; --accent2:#B26BFF; --accent-ink:#1F0D00;
+  --issue:#FF5470; --active:#34D399; --week:#4C9AFF; --later:#8DB6FF; --done:#5F7080;
+  --issue-bg:rgba(255,84,112,.12); --active-bg:rgba(52,211,153,.12); --week-bg:rgba(76,154,255,.13); --later-bg:rgba(141,182,255,.10); --done-bg:rgba(95,112,128,.14);
+  --shadow:0 10px 30px rgba(0,0,0,.3);
+  --glow:0 0 0 1px rgba(255,138,31,.35),0 0 22px rgba(255,138,31,.18);
+  --amber:#F5B841; --amber-bg:rgba(245,184,65,.12); --red:#FF6B81; --red-bg:rgba(255,84,112,.12);
+  color-scheme:dark;
+}
+html.hw body{background:
+  radial-gradient(1200px 600px at 85% -10%,rgba(178,107,255,.10),transparent 60%),
+  radial-gradient(900px 500px at -10% 110%,rgba(255,138,31,.08),transparent 60%),
+  linear-gradient(rgba(178,107,255,.05) 1px,transparent 1px) 0 0/32px 32px,
+  linear-gradient(90deg,rgba(178,107,255,.05) 1px,transparent 1px) 0 0/32px 32px,
+  var(--bg);background-attachment:fixed}
+html.hw ::selection{background:rgba(255,138,31,.35)}
+html.hw *{scrollbar-color:rgba(140,175,200,.25) transparent}
+html.hw ::-webkit-scrollbar{width:10px;height:10px}html.hw ::-webkit-scrollbar-thumb{background:rgba(140,175,200,.22);border-radius:10px;border:2px solid transparent;background-clip:padding-box}html.hw ::-webkit-scrollbar-track{background:transparent}
+
+/* 頂欄 */
+html.hw .topbar{background:linear-gradient(180deg,rgba(30,19,41,.92),rgba(20,12,28,.88));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);position:relative;z-index:10}
+html.hw .topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);opacity:.7}
+html.hw .brand{display:flex;align-items:center;gap:9px;letter-spacing:.12em;font-weight:700}
+html.hw .brand::before{content:"";width:16px;height:16px;transform:rotate(45deg);border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 14px rgba(255,138,31,.7);flex:none}
+html.hw .tab{color:rgba(227,236,241,.6);position:relative;border-bottom-color:transparent!important;transition:color .15s}
+html.hw .tab:hover{color:var(--ink)}
+html.hw .tab[aria-selected="true"]{color:#fff}
+html.hw .tab[aria-selected="true"]::after{content:"";position:absolute;left:10px;right:10px;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 12px var(--accent)}
+html.hw .tab .cnt{background:rgba(255,138,31,.14);color:var(--accent)}
+html.hw .tab .cnt.bad{background:rgba(255,84,112,.2);color:#FF8FA3}
+html.hw .loginbtn{background:rgba(255,255,255,.04)!important;color:var(--ink)!important;border:1px solid var(--line)!important}
+html.hw .loginbtn.on{color:var(--accent)!important;border-color:rgba(255,138,31,.4)!important;box-shadow:0 0 14px rgba(255,138,31,.15)}
+
+/* 按鈕、輸入 */
+html.hw .btn{background:rgba(255,255,255,.03);border-color:var(--line);color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
+html.hw .btn:hover{border-color:rgba(255,138,31,.5);background:rgba(255,138,31,.06)}
+html.hw .btn.primary{background:linear-gradient(135deg,var(--accent),#FFB347);color:var(--accent-ink);border-color:transparent;font-weight:700;box-shadow:0 0 18px rgba(255,138,31,.28)}
+html.hw .btn.primary:hover{box-shadow:0 0 26px rgba(255,138,31,.45);filter:brightness(1.05)}
+html.hw .btn:disabled{opacity:.45;box-shadow:none}
+html.hw input,html.hw select,html.hw textarea{color:var(--ink)}
+html.hw .fld input,html.hw .fld select,html.hw .fld textarea,html.hw .tools input,html.hw .sbar input,html.hw .lrow input,html.hw .lrow select,html.hw .wkt input,html.hw .mesel select,html.hw .mpdate input,html.hw .mpname,html.hw .gbox input{background:rgba(255,255,255,.035)!important;border-color:var(--line)!important;color:var(--ink)}
+html.hw .fld input:focus,html.hw .fld select:focus,html.hw .fld textarea:focus,html.hw .tools input:focus,html.hw .sbar input:focus,html.hw .mpname:focus,html.hw .gbox input:focus{outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(255,138,31,.15)}
+html.hw input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.8)}
+html.hw select option{background:#1E1329;color:var(--ink)}
+html.hw .seg,html.hw .segs button,html.hw .daytabs{background:rgba(255,255,255,.03)!important;border-color:var(--line)!important}
+html.hw .seg button{color:var(--muted)}
+html.hw .seg button[aria-pressed="true"],html.hw .segs button[aria-pressed="true"]{background:linear-gradient(135deg,var(--accent),#FFB347)!important;color:var(--accent-ink)!important;font-weight:700}
+html.hw .daytabs button{background:transparent!important;color:var(--ink)}
+html.hw .daytabs button[aria-pressed="true"],html.hw .daytabs button.on{background:linear-gradient(135deg,var(--accent),#FFB347)!important;color:var(--accent-ink)!important}
+
+/* 卡片／面板：玻璃質感 */
+html.hw .panel{background:rgba(30,19,41,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+html.hw .group h2{background:rgba(30,19,41,.95);color:var(--accent);letter-spacing:.14em;font-family:var(--mono);font-size:11px;text-transform:uppercase}
+html.hw .chip{background:rgba(255,255,255,.02)}
+html.hw .chip[aria-pressed="true"]{box-shadow:0 0 16px -4px var(--c)}
+html.hw .chip b{text-shadow:0 0 12px var(--c)}
+html.hw .crew,html.hw .tile,html.hw .mcard,html.hw .mbox,html.hw .edside,html.hw .mcal,html.hw .qf,html.hw .sidecard,html.hw .mpi,html.hw .modal,html.hw .legend,html.hw .fitbtn{background:linear-gradient(180deg,rgba(38,24,51,.9),rgba(30,19,41,.9))!important;border-color:var(--line)!important}
+html.hw .crew:hover,html.hw .tile:hover{border-color:rgba(255,138,31,.35)!important}
+html.hw .tile b{font-family:var(--mono)}
+html.hw .crew .ch,html.hw .srow.h,html.hw .wkt th,html.hw .mch,html.hw .mcard:nth-child(even) .mch{background:rgba(255,138,31,.05)!important}
+html.hw .crew .note,html.hw .ainote,html.hw .dupbox,html.hw .mebar,html.hw .hrow .hcar,html.hw .wkt input.ai{background:var(--amber-bg)!important;border-color:rgba(245,184,65,.35)!important;color:var(--ink)}
+html.hw .dupnote{background:var(--amber-bg)!important;color:var(--amber)!important;border:1px solid rgba(245,184,65,.35)!important}
+html.hw .mebar.rest,html.hw .mebar.none{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important}
+html.hw .mebar .mesite,html.hw .mcs b,html.hw .hrow .hd{color:#7DB8FF!important}
+html.hw .mebar .mekv{color:var(--ink)!important}
+html.hw .car:not(td),html.hw .tag2{background:var(--amber-bg)!important;border-color:rgba(245,184,65,.4)!important;color:var(--amber)!important}
+html.hw .need i{background:rgba(52,211,153,.12)!important;color:#5EEAB0!important}
+html.hw .need i.low,html.hw .st.low{background:var(--amber-bg)!important;color:var(--amber)!important}
+html.hw .need i.out,html.hw .st.out,html.hw .errbox,html.hw .merr,html.hw .edwarn,html.hw .edothers,html.hw .notice.err{background:var(--red-bg)!important;color:#FF8FA3!important;border-color:rgba(255,84,112,.35)!important}
+html.hw .st.ok,html.hw .rep .rk.done{background:rgba(52,211,153,.12)!important;color:#5EEAB0!important}
+html.hw .st.idle{background:rgba(255,255,255,.05)!important;color:var(--muted)!important}
+html.hw .tile.need b{color:#5EEAB0}html.hw .tile.low b{color:var(--amber)}html.hw .tile.out b,html.hw .srow .num.neg,html.hw .hist .q.neg{color:#FF8FA3}
+html.hw .rep .rk.issue{background:rgba(255,84,112,.2)!important;color:#FF8FA3!important;border-color:transparent!important}
+html.hw .routebox,html.hw .aibox,html.hw .freebox,html.hw .edsugg,html.hw .mfree,html.hw .row.instop{background:rgba(255,138,31,.06)!important}
+html.hw .edsugg summary,html.hw .esg:not(.late) .esd,html.hw .mrow>span b,html.hw .hppl i b,html.hw .editor .saved,html.hw .savest.ok,html.hw .sidecard em.ok{color:var(--accent)!important}
+html.hw .edsugg button,html.hw .rowops button,html.hw .clrmenu summary,html.hw .clrpop,html.hw .clrpop button,html.hw .selbar button,html.hw .pickbar button,html.hw .hppl i,html.hw .mchips em,html.hw .mcb .gcell,html.hw .mbox .gcell{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important;color:var(--ink)!important}
+html.hw .clrpop{background:#241631!important;box-shadow:var(--shadow)}
+html.hw .clrpop .danger,html.hw .selbar .danger{color:#FF8FA3!important;border-color:rgba(255,84,112,.35)!important;background:var(--red-bg)!important}
+html.hw .edsugg button:hover,html.hw .clrpop button:hover,html.hw .selbar button:hover,html.hw .sidecard:hover,html.hw .qf:hover,html.hw .qpick:has(input:checked),html.hw .mcb .gcell.act,html.hw .mbox .gcell.act{border-color:var(--accent2)!important;background:rgba(178,107,255,.1)!important}
+html.hw .mchips em{color:#7DB8FF!important}
+html.hw .esd{color:#FF8FA3;border-bottom-color:rgba(255,84,112,.3)}
+html.hw .sidecard em{color:var(--amber)}
+html.hw .notice{background:rgba(76,154,255,.08);color:var(--ink)}
+html.hw .toast{background:rgba(30,19,41,.95);color:var(--ink);border:1px solid rgba(255,138,31,.4);box-shadow:var(--glow);backdrop-filter:blur(10px)}
+html.hw .modal-bg{background:rgba(2,5,8,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+html.hw .modal{box-shadow:var(--glow),0 30px 80px rgba(0,0,0,.6)!important}
+html.hw .modal header,html.hw .modal .mf{background:#241631!important}
+html.hw .modal header h3,html.hw .modal header b{letter-spacing:.04em}
+html.hw .pagehead h2{letter-spacing:.06em}
+html.hw .pagehead h2::before{content:"";display:inline-block;width:4px;height:.9em;margin-right:10px;border-radius:2px;background:linear-gradient(var(--accent),var(--accent2));box-shadow:0 0 10px var(--accent);vertical-align:-2px}
+
+/* 地圖 */
+html.hw #map{background:#140C1C}
+html.hw .leaflet-bar a,html.hw .leaflet-bar a:hover{background:#241631!important;color:var(--ink)!important;border-color:var(--line)!important}
+html.hw .leaflet-control-attribution{background:rgba(20,12,28,.7)!important;color:var(--muted)!important}html.hw .leaflet-control-attribution a{color:var(--muted)!important}
+html.hw .leaflet-popup-content-wrapper,html.hw .leaflet-popup-tip{background:#241631;color:var(--ink)}
+html.hw .pin .lbl{color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 0 6px #000}
+html.hw .pin.hl .lbl,html.hw .pin:hover .lbl{background:rgba(20,12,28,.92);color:#fff;border:1px solid rgba(255,138,31,.5)}
+html.hw .pin .dot{box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 12px var(--c)}
+html.hw .legend{backdrop-filter:blur(10px)}
+html.hw .issuebox{color:var(--ink)}
+html.hw .note{background:rgba(255,255,255,.03)}
+
+/* 排班卡片（手機） */
+html.hw .mch{color:var(--ink)}
+
+/* 編輯側欄、選單 */
+html.hw #gpop{background:#241631!important;border-color:rgba(255,138,31,.35)!important;box-shadow:var(--glow),0 20px 50px rgba(0,0,0,.6)!important;color:var(--ink)}
+html.hw #gpop .gpb button{background:rgba(255,255,255,.04)!important;border-color:var(--line)!important;color:var(--ink)!important}
+html.hw #gpop .gpb button:hover{background:rgba(178,107,255,.12)!important;border-color:var(--accent2)!important}
+html.hw #gpop .gpb button em{background:var(--amber-bg)!important;color:var(--amber)!important}
+html.hw #gpop .gpclr{background:transparent!important;color:#FF8FA3!important}
+html.hw #gpop input{background:rgba(255,255,255,.04);border-color:var(--line);color:var(--ink)}
+
+/* 月曆 */
+html.hw .mcalbar b{letter-spacing:.06em}
+html.hw .mwd{color:var(--accent);font-family:var(--mono);letter-spacing:.2em}
+html.hw .mday{border-color:var(--line)!important;transition:background .15s}
+html.hw .mday:hover{background:rgba(255,138,31,.035)}
+html.hw .mday.other{background:rgba(0,0,0,.14)!important}html.hw .mday.other .mdh b{color:#56697B!important}
+html.hw .mday.today .mdh b{background:linear-gradient(135deg,var(--accent),var(--accent2))!important;color:var(--accent-ink)!important;box-shadow:0 0 14px rgba(255,138,31,.6)}
+html.hw .mday.sel{box-shadow:inset 0 0 0 1.5px rgba(255,138,31,.7)!important}
+html.hw .mday.drop,html.hw .mday.pick{background:rgba(178,107,255,.12)!important;box-shadow:inset 0 0 0 2px var(--accent2)!important}
+html.hw .mdh b.sat{color:#6FB1FF}html.hw .mdh b.sun{color:#FF7A8E}
+html.hw .mev{background:linear-gradient(90deg,rgba(255,138,31,.9),rgba(34,195,230,.85))!important;color:#1F0D00!important;box-shadow:0 0 10px -2px rgba(255,138,31,.6)}
+html.hw .mev small{color:#4A2200}
+html.hw .mpl{background:rgba(76,154,255,.08)!important;color:#8DC2FF!important;border:1px solid rgba(76,154,255,.6)!important}
+html.hw .mlegend i.ev{background:var(--accent)!important}html.hw .mlegend i.pl{background:transparent!important;border-color:#4C9AFF!important}
+html.hw .mplan{background:rgba(30,19,41,.96)!important;border-color:rgba(255,138,31,.35)!important;box-shadow:var(--glow),0 20px 60px rgba(0,0,0,.6)!important;backdrop-filter:blur(14px)}
+html.hw .mpi.on{background:rgba(255,138,31,.1)!important;border-color:var(--accent)!important}
+html.hw .mpi.new{color:#8DC2FF}
+html.hw .mpname{border:2px solid rgba(255,138,31,.6)!important}
+
+/* 登入畫面 */
+html.hw .gate{background:radial-gradient(800px 500px at 50% 0%,rgba(255,138,31,.16),transparent 60%),radial-gradient(700px 500px at 100% 100%,rgba(178,107,255,.14),transparent 60%),
+  linear-gradient(rgba(140,175,200,.05) 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,rgba(140,175,200,.05) 1px,transparent 1px) 0 0/32px 32px,#0C0612}
+html.hw .gbox{background:rgba(30,19,41,.85)!important;border:1px solid rgba(255,138,31,.3);box-shadow:var(--glow),0 30px 80px rgba(0,0,0,.7)!important;backdrop-filter:blur(16px)}
+html.hw .glogo{color:#fff!important;letter-spacing:.16em;display:flex;align-items:center;justify-content:center;gap:12px}
+html.hw .glogo::before{content:"";width:18px;height:18px;transform:rotate(45deg);border-radius:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 18px rgba(255,138,31,.8)}
+html.hw .gsub{font-family:var(--mono);letter-spacing:.1em}
+
+
+/* ===== 萬聖節裝飾 ===== */
+html.hw body{background:
+  radial-gradient(circle at 92% 86%,rgba(255,236,190,.95) 0 38px,rgba(255,214,140,.25) 40px,rgba(255,180,90,.08) 90px,transparent 160px),
+  radial-gradient(900px 520px at -10% 110%,rgba(255,120,20,.16),transparent 60%),
+  radial-gradient(1000px 600px at 100% 0%,rgba(150,70,255,.16),transparent 60%),
+  linear-gradient(rgba(178,107,255,.045) 1px,transparent 1px) 0 0/32px 32px,linear-gradient(90deg,rgba(178,107,255,.045) 1px,transparent 1px) 0 0/32px 32px,#140C1C;background-attachment:fixed}
+html.hw .brand::before{content:"🎃";width:auto;height:auto;transform:none;background:none;border-radius:0;font-size:20px;box-shadow:none;filter:drop-shadow(0 0 8px rgba(255,138,31,.8))}
+html.hw .glogo::before{content:"🎃";width:auto;height:auto;transform:none;background:none;border-radius:0;font-size:28px;box-shadow:none;filter:drop-shadow(0 0 12px rgba(255,138,31,.9))}
+html.hw .gsub::after{content:" · Happy Halloween 👻";color:#FFB347}
+html.hw .topbar::after{background:linear-gradient(90deg,transparent,#FF8A1F 25%,#B26BFF 75%,transparent)}
+html.hw .pagehead h2::after{content:" 🦇";font-size:.8em;filter:drop-shadow(0 0 6px rgba(178,107,255,.8))}
+html.hw .mcal{position:relative}
+html.hw .mcal::after{content:"";position:absolute;right:0;top:0;width:120px;height:120px;pointer-events:none;opacity:.35;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%23E9D8FF' stroke-width='1'%3E%3Cpath d='M120 0L20 100M120 0L60 120M120 0L0 60M120 0L0 10M120 0L110 120'/%3E%3Cpath d='M100 0Q105 15 120 20M80 0Q88 30 120 40M58 0Q70 48 120 62M34 0Q52 68 120 86M10 0Q35 88 120 110'/%3E%3C/svg%3E") no-repeat right top/contain}
+html.hw .mday.today .mdh b{box-shadow:0 0 16px rgba(255,138,31,.8)}
+html.hw .boardwrap{border-color:rgba(255,138,31,.5)!important;box-shadow:0 0 0 1px rgba(255,138,31,.15),0 0 30px rgba(255,138,31,.12),0 16px 40px rgba(0,0,0,.5)}
+html.hw .bats{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+html.hw .shell{position:relative;z-index:1}
+html.hw .bats i{position:absolute;top:var(--y);left:-60px;width:var(--s);height:calc(var(--s)*.5);opacity:.55;animation:batfly var(--d) linear var(--w) infinite;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'%3E%3Cpath fill='%236B3FA0' d='M32 10c2-4 3-6 3-6l1 4c3-1 5 0 6 2 4-6 12-8 22-6-5 2-7 6-7 10-3-2-6-2-8 1-2-2-5-2-7 0-2-1-4 0-5 3-1-1-3-2-5 0-1-3-3-4-5-3-2-2-5-2-7 0-2-3-5-3-8-1 0-4-2-8-7-10 10-2 18 0 22 6 1-2 3-3 6-2l1-4s1 2 3 6z'/%3E%3C/svg%3E") no-repeat center/contain;filter:drop-shadow(0 0 4px rgba(178,107,255,.6))}
+html:not(.hw) .bats{display:none}
+@keyframes batfly{0%{transform:translate(0,0) scaleY(1)}25%{transform:translate(28vw,-30px) scaleY(.6)}50%{transform:translate(55vw,10px) scaleY(1)}75%{transform:translate(82vw,-20px) scaleY(.6)}100%{transform:translate(110vw,0) scaleY(1)}}
+@media (prefers-reduced-motion:reduce){html.hw .bats{display:none}}
+html.hw .hwbtn{background:rgba(255,138,31,.15)!important;border-color:rgba(255,138,31,.5)!important}
+.hwbtn{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;width:34px;height:34px;font-size:17px;line-height:1;cursor:pointer;flex:none;margin-right:8px;color:var(--ink)}
+
 </style>
+<script>(function(){var t='';try{t=localStorage.getItem('fulin-theme')||''}catch(e){}var on=t?t==='hw':(new Date()<new Date('2026-11-03T00:00:00+08:00'));if(on)document.documentElement.classList.add('hw')})();</script>
 </head>
 <body class="gated">
+<div class="bats" aria-hidden="true"><i style="--y:14%;--s:44px;--d:28s;--w:0s"></i><i style="--y:32%;--s:30px;--d:36s;--w:-12s"></i><i style="--y:58%;--s:38px;--d:31s;--w:-22s"></i><i style="--y:76%;--s:26px;--d:42s;--w:-5s"></i></div>
 <div class="gate" id="gate"><div class="gbox">
   <div class="glogo">富林組合屋</div><div class="gsub">內部工作台・請先登入</div>
   <input id="gPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="密碼">
@@ -919,7 +1093,7 @@ select option{background:#1C2A38;color:var(--ink)}
     <button class="tab" role="tab" data-tab="cal" aria-selected="false">月曆</button>
     <button class="tab" role="tab" data-tab="stock" aria-selected="false">庫存<span class="cnt" id="cntStock">–</span></button>
     <button class="tab" role="tab" data-tab="manage" aria-selected="false" id="tabManage" hidden>管理</button>
-  </nav><div style="flex:1"></div><button class="loginbtn" id="loginBtn">登入</button></header>
+  </nav><div style="flex:1"></div><button class="hwbtn" id="hwBtn" title="萬聖節主題 開／關">🎃</button><button class="loginbtn" id="loginBtn">登入</button></header>
 <main class="view" id="v-map">
 <div class="app">
   <div class="mapwrap">
@@ -2423,6 +2597,7 @@ let tzRaf=0;const tzQueue=()=>{if(tzRaf)return;tzRaf=requestAnimationFrame(()=>{
 new MutationObserver(tzQueue).observe($('todayPage'),{childList:true,subtree:true});
 new MutationObserver(tzQueue).observe($('stockPage'),{childList:true,subtree:true});
 window.addEventListener('resize',()=>setTimeout(()=>applyZoom(true),200));
+$('hwBtn').onclick=()=>{const on=document.documentElement.classList.toggle('hw');try{localStorage.setItem('fulin-theme',on?'hw':'normal')}catch(e){}toast(on?'🎃 萬聖節主題':'已換回原本的配色')};
 setAdminUI();
 showTab((location.hash||'#map').slice(1));
 initMap();render();
