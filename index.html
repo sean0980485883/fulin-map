@@ -888,6 +888,19 @@ select option{background:#1C2A38;color:var(--ink)}
 .navcopy{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;flex:1;margin:0;border:1px solid #1F5C55;background:#fff;color:#1F5C55;border-radius:10px;padding:4px 4px;font-size:15px;line-height:1;cursor:pointer;font-family:inherit}
 .navcopy small{font-size:10px;font-weight:600}
 .navcopy:hover{background:#E8F5EF}
+
+/* 照片：背景上傳進度、相簿 */
+.upbar{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:3500;width:min(340px,calc(100% - 32px));background:rgba(28,42,56,.96);color:var(--ink);border:1px solid rgba(45,226,180,.45);border-radius:12px;padding:10px 12px;box-shadow:var(--glow);display:grid;gap:6px;font-size:13px;overflow:hidden}
+.upbar i{display:block;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+.upbar small{color:var(--muted)}
+.previews .more{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:8px;border:1px dashed var(--line);font-size:13px;color:var(--muted);vertical-align:top}
+.reports h4{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.reports h4 .btn{font-size:12px;padding:4px 10px}
+.album{display:grid;gap:14px}
+.albh{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700}
+.albt{font-size:13px;color:var(--muted);margin-bottom:6px}.albt span{display:block;color:var(--ink);margin-top:2px}
+.albgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+.albgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:rgba(255,255,255,.05)}
 </style>
 </head>
 <body class="gated">
@@ -1527,7 +1540,8 @@ async function setSiteCoord(s,coord){const old=(DB.sites.find(y=>y.id===s.id)||{
   catch(err){localSite(s.id,{coord:old});render();toast('位置沒存到：'+err.message)}}
 function reportsHtml(s){const list=(DB.reports||[]).filter(r=>r.siteId===s.id||(!r.siteId&&norm(r.name)===norm(s.name))).slice().reverse();if(!list.length)return '';
   const k=x=>/問題/.test(x)?'issue':/完工/.test(x)?'done':'';
-  return '<div class="reports"><h4>現場回報（'+list.length+'）</h4>'+list.slice(0,12).map(r=>{const t=r.time?new Date(r.time):null;
+  const np=list.reduce((a,r)=>a+r.photos.length,0);
+  return '<div class="reports"><h4>現場回報（'+list.length+'）'+(np?'<button class="btn" data-adm="album">📷 相簿（'+np+'）</button>':'')+'</h4>'+list.slice(0,12).map(r=>{const t=r.time?new Date(r.time):null;
     return '<div class="rep"><div class="rh"><span class="rk '+k(r.kind)+'">'+esc(r.kind)+'</span><time>'+(t&&!isNaN(t)?esc(ymd(t)):'')+'</time>'+(r.by?'<span style="color:var(--muted);font-size:12px">'+esc(r.by)+'</span>':'')+'</div>'+
     (r.text?'<div>'+esc(r.text)+'</div>':'')+(r.photos.length?'<div class="thumbs">'+r.photos.map(id=>'<a href="https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view" target="_blank" rel="noopener"><img loading="lazy" alt="現場照片" src="https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w300"></a>').join('')+'</div>':'')+'</div>'}).join('')+'</div>'}
 $('pbody').addEventListener('click',async e=>{const b=e.target.closest('[data-adm]');if(!b)return;e.stopPropagation();
@@ -1535,6 +1549,7 @@ $('pbody').addEventListener('click',async e=>{const b=e.target.closest('[data-ad
   if(b.dataset.adm==='edit')return openSiteModal(s);
   if(b.dataset.adm==='pick')return startPick(s);
   if(b.dataset.adm==='report')return openReportModal(s);
+  if(b.dataset.adm==='album')return openAlbum(s);
   if(b.dataset.adm==='status'){const v=b.dataset.v;const old=s.statusText;if(v===old)return;
     localSite(s.id,{status:v});toast('已改為「'+v+'」');
     try{await api('site_status',{id:s.id,status:v});load()}catch(err){localSite(s.id,{status:old});toast('沒存到：'+err.message)}}},true);
@@ -1544,17 +1559,40 @@ function openReportModal(s){repPhotos=[];let kind='issue';
   openModal('現場回報：'+s.name,
    '<div class="fld"><label>類型</label><div class="segs" id="repKind"><button data-k="issue" aria-pressed="true">問題回報</button><button data-k="progress" aria-pressed="false">進度回報</button><button data-k="done" aria-pressed="false">完工回報</button></div><span class="hint" id="kindHint">送出後案場會標成「問題件」，內容加到問題描述</span></div>'+
    '<div class="fld"><label for="repText">內容</label><textarea id="repText" placeholder="例：浴室地面漏水，已先止水"></textarea></div>'+
-   '<div class="fld"><label for="repFiles">照片（最多 8 張）</label><input id="repFiles" type="file" accept="image/*" multiple><div class="previews" id="repPrev"></div></div><div class="merr" id="merr" hidden></div>',
+   '<div class="fld"><label for="repFiles">照片（張數不限，可以一次選很多張；送出後會在背景慢慢上傳）</label><input id="repFiles" type="file" accept="image/*" multiple><div class="previews" id="repPrev"></div></div><div class="merr" id="merr" hidden></div>',
    [['取消','close'],['送出回報','send','primary']],async act=>{if(act!=='send')return true;
      const text=val('repText');if(!text&&!repPhotos.length){showErr('請填內容或加照片');return false}
-     const d=(await api('report',{siteId:s.id,kind,text,photos:repPhotos})).data;
-     toast('已送出回報'+(d.photos?'（'+d.photos+' 張照片）':''));await load();return true});
+     const files=repPhotos.slice();const first=[];for(const f of files.slice(0,UP_BATCH)){try{first.push(await shrink(f))}catch(err){}}
+     const d=(await api('report',{siteId:s.id,kind,text,photos:first})).data;
+     if(files.length>UP_BATCH&&d.id){queueUpload(s,d.id,files.slice(UP_BATCH),UP_BATCH,files.length);toast('已送出回報，剩下 '+(files.length-UP_BATCH)+' 張照片在背景上傳中')}
+     else if(files.length>UP_BATCH)toast('後台還沒更新，只傳了前 '+UP_BATCH+' 張：請部署新版 富林系統.gs');
+     else toast('已送出回報'+(d.photos?'（'+d.photos+' 張照片）':''));load();return true});
   const hints={issue:'送出後案場會標成「問題件」，內容加到問題描述',progress:'只記錄進度，不改狀態',done:'送出後案場會標成「已完工」'};
   $('repKind').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(!b)return;kind=b.dataset.k;
     $('repKind').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('kindHint').textContent=hints[kind]});
-  $('repFiles').addEventListener('change',async e=>{const files=[...e.target.files].slice(0,8);repPhotos=[];$('repPrev').textContent='處理照片中…';
-    for(const f of files){try{repPhotos.push(await shrink(f))}catch(err){}}
-    $('repPrev').innerHTML=repPhotos.map(p=>'<img alt="" src="data:image/jpeg;base64,'+p.data+'">').join('')})}
+  $('repFiles').addEventListener('change',e=>{repPhotos=[...e.target.files];const n=repPhotos.length;
+    $('repPrev').innerHTML=repPhotos.slice(0,12).map(f=>'<img alt="" src="'+URL.createObjectURL(f)+'">').join('')+(n>12?'<span class="more">＋'+(n-12)+' 張</span>':'')+(n?'<div class="hint">共 '+n+' 張</div>':'')})}
+// ---- 照片背景上傳：一批 4 張，失敗會重試，關掉回報視窗也會繼續（不要關掉網頁） ----
+const UP_BATCH=4;let upQ=[],upBusy=false,upDone=0,upTotal=0,upFail=0;
+function queueUpload(s,reportId,files,start,total){upQ.push({s,reportId,files,start});upTotal+=files.length;upBar();if(!upBusy)runUpload()}
+function upBar(){let b=$('upbar');if(!upBusy&&!upQ.length&&upDone>=upTotal){if(b)b.remove();return}
+  if(!b){b=document.createElement('div');b.id='upbar';b.className='upbar';document.body.appendChild(b)}
+  const p=upTotal?Math.round(upDone/upTotal*100):0;b.innerHTML='<b>📷 照片上傳中 '+upDone+' / '+upTotal+'</b><i style="width:'+p+'%"></i><small>'+(upFail?upFail+' 張失敗，稍後再補 · ':'')+'請不要關掉這個網頁</small>'}
+async function runUpload(){upBusy=true;
+  while(upQ.length){const job=upQ[0];
+    while(job.files.length){const part=job.files.splice(0,UP_BATCH);const photos=[];for(const f of part){try{photos.push(await shrink(f))}catch(e){upFail++}}
+      let ok=false;for(let t=0;t<3&&!ok;t++){try{await api('photo_add',{reportId:job.reportId,photos,start:job.start});ok=true}catch(e){await new Promise(r=>setTimeout(r,3000*(t+1)))}}
+      if(!ok)upFail+=photos.length;job.start+=part.length;upDone+=part.length;upBar()}
+    upQ.shift()}
+  upBusy=false;const f=upFail,t=upTotal;upDone=upTotal=upFail=0;upBar();toast(f?'照片上傳完成，但有 '+f+' 張沒傳成功':'照片全部上傳完成（'+t+' 張）');load()}
+window.addEventListener('beforeunload',e=>{if(upBusy){e.preventDefault();e.returnValue='照片還在上傳中'}});
+// ---- 案場相簿：這個案場全部的照片 ----
+async function openAlbum(s){openModal('相簿：'+s.name,'<div class="foot" id="albBody">讀取照片中…</div>',[['關閉','close','primary']],()=>true,true);
+  try{const d=(await api('site_photos',{siteId:s.id})).data;const box=$('albBody');if(!box)return;const n=d.list.reduce((a,x)=>a+x.photos.length,0);
+    box.className='album';box.innerHTML='<div class="albh">共 '+n+' 張照片'+(d.folder?'<a class="btn" href="'+esc(d.folder)+'" target="_blank" rel="noopener">在雲端硬碟打開資料夾</a>':'')+'</div>'+
+      (n?d.list.map(r=>{const t=new Date(r.time);return '<div class="albg"><div class="albt">'+(isNaN(t)?'':esc(ymd(t)))+'　'+esc(r.kind||'')+(r.by?'　'+esc(r.by):'')+(r.text?'<span>'+esc(r.text)+'</span>':'')+'</div><div class="albgrid">'+
+        r.photos.map(id=>'<a href="https://drive.google.com/file/d/'+encodeURIComponent(id)+'/view" target="_blank" rel="noopener"><img loading="lazy" alt="" src="https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w400"></a>').join('')+'</div></div>'}).join(''):'<div class="foot">還沒有照片。按「現場回報＋照片」就可以上傳。</div>')}
+  catch(err){const box=$('albBody');if(box)box.textContent=/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回並部署新版本':'讀不到照片：'+err.message}}
 function shrink(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const img=new Image();img.onload=()=>{
   const max=1600,k=Math.min(1,max/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);
   cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);res({type:'image/jpeg',data:cv.toDataURL('image/jpeg',.8).split(',')[1]})};img.onerror=rej;img.src=fr.result};fr.onerror=rej;fr.readAsDataURL(file)})}
