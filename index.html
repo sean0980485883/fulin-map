@@ -860,6 +860,15 @@ select option{background:#1C2A38;color:var(--ink)}
 .zbar b{min-width:44px;text-align:center;font-family:var(--mono);color:var(--ink)}
 .boardwrap{-webkit-overflow-scrolling:touch}
 @media (pointer:coarse) and (max-height:500px){.tab{padding:8px 10px 7px}.brand{padding:6px 0}.page{padding-block:8px 24px;gap:8px}.pagehead h2{font-size:18px}.zbar span{display:none}.zbar{margin:0}.zbar button{height:30px}}
+
+/* 排班編輯：拖曳換順序 */
+.board.edit td.thsite{position:relative}
+.board.edit td.thsite .grip{position:absolute;left:2px;top:50%;transform:translateY(-50%);width:18px;height:34px;display:none;align-items:center;justify-content:center;border-radius:5px;background:#1F5C55;color:#fff;font-size:14px;line-height:1;cursor:grab;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.board.edit td.thsite:hover .grip{display:flex}
+.board.edit td.thsite .grip:active{cursor:grabbing}
+.board.edit tr.rowdrag>td{opacity:.35}
+.board.edit tr.dropbefore>td{box-shadow:inset 0 3px 0 #1F63E0}
+.board.edit tr.dropafter>td{box-shadow:inset 0 -3px 0 #1F63E0}
 </style>
 </head>
 <body class="gated">
@@ -1740,7 +1749,7 @@ function renderSchedEditor(){if(isPhone())return renderSchedMobile();const el=$(
      D.restW.map((v,j)=>'<td class="restv">'+gsel('rw|'+j,W,v,usedPeople('rw|'+j))+'</td>').join('')+'<td class="restv"></td></tr>'+
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
-    h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）">'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
+    h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）"><span class="grip" draggable="true" data-gi="'+i+'" title="按住拖曳，可以把這組拉到別的順序">⠿</span>'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
       '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></span>').join('')+'</div>'+
         '<button type="button" class="gcell gsite'+(siteList.length?' more':'')+('s|'+i===gpopKey?' act':'')+'" title="'+(siteList.length?'再加一個案場':'選案場')+'" data-g="s|'+i+'">'+(siteList.length?'＋':'＋ 選案場')+'</button></td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
@@ -1795,10 +1804,27 @@ $('todayPage').addEventListener('input',e=>{if(e.target.id!=='edSideQ'||!schedEd
 $('todayPage').addEventListener('dragstart',e=>{const c=e.target.closest&&e.target.closest('.sidecard');if(!c||!schedEdit)return;e.dataTransfer.setData('text/plain',c.dataset.v);e.dataTransfer.effectAllowed='copy';document.body.classList.add('dragging-site')});
 $('todayPage').addEventListener('dragend',()=>{document.body.classList.remove('dragging-site');document.querySelectorAll('.dropok').forEach(x=>x.classList.remove('dropok'))});
 function dropRow(e){const td=e.target.closest&&e.target.closest('.board.edit tr');if(!td)return -1;const t=td.querySelector('td.thsite[data-grp]')||(td.previousElementSibling&&td.previousElementSibling.querySelector('td.thsite[data-grp]'));return t?+t.dataset.grp:-1}
-$('todayPage').addEventListener('dragover',e=>{if(!schedEdit)return;const i=dropRow(e);if(i<0)return;e.preventDefault();e.dataTransfer.dropEffect='copy';
+$('todayPage').addEventListener('dragover',e=>{if(!schedEdit||e.dataTransfer.types.includes('text/fulin-row'))return;const i=dropRow(e);if(i<0)return;e.preventDefault();e.dataTransfer.dropEffect='copy';
   document.querySelectorAll('.dropok').forEach(x=>x.classList.remove('dropok'));const td=document.querySelector('td.thsite[data-grp="'+i+'"]');if(td){td.classList.add('dropok');td.nextElementSibling&&td.nextElementSibling.classList.add('dropok')}});
-$('todayPage').addEventListener('drop',e=>{if(!schedEdit)return;const i=dropRow(e);if(i<0)return;e.preventDefault();const v=e.dataTransfer.getData('text/plain');document.body.classList.remove('dragging-site');
+$('todayPage').addEventListener('drop',e=>{if(!schedEdit||e.dataTransfer.types.includes('text/fulin-row'))return;const i=dropRow(e);if(i<0)return;e.preventDefault();const v=e.dataTransfer.getData('text/plain');document.body.classList.remove('dragging-site');
   if(v){addSiteLine(i,v);toast('已把「'+v+'」加到第 '+(i+1)+' 組');const c=draft.crews[i];if(!c.leader)setTimeout(()=>openPick('l|'+i),50)}});
+// ---- 排班編輯：拖曳左邊 ⠿ 調整組的順序 ----
+let rowDrag=-1;
+function rowTarget(e){const i=dropRow(e);if(i<0)return null;const td=document.querySelector('.board.edit td.thsite[data-grp="'+i+'"]');if(!td)return null;
+  const r1=td.parentElement,r2=r1.nextElementSibling;const top=r1.getBoundingClientRect().top,bot=(r2||r1).getBoundingClientRect().bottom;
+  return {i,before:e.clientY<(top+bot)/2,r1,r2}}
+function clearRowMark(){document.querySelectorAll('.board.edit tr.dropbefore,.board.edit tr.dropafter,.board.edit tr.rowdrag').forEach(x=>x.classList.remove('dropbefore','dropafter','rowdrag'))}
+$('todayPage').addEventListener('dragstart',e=>{const g=e.target.closest&&e.target.closest('.board.edit .grip');if(!g||!schedEdit)return;
+  rowDrag=+g.dataset.gi;e.dataTransfer.setData('text/fulin-row',String(rowDrag));e.dataTransfer.effectAllowed='move';closePick();
+  const td=g.closest('td.thsite');try{e.dataTransfer.setDragImage(td,10,10)}catch(x){}
+  setTimeout(()=>{const r1=td.parentElement;r1.classList.add('rowdrag');r1.nextElementSibling&&r1.nextElementSibling.classList.add('rowdrag')},0)});
+$('todayPage').addEventListener('dragover',e=>{if(!schedEdit||!e.dataTransfer.types.includes('text/fulin-row'))return;const t=rowTarget(e);if(!t)return;e.preventDefault();e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.board.edit tr.dropbefore,.board.edit tr.dropafter').forEach(x=>x.classList.remove('dropbefore','dropafter'));
+  if(t.before)t.r1.classList.add('dropbefore');else (t.r2||t.r1).classList.add('dropafter')});
+$('todayPage').addEventListener('drop',e=>{if(!schedEdit||!e.dataTransfer.types.includes('text/fulin-row'))return;e.preventDefault();const t=rowTarget(e);const from=+e.dataTransfer.getData('text/fulin-row');clearRowMark();rowDrag=-1;
+  if(!t||isNaN(from))return;let to=t.before?t.i:t.i+1;if(to>from)to--;if(to===from)return;
+  const c=draft.crews.splice(from,1)[0];draft.crews.splice(to,0,c);edSel=new Set();renderSchedEditor();toast('已把「'+(crewSites(c).join('、')||'第 '+(from+1)+' 組')+'」移到第 '+(to+1)+' 組')});
+$('todayPage').addEventListener('dragend',()=>{clearRowMark();rowDrag=-1});
 // ================= 手機版排班編輯：一組一張卡片，點開來填 =================
 const isPhone=()=>window.matchMedia('(max-width:760px)').matches;
 let mOpen=new Set([0]);
@@ -1948,7 +1974,7 @@ function clearKeys(keys,kind){let n=0;keys.forEach(k=>{const p=k.split('|');if(!
     if(p[0]==='s'){c.site='';c.siteIds=[]}else if(p[0]==='n')c.note='';else setCell(k,'')});return n}
 function doClear(keys,kind){closePick();const n=clearKeys(keys,kind);renderSchedEditor();toast(n?'已清除 '+n+' 格，清錯了可以按「↶ 復原」':'選取的格子裡沒有可以清的')}
 $('todayPage').addEventListener('mousedown',e=>{if(!schedEdit||e.button!==0)return;const g=e.target.closest('.gcell'),th=e.target.closest('td.thsite[data-grp]');
-  if(th&&!e.target.closest('button')){e.preventDefault();closePick();const i=+th.dataset.grp;const ks=groupKeys(i);
+  if(th&&!e.target.closest('button,.grip')){e.preventDefault();closePick();const i=+th.dataset.grp;const ks=groupKeys(i);
     if(e.shiftKey&&edAnchor){const a=+edAnchor.split('|')[1]||0;const lo=Math.min(a,i),hi=Math.max(a,i);edSel=new Set();for(let x=lo;x<=hi;x++)groupKeys(x).forEach(k=>edSel.add(k))}
     else if(e.metaKey||e.ctrlKey)ks.forEach(k=>edSel.add(k));else{edSel=new Set(ks);edAnchor='s|'+i}paintSel();return}
   if(!g)return;const k=g.dataset.g;edDown=true;edDragged=false;
