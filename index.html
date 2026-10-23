@@ -1073,8 +1073,89 @@ html:not(.hw) .bats{display:none}
 html.hw .hwbtn{background:rgba(255,138,31,.15)!important;border-color:rgba(255,138,31,.5)!important}
 .hwbtn{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;width:34px;height:34px;font-size:17px;line-height:1;cursor:pointer;flex:none;margin-right:8px;color:var(--ink)}
 
+
+/* ================= 藍天白雲（淺色、字大，長輩友善） ================= */
+html.sky{--bg:#EAF4FD;--panel:#FFFFFF;--panel2:#F4F9FE;--ink:#0F2A44;--muted:#46627D;--line:rgba(15,42,68,.16);--hover:rgba(30,136,229,.08);
+  --accent:#1E88E5;--accent2:#0EA5E9;--accent-ink:#FFFFFF;--issue:#E5484D;--active:#16A34A;--week:#2563EB;--later:#60A5FA;--done:#94A3B8;
+  --issue-bg:#FDECEC;--active-bg:#E8F7EE;--week-bg:#E8F0FE;--later-bg:#F0F6FF;--done-bg:#F1F5F9;
+  --shadow:0 6px 20px rgba(15,42,68,.10);--glow:0 0 0 1px rgba(30,136,229,.25),0 8px 24px rgba(30,136,229,.15);--amber:#B45309;--amber-bg:#FFF6E0;--red-bg:#FDECEC;color-scheme:light}
+html.sky body{font-size:16px;background:
+  radial-gradient(ellipse 220px 70px at 12% 9%,rgba(255,255,255,.95),transparent 70%),
+  radial-gradient(ellipse 160px 50px at 20% 6%,rgba(255,255,255,.9),transparent 70%),
+  radial-gradient(ellipse 260px 80px at 78% 14%,rgba(255,255,255,.9),transparent 70%),
+  radial-gradient(ellipse 180px 60px at 86% 10%,rgba(255,255,255,.85),transparent 70%),
+  linear-gradient(180deg,#BFE3FF 0%,#DCEFFF 35%,#F3F9FF 70%,#FFFFFF 100%);background-attachment:fixed}
+html.sky .topbar{background:linear-gradient(180deg,#1E88E5,#1976D2)!important;backdrop-filter:none;border-bottom:0}
+html.sky .topbar::after{display:none}
+html.sky .brand{font-size:17px}
+html.sky .brand::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+html.sky .tab{color:rgba(255,255,255,.85);font-size:16px;font-weight:600}
+html.sky .tab[aria-selected="true"]{color:#fff}
+html.sky .tab[aria-selected="true"]::after{background:#fff;box-shadow:none;height:3px}
+html.sky .tab .cnt{background:rgba(255,255,255,.25);color:#fff}
+html.sky .tab .cnt.bad{background:#E5484D;color:#fff}
+html.sky .loginbtn,html.sky .themebtn{background:rgba(255,255,255,.18)!important;color:#fff!important;border-color:rgba(255,255,255,.6)!important;font-size:14px}
+html.sky .btn{background:#fff!important;color:var(--ink);border-color:rgba(15,42,68,.22);font-size:15px;padding:8px 14px}
+html.sky .btn:hover{background:#F0F7FF!important;border-color:var(--accent)}
+html.sky .btn.primary{background:#1E88E5!important;color:#fff!important;box-shadow:0 2px 8px rgba(30,136,229,.35)}
+html.sky .seg,html.sky .segs button,html.sky .daytabs,html.sky .fld input,html.sky .fld select,html.sky .fld textarea,html.sky .tools input,html.sky .sbar input,html.sky .lrow input,html.sky .lrow select,html.sky .wkt input,html.sky .mesel select,html.sky .mpdate input,html.sky .mpname,html.sky .gbox input{background:#fff!important;color:var(--ink);border-color:rgba(15,42,68,.22)!important;font-size:16px}
+html.sky .seg button{color:var(--muted);font-size:15px}
+html.sky .seg button[aria-pressed="true"],html.sky .segs button[aria-pressed="true"],html.sky .daytabs button[aria-pressed="true"],html.sky .daytabs button.on{background:#1E88E5!important;color:#fff!important}
+html.sky .daytabs button{color:var(--ink)}
+html.sky input[type=date]::-webkit-calendar-picker-indicator{filter:none}
+html.sky select option{background:#fff;color:var(--ink)}
+html.sky .panel,html.sky .crew,html.sky .tile,html.sky .mcard,html.sky .mbox,html.sky .edside,html.sky .mcal,html.sky .qf,html.sky .sidecard,html.sky .mpi,html.sky .modal,html.sky .legend,html.sky .fitbtn,html.sky .mplan,html.sky .gbox,html.sky #gpop,html.sky .clrpop{background:#fff!important;color:var(--ink);border-color:rgba(15,42,68,.14)!important;backdrop-filter:none}
+html.sky .modal header,html.sky .modal .mf{background:#F4F9FE!important}
+html.sky .group h2{background:#F4F9FE;color:#1565C0;font-size:13px;letter-spacing:.06em}
+html.sky .row .nm{font-size:16px}html.sky .row .sub,html.sky .row .loc{font-size:14px}
+html.sky .chip span{font-size:13px}html.sky .chip b{text-shadow:none}
+html.sky .kv dt{font-size:14px}html.sky .kv dd{font-size:16px}html.sky .detail h3{font-size:24px}
+html.sky .crew .ch,html.sky .srow.h,html.sky .wkt th,html.sky .mch,html.sky .mcard:nth-child(even) .mch{background:#F0F7FF!important}
+html.sky .routebox,html.sky .aibox,html.sky .freebox,html.sky .edsugg,html.sky .mfree,html.sky .row.instop{background:#F0F7FF!important}
+html.sky .crew .note,html.sky .ainote,html.sky .dupbox,html.sky .mebar,html.sky .hrow .hcar{background:#FFF6E0!important;border-color:#F2C46D!important;color:var(--ink)}
+html.sky .dupnote,html.sky .car:not(td),html.sky .tag2,html.sky .need i.low,html.sky .st.low,html.sky #gpop .gpb button em{background:#FFF6E0!important;color:#9A5B00!important;border-color:#F2C46D!important}
+html.sky .need i,html.sky .st.ok,html.sky .rep .rk.done{background:#E8F7EE!important;color:#166534!important}
+html.sky .need i.out,html.sky .st.out,html.sky .errbox,html.sky .merr,html.sky .edwarn,html.sky .edothers,html.sky .notice.err,html.sky .rep .rk.issue{background:#FDECEC!important;color:#B42318!important;border-color:#F3C1BC!important}
+html.sky .tile.need b{color:#166534}html.sky .tile.low b{color:#B45309}html.sky .tile.out b,html.sky .srow .num.neg,html.sky .hist .q.neg,html.sky .esd{color:#B42318}
+html.sky .edsugg summary,html.sky .esg:not(.late) .esd,html.sky .mrow>span b,html.sky .hppl i b,html.sky .editor .saved,html.sky .savest.ok,html.sky .sidecard em.ok{color:#15803D!important}
+html.sky .mebar .mesite,html.sky .mcs b,html.sky .hrow .hd,html.sky .mchips em{color:#1565C0!important}
+html.sky .edsugg button,html.sky .rowops button,html.sky .clrmenu summary,html.sky .clrpop button,html.sky .selbar button,html.sky .pickbar button,html.sky .hppl i,html.sky .mchips em,html.sky .mcb .gcell,html.sky .mbox .gcell,html.sky #gpop .gpb button,html.sky #gpop input{background:#fff!important;color:var(--ink)!important;border-color:rgba(15,42,68,.2)!important}
+html.sky .sidecard em{color:#9A5B00}
+html.sky .notice{background:#E8F0FE;color:var(--ink)}
+html.sky .toast{background:#0F2A44;color:#fff;border-color:transparent;font-size:16px}
+html.sky .modal-bg{background:rgba(15,42,68,.35)}
+html.sky .pagehead h2{font-size:24px}
+html.sky .pagehead h2::before{background:#1E88E5;box-shadow:none}
+html.sky #map{background:#DDEBF5}
+html.sky .leaflet-bar a,html.sky .leaflet-bar a:hover{background:#fff!important;color:var(--ink)!important}
+html.sky .leaflet-control-attribution{background:rgba(255,255,255,.8)!important;color:#46627D!important}
+html.sky .pin .lbl{color:#0F2A44;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 6px #fff;font-size:14px}
+html.sky .pin.hl .lbl,html.sky .pin:hover .lbl{background:#0F2A44;color:#fff;border-color:transparent}
+html.sky .mwd{color:#1565C0;font-size:14px}
+html.sky .mday{border-color:rgba(15,42,68,.12)!important}
+html.sky .mday.other{background:#F5F8FB!important}html.sky .mday.other .mdh b{color:#A9B7C4!important}
+html.sky .mdh b{font-size:17px}html.sky .mdh small{font-size:12px}
+html.sky .mday.today .mdh b{background:#1E88E5!important;color:#fff!important;box-shadow:none}
+html.sky .mday.sel{box-shadow:inset 0 0 0 2px #1E88E5!important}
+html.sky .mday.drop,html.sky .mday.pick{background:#E3F2FD!important;box-shadow:inset 0 0 0 2px #1E88E5!important}
+html.sky .mev{background:#16A34A!important;color:#fff!important;box-shadow:none;font-size:13px}html.sky .mev small{color:#E8FFF0}
+html.sky .mpl{background:#EFF6FF!important;color:#1D4ED8!important;border-color:#2563EB!important;font-size:13px}
+html.sky .mlegend i.ev{background:#16A34A!important}html.sky .mlegend i.pl{border-color:#2563EB!important}
+html.sky .gate{background:linear-gradient(180deg,#9ED4FF,#E6F4FF 60%,#fff)}
+html.sky .glogo{color:#0F2A44!important}html.sky .glogo::before{background:#1E88E5;box-shadow:none}
+html.sky .upbar{background:#fff;color:var(--ink);border-color:#1E88E5}
+html.sky .boardwrap{border-color:rgba(30,136,229,.35)!important;box-shadow:0 6px 20px rgba(15,42,68,.12)}
+html.sky .zbar button{background:#fff;color:var(--ink)}
+/* 主題選單 */
+.themebtn{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;height:34px;padding:0 12px;font:inherit;font-size:13px;line-height:1;cursor:pointer;flex:none;margin-right:8px;color:var(--ink);white-space:nowrap}
+html.hw .themebtn{background:rgba(255,138,31,.15)!important;border-color:rgba(255,138,31,.5)!important}
+.thmenu{position:fixed;z-index:4000;top:52px;right:12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,.35);padding:8px;display:grid;gap:6px;min-width:230px}
+.thmenu button{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;text-align:left;cursor:pointer}
+.thmenu button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.thmenu button i{font-style:normal;font-size:20px}.thmenu button small{display:block;color:var(--muted);font-size:12px}
+@media (max-width:420px){.themebtn{padding:0 9px}.themebtn span{display:none}html.sky .brand{font-size:0}html.sky .tab{font-size:14px;padding:12px 7px 10px}}
 </style>
-<script>(function(){var t='';try{t=localStorage.getItem('fulin-theme')||''}catch(e){}var on=t?t==='hw':(new Date()<new Date('2026-11-03T00:00:00+08:00'));if(on)document.documentElement.classList.add('hw')})();</script>
+<script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
 <body class="gated">
 <div class="bats" aria-hidden="true"><i style="--y:14%;--s:44px;--d:28s;--w:0s"></i><i style="--y:32%;--s:30px;--d:36s;--w:-12s"></i><i style="--y:58%;--s:38px;--d:31s;--w:-22s"></i><i style="--y:76%;--s:26px;--d:42s;--w:-5s"></i></div>
@@ -1093,7 +1174,7 @@ html.hw .hwbtn{background:rgba(255,138,31,.15)!important;border-color:rgba(255,1
     <button class="tab" role="tab" data-tab="cal" aria-selected="false">月曆</button>
     <button class="tab" role="tab" data-tab="stock" aria-selected="false">庫存<span class="cnt" id="cntStock">–</span></button>
     <button class="tab" role="tab" data-tab="manage" aria-selected="false" id="tabManage" hidden>管理</button>
-  </nav><div style="flex:1"></div><button class="hwbtn" id="hwBtn" title="萬聖節主題 開／關">🎃</button><button class="loginbtn" id="loginBtn">登入</button></header>
+  </nav><div style="flex:1"></div><button class="themebtn" id="themeBtn" title="換配色">🎨<span> 配色</span></button><button class="loginbtn" id="loginBtn">登入</button></header>
 <main class="view" id="v-map">
 <div class="app">
   <div class="mapwrap">
@@ -2597,7 +2678,15 @@ let tzRaf=0;const tzQueue=()=>{if(tzRaf)return;tzRaf=requestAnimationFrame(()=>{
 new MutationObserver(tzQueue).observe($('todayPage'),{childList:true,subtree:true});
 new MutationObserver(tzQueue).observe($('stockPage'),{childList:true,subtree:true});
 window.addEventListener('resize',()=>setTimeout(()=>applyZoom(true),200));
-$('hwBtn').onclick=()=>{const on=document.documentElement.classList.toggle('hw');try{localStorage.setItem('fulin-theme',on?'hw':'normal')}catch(e){}toast(on?'🎃 萬聖節主題':'已換回原本的配色')};
+// ---- 配色：深藍科技／藍天白雲（字大）／萬聖節，每台裝置自己記 ----
+const THEMES=[['navy','🌙','深藍科技','原本的深色'],['sky','☀️','藍天白雲','淺色、字比較大，長輩好讀'],['hw','🎃','萬聖節','南瓜橘＋蝙蝠']];
+function curTheme(){const c=document.documentElement.classList;return c.contains('sky')?'sky':c.contains('hw')?'hw':'navy'}
+function setTheme(t){const c=document.documentElement.classList;c.remove('sky','hw');if(t!=='navy')c.add(t);try{localStorage.setItem('fulin-theme',t);localStorage.setItem('fulin-theme-keep','1')}catch(e){}
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='sky'?'#1E88E5':t==='hw'?'#140C1C':'#15202B';if(typeof applyZoom==='function')setTimeout(()=>applyZoom(true),50)}
+$('themeBtn').onclick=e=>{e.stopPropagation();let m=$('thmenu');if(m){m.remove();return}m=document.createElement('div');m.id='thmenu';m.className='thmenu';const cur=curTheme();
+  m.innerHTML=THEMES.map(([k,i,n,d])=>'<button data-th="'+k+'" aria-pressed="'+(k===cur)+'"><i>'+i+'</i><span>'+n+'<small>'+d+'</small></span></button>').join('');document.body.appendChild(m);
+  m.onclick=ev=>{const b=ev.target.closest('[data-th]');if(!b)return;setTheme(b.dataset.th);m.remove();toast('已換成「'+THEMES.find(x=>x[0]===b.dataset.th)[2]+'」')}};
+document.addEventListener('click',e=>{const m=$('thmenu');if(m&&!e.target.closest('#thmenu,#themeBtn'))m.remove()});
 setAdminUI();
 showTab((location.hash||'#map').slice(1));
 initMap();render();
