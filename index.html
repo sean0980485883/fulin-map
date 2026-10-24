@@ -1154,6 +1154,82 @@ html.hw .themebtn{background:rgba(255,138,31,.15)!important;border-color:rgba(25
 .thmenu button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
 .thmenu button i{font-style:normal;font-size:20px}.thmenu button small{display:block;color:var(--muted);font-size:12px}
 @media (max-width:420px){.themebtn{padding:0 9px}.themebtn span{display:none}html.sky .brand{font-size:0}html.sky .tab{font-size:14px;padding:12px 7px 10px}}
+
+/* ================= 雪山金光（藍天、金色山光、暖色草原；淺色字大） ================= */
+html.mt{--bg:#F6F1EA;--panel:#FFFFFF;--panel2:#FBF6EF;--ink:#262B3D;--muted:#6B6478;--line:rgba(38,43,61,.16);--hover:rgba(217,130,43,.08);
+  --accent:#D9822B;--accent2:#3B7DC4;--accent-ink:#FFFFFF;--issue:#E5484D;--active:#16A34A;--week:#2563EB;--later:#60A5FA;--done:#94A3B8;
+  --issue-bg:#FDECEC;--active-bg:#E8F7EE;--week-bg:#EEF3FA;--later-bg:#F0F6FF;--done-bg:#F1F5F9;
+  --shadow:0 6px 20px rgba(38,43,61,.10);--glow:0 0 0 1px rgba(217,130,43,.25),0 8px 24px rgba(217,130,43,.15);--amber:#B45309;--amber-bg:#FFF6E0;--red-bg:#FDECEC;color-scheme:light}
+html.mt body{font-size:16px;background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 360' preserveAspectRatio='none'><defs><linearGradient id='m' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9B2CC'/><stop offset='1' stop-color='%238F88A8'/></linearGradient><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23E9A55A'/><stop offset='1' stop-color='%23D98A3A'/></linearGradient></defs><path fill='url(%23m)' d='M0 250L90 190L160 215L250 150L330 200L420 130L500 175L590 95L650 140L720 70L790 120L850 60L930 110L1010 85L1090 150L1170 105L1260 170L1350 130L1440 190L1520 160L1600 200V300H0Z'/><path fill='%23F7D9A3' opacity='.85' d='M590 95L620 120L650 140L635 110ZM720 70L755 100L790 120L760 90ZM850 60L885 85L930 110L895 75ZM1010 85L1040 110L1090 150L1050 105ZM420 130L450 150L500 175L465 145Z'/><path fill='%23F3F5FA' opacity='.9' d='M710 78L720 70L730 80L722 84ZM842 68L850 60L860 70L851 73ZM582 102L590 95L598 104L590 106ZM1003 92L1010 85L1018 93L1010 96Z'/><rect y='290' width='1600' height='70' fill='url(%23g)'/><path fill='%2350623A' opacity='.55' d='M0 292H1600V300H0Z'/></svg>") center bottom/100% 34vh no-repeat fixed,radial-gradient(ellipse 260px 70px at 15% 10%,rgba(255,255,255,.75),transparent 70%),radial-gradient(ellipse 300px 80px at 80% 16%,rgba(255,240,220,.6),transparent 70%),linear-gradient(180deg,#4F86C6 0%,#86AEDB 22%,#CCDDEE 45%,#F5EEE4 68%,#F4E6CF 100%) fixed}
+html.mt .topbar{background:linear-gradient(90deg,#2E4A72,#4C6E9E 55%,#C98A4B)!important;backdrop-filter:none;border-bottom:0}
+html.mt .topbar::after{display:none}
+html.mt .brand{font-size:17px}
+html.mt .brand::before{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+html.mt .tab{color:rgba(255,255,255,.85);font-size:16px;font-weight:600}
+html.mt .tab[aria-selected="true"]{color:#fff}
+html.mt .tab[aria-selected="true"]::after{background:#fff;box-shadow:none;height:3px}
+html.mt .tab .cnt{background:rgba(255,255,255,.25);color:#fff}
+html.mt .tab .cnt.bad{background:#E5484D;color:#fff}
+html.mt .loginbtn,html.mt .themebtn{background:rgba(255,255,255,.18)!important;color:#fff!important;border-color:rgba(255,255,255,.6)!important;font-size:14px}
+html.mt .btn{background:#fff!important;color:var(--ink);border-color:rgba(38,43,61,.22);font-size:15px;padding:8px 14px}
+html.mt .btn:hover{background:#FBF3E6!important;border-color:var(--accent)}
+html.mt .btn.primary{background:#D9822B!important;color:#fff!important;box-shadow:0 2px 8px rgba(217,130,43,.35)}
+html.mt .seg,html.mt .segs button,html.mt .daytabs,html.mt .fld input,html.mt .fld select,html.mt .fld textarea,html.mt .tools input,html.mt .sbar input,html.mt .lrow input,html.mt .lrow select,html.mt .wkt input,html.mt .mesel select,html.mt .mpdate input,html.mt .mpname,html.mt .gbox input{background:#fff!important;color:var(--ink);border-color:rgba(38,43,61,.22)!important;font-size:16px}
+html.mt .seg button{color:var(--muted);font-size:15px}
+html.mt .seg button[aria-pressed="true"],html.mt .segs button[aria-pressed="true"],html.mt .daytabs button[aria-pressed="true"],html.mt .daytabs button.on{background:#D9822B!important;color:#fff!important}
+html.mt .daytabs button{color:var(--ink)}
+html.mt input[type=date]::-webkit-calendar-picker-indicator{filter:none}
+html.mt select option{background:#fff;color:var(--ink)}
+html.mt .panel,html.mt .crew,html.mt .tile,html.mt .mcard,html.mt .mbox,html.mt .edside,html.mt .mcal,html.mt .qf,html.mt .sidecard,html.mt .mpi,html.mt .modal,html.mt .legend,html.mt .fitbtn,html.mt .mplan,html.mt .gbox,html.mt #gpop,html.mt .clrpop{background:#fff!important;color:var(--ink);border-color:rgba(38,43,61,.14)!important;backdrop-filter:none}
+html.mt .modal header,html.mt .modal .mf{background:#FBF6EF!important}
+html.mt .group h2{background:#FBF6EF;color:#2F5C8F;font-size:13px;letter-spacing:.06em}
+html.mt .row .nm{font-size:16px}html.mt .row .sub,html.mt .row .loc{font-size:14px}
+html.mt .chip span{font-size:13px}html.mt .chip b{text-shadow:none}
+html.mt .kv dt{font-size:14px}html.mt .kv dd{font-size:16px}html.mt .detail h3{font-size:24px}
+html.mt .crew .ch,html.mt .srow.h,html.mt .wkt th,html.mt .mch,html.mt .mcard:nth-child(even) .mch{background:#FBF3E6!important}
+html.mt .routebox,html.mt .aibox,html.mt .freebox,html.mt .edsugg,html.mt .mfree,html.mt .row.instop{background:#FBF3E6!important}
+html.mt .crew .note,html.mt .ainote,html.mt .dupbox,html.mt .mebar,html.mt .hrow .hcar{background:#FFF6E0!important;border-color:#F2C46D!important;color:var(--ink)}
+html.mt .dupnote,html.mt .car:not(td),html.mt .tag2,html.mt .need i.low,html.mt .st.low,html.mt #gpop .gpb button em{background:#FFF6E0!important;color:#9A5B00!important;border-color:#F2C46D!important}
+html.mt .need i,html.mt .st.ok,html.mt .rep .rk.done{background:#E8F7EE!important;color:#166534!important}
+html.mt .need i.out,html.mt .st.out,html.mt .errbox,html.mt .merr,html.mt .edwarn,html.mt .edothers,html.mt .notice.err,html.mt .rep .rk.issue{background:#FDECEC!important;color:#B42318!important;border-color:#F3C1BC!important}
+html.mt .tile.need b{color:#166534}html.mt .tile.low b{color:#B45309}html.mt .tile.out b,html.mt .srow .num.neg,html.mt .hist .q.neg,html.mt .esd{color:#B42318}
+html.mt .edsugg summary,html.mt .esg:not(.late) .esd,html.mt .mrow>span b,html.mt .hppl i b,html.mt .editor .saved,html.mt .savest.ok,html.mt .sidecard em.ok{color:#15803D!important}
+html.mt .mebar .mesite,html.mt .mcs b,html.mt .hrow .hd,html.mt .mchips em{color:#2F5C8F!important}
+html.mt .edsugg button,html.mt .rowops button,html.mt .clrmenu summary,html.mt .clrpop button,html.mt .selbar button,html.mt .pickbar button,html.mt .hppl i,html.mt .mchips em,html.mt .mcb .gcell,html.mt .mbox .gcell,html.mt #gpop .gpb button,html.mt #gpop input{background:#fff!important;color:var(--ink)!important;border-color:rgba(38,43,61,.2)!important}
+html.mt .sidecard em{color:#9A5B00}
+html.mt .notice{background:#EEF3FA;color:var(--ink)}
+html.mt .toast{background:#262B3D;color:#fff;border-color:transparent;font-size:16px}
+html.mt .modal-bg{background:rgba(38,43,61,.35)}
+html.mt .pagehead h2{font-size:24px}
+html.mt .pagehead h2::before{background:#D9822B;box-shadow:none}
+html.mt #map{background:#E9E3EE}
+html.mt .leaflet-bar a,html.mt .leaflet-bar a:hover{background:#fff!important;color:var(--ink)!important}
+html.mt .leaflet-control-attribution{background:rgba(255,255,255,.8)!important;color:#6B6478!important}
+html.mt .pin .lbl{color:#262B3D;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 6px #fff;font-size:14px}
+html.mt .pin.hl .lbl,html.mt .pin:hover .lbl{background:#262B3D;color:#fff;border-color:transparent}
+html.mt .mwd{color:#2F5C8F;font-size:14px}
+html.mt .mday{border-color:rgba(38,43,61,.12)!important}
+html.mt .mday.other{background:#F5F8FB!important}html.mt .mday.other .mdh b{color:#A9B7C4!important}
+html.mt .mdh b{font-size:17px}html.mt .mdh small{font-size:12px}
+html.mt .mday.today .mdh b{background:#D9822B!important;color:#fff!important;box-shadow:none}
+html.mt .mday.sel{box-shadow:inset 0 0 0 2px #D9822B!important}
+html.mt .mday.drop,html.mt .mday.pick{background:#FCEBD6!important;box-shadow:inset 0 0 0 2px #D9822B!important}
+html.mt .mev{background:#16A34A!important;color:#fff!important;box-shadow:none;font-size:13px}html.mt .mev small{color:#E8FFF0}
+html.mt .mpl{background:#EFF6FF!important;color:#1D4ED8!important;border-color:#2563EB!important;font-size:13px}
+html.mt .mlegend i.ev{background:#16A34A!important}html.mt .mlegend i.pl{border-color:#2563EB!important}
+html.mt .gate{background:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 360' preserveAspectRatio='none'><defs><linearGradient id='m' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23B9B2CC'/><stop offset='1' stop-color='%238F88A8'/></linearGradient><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23E9A55A'/><stop offset='1' stop-color='%23D98A3A'/></linearGradient></defs><path fill='url(%23m)' d='M0 250L90 190L160 215L250 150L330 200L420 130L500 175L590 95L650 140L720 70L790 120L850 60L930 110L1010 85L1090 150L1170 105L1260 170L1350 130L1440 190L1520 160L1600 200V300H0Z'/><path fill='%23F7D9A3' opacity='.85' d='M590 95L620 120L650 140L635 110ZM720 70L755 100L790 120L760 90ZM850 60L885 85L930 110L895 75ZM1010 85L1040 110L1090 150L1050 105ZM420 130L450 150L500 175L465 145Z'/><path fill='%23F3F5FA' opacity='.9' d='M710 78L720 70L730 80L722 84ZM842 68L850 60L860 70L851 73ZM582 102L590 95L598 104L590 106ZM1003 92L1010 85L1018 93L1010 96Z'/><rect y='290' width='1600' height='70' fill='url(%23g)'/><path fill='%2350623A' opacity='.55' d='M0 292H1600V300H0Z'/></svg>") center bottom/100% 34vh no-repeat fixed,radial-gradient(ellipse 260px 70px at 15% 10%,rgba(255,255,255,.75),transparent 70%),radial-gradient(ellipse 300px 80px at 80% 16%,rgba(255,240,220,.6),transparent 70%),linear-gradient(180deg,#4F86C6 0%,#86AEDB 22%,#CCDDEE 45%,#F5EEE4 68%,#F4E6CF 100%) fixed}
+html.mt .glogo{color:#262B3D!important}html.mt .glogo::before{background:#D9822B;box-shadow:none}
+html.mt .upbar{background:#fff;color:var(--ink);border-color:#D9822B}
+html.mt .boardwrap{border-color:rgba(217,130,43,.35)!important;box-shadow:0 6px 20px rgba(38,43,61,.12)}
+html.mt .zbar button{background:#fff;color:var(--ink)}
+html.mt .brand::before{background:linear-gradient(135deg,#FFE3B0,#E9A24E);box-shadow:0 0 10px rgba(255,200,120,.8)}
+html.mt .tab[aria-selected="true"]::after{background:#FFD08A}
+html.mt .mev{background:linear-gradient(90deg,#D9822B,#E9A24E)!important}
+html.mt .mpl{background:#EEF3FA!important;color:#2F5C8F!important;border-color:#3B7DC4!important}
+html.mt .mlegend i.ev{background:#D9822B!important}html.mt .mlegend i.pl{border-color:#3B7DC4!important}
+html.mt .glogo::before{background:linear-gradient(135deg,#FFE3B0,#E9A24E)}
+html.mt .group h2{color:#B5651D}
+@media (max-width:420px){html.mt .brand{font-size:0}html.mt .tab{font-size:14px;padding:12px 7px 10px}}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -1930,9 +2006,17 @@ function crewShareText(c){const L=['【'+mdw(c.date)+'】'+[c.leader,c.car].filt
     L.push(n+'. '+l+(s&&(s.contact||s.phone)?'｜'+[s.contact,s.phone].filter(Boolean).join(' '):''));if(s&&s.address)L.push('   '+s.address)});
   const u=crewNavUrl(c);if(u)L.push('導航：'+u);return L.join('\n')}
 // 複製導航連結（新的瀏覽器用 clipboard，舊的手機用備用方法）
-async function copyLink(u){if(!u)return;let ok=false;try{await navigator.clipboard.writeText(u);ok=true}catch(e){}
-  if(!ok){try{const ta=document.createElement('textarea');ta.value=u;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,u.length);ok=document.execCommand('copy');ta.remove()}catch(e){}}
-  toast(ok?'已複製出車資料，可以貼到 LINE':'複製失敗，請長按「導航」按鈕複製連結')}
+// 手機（iPhone、LINE 內建瀏覽器）常常不給網站用剪貼簿：先在「按下去的當下」同步複製，不行再用新方法，都不行就跳出文字框讓你長按複製或直接分享
+function copySync(text){const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;width:2px;height:2px;padding:0;border:0;opacity:.01;font-size:16px;z-index:-1';
+  document.body.appendChild(ta);let ok=false;try{const sel=getSelection();const r=document.createRange();r.selectNodeContents(ta);sel.removeAllRanges();sel.addRange(r);ta.select();ta.setSelectionRange(0,text.length);ok=document.execCommand('copy');sel.removeAllRanges()}catch(e){}ta.remove();return ok}
+function copyLink(u){if(!u)return;if(copySync(u)){toast('已複製出車資料，可以貼到 LINE');return}
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(u).then(()=>toast('已複製出車資料，可以貼到 LINE')).catch(()=>copyBox(u));return}
+  copyBox(u)}
+function copyBox(u){openModal('出車資料','<div class="fld"><label>長按下面文字 →「全選」→「拷貝」，或直接按「分享到 LINE」</label><textarea id="cpTxt" readonly style="min-height:200px;font-size:16px">'+esc(u)+'</textarea></div>',
+  (navigator.share?[['分享到 LINE…','share','primary']]:[]).concat([['再試一次複製','copy'],['關閉','close']]),async act=>{
+    if(act==='share'){try{await navigator.share({text:u})}catch(e){}return false}
+    if(act==='copy'){const t=$('cpTxt');t.removeAttribute('readonly');t.focus();t.select();t.setSelectionRange(0,u.length);let ok=false;try{ok=document.execCommand('copy')}catch(e){}t.setAttribute('readonly','');toast(ok?'已複製':'請長按文字選「拷貝」');return !ok}
+    return true});setTimeout(()=>{const t=$('cpTxt');if(t){t.focus();t.select()}},100)}
 // ================= 月曆（像 TimeTree）：每天要去哪些案場 =================
 let mdayT=0;
 const lunarFmt=(()=>{try{return new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{month:'numeric',day:'numeric'})}catch(e){return null}})();
@@ -2679,10 +2763,10 @@ new MutationObserver(tzQueue).observe($('todayPage'),{childList:true,subtree:tru
 new MutationObserver(tzQueue).observe($('stockPage'),{childList:true,subtree:true});
 window.addEventListener('resize',()=>setTimeout(()=>applyZoom(true),200));
 // ---- 配色：深藍科技／藍天白雲（字大）／萬聖節，每台裝置自己記 ----
-const THEMES=[['navy','🌙','深藍科技','原本的深色'],['sky','☀️','藍天白雲','淺色、字比較大，長輩好讀'],['hw','🎃','萬聖節','南瓜橘＋蝙蝠']];
-function curTheme(){const c=document.documentElement.classList;return c.contains('sky')?'sky':c.contains('hw')?'hw':'navy'}
-function setTheme(t){const c=document.documentElement.classList;c.remove('sky','hw');if(t!=='navy')c.add(t);try{localStorage.setItem('fulin-theme',t);localStorage.setItem('fulin-theme-keep','1')}catch(e){}
-  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='sky'?'#1E88E5':t==='hw'?'#140C1C':'#15202B';if(typeof applyZoom==='function')setTimeout(()=>applyZoom(true),50)}
+const THEMES=[['navy','🌙','深藍科技','原本的深色'],['sky','☀️','藍天白雲','淺色、字比較大，長輩好讀'],['mt','🏔️','雪山金光','藍天、金色山光、暖色草原（字大）'],['hw','🎃','萬聖節','南瓜橘＋蝙蝠']];
+function curTheme(){const c=document.documentElement.classList;return c.contains('sky')?'sky':c.contains('mt')?'mt':c.contains('hw')?'hw':'navy'}
+function setTheme(t){const c=document.documentElement.classList;c.remove('sky','hw','mt');if(t!=='navy')c.add(t);try{localStorage.setItem('fulin-theme',t);localStorage.setItem('fulin-theme-keep','1')}catch(e){}
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='sky'?'#1E88E5':t==='mt'?'#2E4A72':t==='hw'?'#140C1C':'#15202B';if(typeof applyZoom==='function')setTimeout(()=>applyZoom(true),50)}
 $('themeBtn').onclick=e=>{e.stopPropagation();let m=$('thmenu');if(m){m.remove();return}m=document.createElement('div');m.id='thmenu';m.className='thmenu';const cur=curTheme();
   m.innerHTML=THEMES.map(([k,i,n,d])=>'<button data-th="'+k+'" aria-pressed="'+(k===cur)+'"><i>'+i+'</i><span>'+n+'<small>'+d+'</small></span></button>').join('');document.body.appendChild(m);
   m.onclick=ev=>{const b=ev.target.closest('[data-th]');if(!b)return;setTheme(b.dataset.th);m.remove();toast('已換成「'+THEMES.find(x=>x[0]===b.dataset.th)[2]+'」')}};
