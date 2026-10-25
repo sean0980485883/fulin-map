@@ -1230,6 +1230,12 @@ html.mt .mlegend i.ev{background:#D9822B!important}html.mt .mlegend i.pl{border-
 html.mt .glogo::before{background:linear-gradient(135deg,#FFE3B0,#E9A24E)}
 html.mt .group h2{color:#B5651D}
 @media (max-width:420px){html.mt .brand{font-size:0}html.mt .tab{font-size:14px;padding:12px 7px 10px}}
+
+/* 多人一起排班：別人正在改的格子、剛被別人改到的格子 */
+.board.edit td.othered,.mbox .othered,.mcb .othered{outline:2px dashed #F59E0B;outline-offset:-2px;position:relative}
+.board.edit td.othered::after{content:attr(data-who);position:absolute;right:0;top:-1px;transform:translateY(-100%);background:#F59E0B;color:#1E1E1E;font-size:10px;font-weight:700;padding:0 5px;border-radius:4px 4px 0 0;white-space:nowrap;z-index:3;pointer-events:none}
+@keyframes remoteFlash{0%{box-shadow:inset 0 0 0 3px #A855F7;background-color:#F3E8FF}100%{box-shadow:inset 0 0 0 0 transparent}}
+.board.edit td.remote,.remote{animation:remoteFlash 2.5s ease-out}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2120,11 +2126,12 @@ const SPECIAL=/全員|自己|支援|休息|^-+$/;           // 可以重複選�
 const pad8=a=>(a||[]).concat(Array(8).fill('')).slice(0,Math.max(8,(a||[]).length));
 const pad5=a=>(a||[]).concat(Array(5).fill('')).slice(0,Math.max(5,(a||[]).length));
 const pad4=a=>(a||[]).concat(Array(4).fill('')).slice(0,4);
-const toCrew=c=>({site:c.site||'',siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:pad8(c.workers),tasks:pad5(c.tasks),note:c.note||''});
+const cid=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
+const toCrew=c=>({id:c.id||cid(),site:c.site||'',siteIds:(c.siteIds||[]).slice(),leader:c.leader||'',car:c.car||'',workers:pad8(c.workers),tasks:pad5(c.tasks),note:c.note||''});
 const blankCrew=()=>toCrew({});
-function openSchedEditor(){schedEdit=true;edOthers=[];setTimeout(()=>{if(draft)api('ed_ping',{date:draft.date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})},300);edSel=new Set();edAnchor=null;
+function openSchedEditor(){schedEdit=true;edOthers=[];setTimeout(syncNow,200);edSel=new Set();edAnchor=null;
   const src=crewsOf(schedDate);const rest=restOf(schedDate);
-  draft={date:schedDate,restD:pad4(rest.drivers),restW:pad4(rest.workers),crews:src.map(toCrew)};
+  draft={date:schedDate,restD:pad4(rest.drivers),restW:pad4(rest.workers),crews:src.map(toCrew),ver:null};draft.base=normDay({crews:draft.crews,restD:draft.restD,restW:draft.restW});
   while(draft.crews.length<8)draft.crews.push(blankCrew());draft.snap=snapOf();renderSchedEditor()}
 const snapOf=()=>JSON.stringify([draft.date,draft.restD,draft.restW,draft.crews]);
 // 已經被選走的人／車（排除自己這一格）
@@ -2133,7 +2140,7 @@ function usedPeople(skip){const u=new Set();const add=(v,k)=>{if(v&&k!==skip&&!S
   draft.crews.forEach((c,i)=>{add(c.leader,'l|'+i);c.workers.forEach((v,j)=>add(v,'w|'+i+'|'+j))});return u}
 function usedCars(skip){const u=new Set();draft.crews.forEach((c,i)=>{if(c.car&&'c|'+i!==skip)u.add(c.car)});return u}
 function gsel(key,opts,v,used){return '<button type="button" class="gcell'+(v?'':' empty')+(key===gpopKey?' act':'')+'" data-g="'+key+'">'+(v?esc(v):'<i>＋</i>')+'</button>'}
-function renderSchedEditor(){if(isPhone())return renderSchedMobile();const el=$('todayPage');const D=draft;const dd=toDate(D.date);
+function renderSchedEditor(){pendingRender=false;if(isPhone())return renderSchedMobile();const el=$('todayPage');const D=draft;const dd=toDate(D.date);
   const allPeople=DB.people.map(p=>p.name);const L=leaders(),W=workersL(),C=DB.cars,TK=DB.tasks.map(t=>t.zh);
   const usedSite=new Set();D.crews.forEach(c=>crewSites(c).forEach(l=>usedSite.add(l)));
   const total=D.crews.reduce((a,c)=>a+c.workers.filter(Boolean).length,0);
@@ -2312,7 +2319,7 @@ function setCell(key,v){const p=key.split('|');
   else if(p[0]==='w')draft.crews[+p[1]].workers[+p[2]]=v;else if(p[0]==='t')draft.crews[+p[1]].tasks[+p[2]]=v}
 function cellVal(key){const p=key.split('|');const c=draft.crews[+p[1]];
   return p[0]==='rd'?draft.restD[+p[1]]:p[0]==='rw'?draft.restW[+p[1]]:p[0]==='l'?c.leader:p[0]==='c'?c.car:p[0]==='w'?c.workers[+p[2]]:p[0]==='t'?c.tasks[+p[2]]:''}
-function closePick(){const p=$('gpop');if(p)p.remove();const had=gpopKey;gpopKey=null;if(had){const b=document.querySelector('.gcell.act');if(b)b.classList.remove('act')}}
+function closePick(){const p=$('gpop');if(p)p.remove();const had=gpopKey;gpopKey=null;if(had){const b=document.querySelector('.gcell.act');if(b)b.classList.remove('act')}if(pendingRender&&schedEdit){pendingRender=false;setTimeout(()=>{if(!gpopKey)renderSchedEditor()},0)}}
 function openPick(key){closePick();const anchor=document.querySelector('[data-g="'+key+'"]');if(!anchor)return;gpopKey=key;anchor.classList.add('act');
   const p=key.split('|'),k=p[0],i=+p[1];const allPeople=DB.people.map(x=>x.name);const cur=k==='s'?'':cellVal(key);
   let title='',opts=[],free=false,groups=null;
@@ -2409,7 +2416,7 @@ const DKEY='fulin-sched-draft';
 function keepDraft(){if(draft){const cur=snapOf();draft.hist=draft.hist||[];if(draft.last&&cur!==draft.last){draft.hist.push(draft.last);if(draft.hist.length>60)draft.hist.shift()}draft.last=cur;
     const u=$('undoBtn');if(u)u.disabled=!draft.hist.length}
   const dirty=schedEdit&&draft&&snapOf()!==draft.snap;try{if(dirty)localStorage.setItem(DKEY,JSON.stringify(Object.assign({},draft,{hist:undefined,last:undefined})));else localStorage.removeItem(DKEY)}catch(e){}
-  if(dirty&&!saving){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,1200);setSaveState('wait')}}
+  if(dirty&&!saving){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,1200);setSaveState('wait')}markOthers()}
 $('todayPage').addEventListener('toggle',e=>{if(draft&&e.target.classList&&e.target.classList.contains('edsugg'))draft.suggOpen=e.target.open},true);
 // ---- 復原（Ctrl/⌘+Z）：自動存檔也能改回來 ----
 function undoDraft(){if(!draft||!draft.hist||!draft.hist.length){toast('沒有可以復原的了');return}const prev=draft.hist.pop();const a=JSON.parse(prev);
@@ -2417,20 +2424,61 @@ function undoDraft(){if(!draft||!draft.hist||!draft.hist.length){toast('沒有�
 document.addEventListener('keydown',e=>{if(!schedEdit||!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='z'||e.shiftKey)return;const t=e.target;if(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.id!=='gpq'))return;e.preventDefault();undoDraft()});
 // ---- 誰也在編輯這一天（每 30 秒問一次）----
 let edOthers=[];
-function showOthers(list){edOthers=list||[];const el=$('edOthers');if(el){el.hidden=!edOthers.length;el.innerHTML=othersText()}}
-function othersText(){return edOthers.length?'⚠ '+edOthers.map(o=>esc(o.name)).join('、')+' 也正在編輯這一天，同一組請不要同時改（後存的會蓋掉先存的）':''}
-setInterval(()=>{if(schedEdit&&draft&&isAdmin())api('ed_ping',{date:draft.date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})},30000);
+function showOthers(list){edOthers=list||[];const el=$('edOthers');if(el){el.hidden=!edOthers.length;el.innerHTML=othersText()}markOthers()}
+function markOthers(){document.querySelectorAll('.othered').forEach(x=>{x.classList.remove('othered');x.removeAttribute('data-who')});if(!schedEdit)return;edOthers.forEach(o=>{if(!o.key)return;const td=keyTd(o.key);if(td){td.classList.add('othered');td.dataset.who=o.name}})}
+function othersText(){return edOthers.length?'👥 '+edOthers.map(o=>esc(o.name)).join('、')+' 也在編輯這一天：大家改的會自動合併，框起來的格子是對方正在改的（同一格同時改，以後存的為準）':''}
+setInterval(()=>{if(legacy&&schedEdit&&draft&&isAdmin())api('ed_ping',{date:draft.date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})},30000);
 // ---- 像 Google 試算表一樣自動存到雲端 ----
 let saveTimer=null,saving=false,saveSt={s:'',m:'',t:''};
 function saveText(){return {wait:'編輯中…',saving:'儲存中…',ok:'✓ 已自動存到雲端 '+saveSt.t,err:'⚠ 沒存到，稍後自動重試'}[saveSt.s]||'會自動儲存'}
 function setSaveState(st,m){const d=new Date();saveSt={s:st,m:m||'',t:pad(d.getHours())+':'+pad(d.getMinutes())};const e=$('saveSt');if(e){e.className='savest '+st;e.textContent=saveText();e.title=m||''}}
+// ================= 多人一起排班（像 Google 試算表）：每 4 秒同步一次，大家改的自動合併 =================
+let syncing=false,pendingRender=false,legacy=false;
+function normDay(d){return {crews:(d.crews||[]).map(toCrew),restD:pad4(d.restD),restW:pad4(d.restW)}}
+const jeq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function mergeArr(b,m,t){const n=Math.max(b.length,m.length,t.length);const o=[];for(let i=0;i<n;i++){const bv=b[i]||'',mv=m[i]||'',tv=t[i]||'';o.push(mv!==bv?mv:tv)}return o}
+function mergeCrew(b,m,t){const o={id:m.id};const take=jeq([m.site,m.siteIds],[b.site,b.siteIds])?t:m;o.site=take.site;o.siteIds=(take.siteIds||[]).slice();
+  ['leader','car','note'].forEach(k=>o[k]=m[k]!==b[k]?m[k]:t[k]);o.workers=mergeArr(b.workers,m.workers,t.workers);o.tasks=mergeArr(b.tasks,m.tasks,t.tasks);return toCrew(o)}
+// 三方合併：base＝上次跟雲端一致的樣子，mine＝我現在的，theirs＝雲端最新的。我有改的格子用我的，沒改的用雲端的
+function merge3(B,M,T){if(!B)B=T;const bm=new Map(B.crews.map(c=>[c.id,c])),mm=new Map(M.crews.map(c=>[c.id,c])),tm=new Map(T.crews.map(c=>[c.id,c]));
+  const reordered=!jeq(M.crews.map(c=>c.id).filter(id=>bm.has(id)),B.crews.map(c=>c.id).filter(id=>mm.has(id)));
+  const prim=(reordered?M:T).crews.map(c=>c.id),sec=(reordered?T:M).crews.map(c=>c.id);
+  const keep=id=>{const b=bm.get(id),m=mm.get(id),t=tm.get(id);if(b){if(!m)return false;if(!t)return !jeq(m,b);return true}return !!(m||t)};
+  const ids=prim.filter(keep);
+  sec.forEach((id,i)=>{if(ids.includes(id)||!keep(id))return;let j=i-1;while(j>=0&&!ids.includes(sec[j]))j--;ids.splice(j<0?0:ids.indexOf(sec[j])+1,0,id)});
+  const crews=ids.map(id=>{const b=bm.get(id),m=mm.get(id),t=tm.get(id);return m&&t?mergeCrew(b||t,m,t):toCrew(m||t)});
+  return {crews,restD:pad4(mergeArr(B.restD,M.restD,T.restD)),restW:pad4(mergeArr(B.restW,M.restW,T.restW))}}
+function cmpForm(d){const p=payloadOf({date:'',crews:d.crews,restD:d.restD,restW:d.restW});return [p.crews,p.restD,p.restW]}
+function crewKeys(c,i){const k=['s|'+i,'l|'+i,'c|'+i,'n|'+i];c.workers.forEach((_,j)=>k.push('w|'+i+'|'+j));c.tasks.forEach((_,j)=>k.push('t|'+i+'|'+j));return k}
+function crewCellVal(c,k){const p=k.split('|');return p[0]==='s'?c.site:p[0]==='l'?c.leader:p[0]==='c'?c.car:p[0]==='n'?c.note:p[0]==='w'?c.workers[+p[2]]||'':c.tasks[+p[2]]||''}
+// 把雲端最新的併進來；有別人改到的格子閃一下
+function applyRemote(day,ver){if(!draft||!day)return;const T=normDay(day);const old=draft.crews.map(c=>toCrew(c));const before=snapOf();
+  const R=merge3(draft.base,{crews:draft.crews,restD:draft.restD,restW:draft.restW},T);
+  draft.crews=R.crews;while(draft.crews.length<8)draft.crews.push(blankCrew());draft.restD=R.restD;draft.restW=R.restW;draft.base=T;draft.ver=ver;
+  if(jeq(cmpForm(R),cmpForm(T)))draft.snap=snapOf();
+  localSched(payloadOf({date:draft.date,crews:T.crews,restD:T.restD,restW:T.restW}));
+  if(snapOf()===before)return;draft.last=snapOf();
+  const fl=[];draft.crews.forEach((c,i)=>{const o=old.find(x=>x.id===c.id);crewKeys(c,i).forEach(k=>{if(!o||crewCellVal(o,k)!==crewCellVal(c,k))fl.push(k)})});
+  if(gpopKey){pendingRender=true;return}renderSchedEditor();flashKeys(fl)}
+function flashKeys(ks){ks.forEach(k=>{const td=keyTd(k);if(td){td.classList.remove('remote');void td.offsetWidth;td.classList.add('remote');setTimeout(()=>td.classList.remove('remote'),2600)}})}
+async function syncNow(){if(!schedEdit||!draft||!isAdmin()||syncing||legacy)return;syncing=true;const date=draft.date;
+  try{const r=await api('sched_sync',{date,ver:draft.ver==null?'':draft.ver,focus:gpopKey||''});const d=r.data||{};if(!draft||draft.date!==date)return;showOthers(d.others);
+    if(d.day){if(!saving)applyRemote(d.day,d.ver)}else if(draft.ver==null)draft.ver=d.ver}
+  catch(e){if(/未知的動作/.test(e.message)){legacy=true;api('ed_ping',{date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})}}
+  finally{syncing=false}}
+setInterval(()=>{if(!document.hidden)syncNow()},4000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow()});
 function payloadOf(d){return {date:d.date,auto:true,restD:d.restD.filter(Boolean),restW:d.restW.filter(Boolean),
-  crews:d.crews.map(c=>({site:c.site,siteIds:c.siteIds,leader:c.leader,car:c.car,workers:c.workers.filter(Boolean),tasks:c.tasks.filter(Boolean),note:c.note})).filter(c=>c.site||c.leader||c.car||c.workers.length||c.tasks.length)}}
+  crews:d.crews.map(c=>({id:c.id,site:c.site,siteIds:c.siteIds,leader:c.leader,car:c.car,workers:c.workers.filter(Boolean),tasks:c.tasks.filter(Boolean),note:c.note})).filter(c=>c.site||c.leader||c.car||c.workers.length||c.tasks.length)}}
 // 存好後直接更新畫面上的資料，不用整個重新讀
 function localSched(p){DB.sched=(DB.sched||[]).filter(x=>x.date!==p.date).concat(p.crews.map((c,i)=>({id:'local'+i,date:p.date,no:i+1,siteIds:c.siteIds,site:c.site,siteThai:crewThai(c),leader:c.leader,car:c.car,workers:c.workers,tasks:c.tasks,note:c.note})));
   DB.rest=(DB.rest||[]).filter(x=>x.date!==p.date).concat([{date:p.date,drivers:p.restD,workers:p.restW}]);matchToday()}
-async function cloudSave(){clearTimeout(saveTimer);if(!draft||saving)return;const snap=snapOf();if(snap===draft.snap)return;const p=payloadOf(draft);saving=true;setSaveState('saving');
-  try{const rs=await api('sched_save',p);showOthers((rs.data||{}).others);localSched(p);if(draft&&draft.date===p.date)draft.snap=snap;saving=false;setSaveState('ok');keepDraft()}
+async function cloudSave(){clearTimeout(saveTimer);if(!draft||saving)return;if(snapOf()===draft.snap)return;
+  if(draft.ver==null&&!legacy)await syncNow();if(!draft)return;const snap=snapOf();if(snap===draft.snap)return;
+  const p=payloadOf(draft);if(draft.ver!=null)p.ver=draft.ver;saving=true;setSaveState('saving');
+  try{const rs=await api('sched_save',p);const d=rs.data||{};showOthers(d.others);
+    if(d.conflict){saving=false;if(draft&&draft.date===p.date)applyRemote(d.day,d.ver);setSaveState('wait');clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,200);return}
+    localSched(p);if(draft&&draft.date===p.date){draft.snap=snap;if(d.ver!=null){draft.ver=d.ver;draft.base=normDay(p)}}saving=false;setSaveState('ok');keepDraft()}
   catch(e){saving=false;setSaveState('err',e.message);saveTimer=setTimeout(cloudSave,8000);return}
   if(draft&&snapOf()!==draft.snap){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,600)}}
 async function flushSave(){for(let n=0;n<60;n++){if(!draft||(!saving&&snapOf()===draft.snap))return true;
@@ -2470,7 +2518,7 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   else if(act==='up'){const c=draft.crews.splice(i,1)[0];draft.crews.splice(i-1,0,c);renderSchedEditor()}
   else if(act==='rmsite'){const c=draft.crews[i];const lines=crewSites(c);const gone=lines.splice(+b.dataset.j,1)[0];c.site=lines.join('\n');const s=sites.find(x=>x.name===gone);if(s)c.siteIds=c.siteIds.filter(x=>x!==s.id);renderSchedEditor()}
   else if(act==='copy'){const prev=addDays(draft.date,-1);const src=crewsOf(prev);if(!src.length){toast('前一天沒有排班');return}
-    draft.crews=src.map(toCrew);while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班')}
+    draft.crews=src.map(c=>toCrew(Object.assign({},c,{id:''})));while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班')}
   else if(act==='done'){b.disabled=true;b.textContent='儲存中…';const ok=await flushSave();b.disabled=false;b.textContent='完成';
     if(!ok){toast('還沒存到雲端（'+(saveSt.m||'網路問題')+'），請再按一次');return}
     schedDate=draft.date;schedEdit=false;draft=null;dropDraft();renderToday();api('thai_fill',{}).then(()=>load()).catch(()=>{});load()}},true);
