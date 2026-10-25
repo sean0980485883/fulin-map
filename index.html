@@ -1236,6 +1236,8 @@ html.mt .group h2{color:#B5651D}
 .board.edit td.othered::after{content:attr(data-who);position:absolute;right:0;top:-1px;transform:translateY(-100%);background:#F59E0B;color:#1E1E1E;font-size:10px;font-weight:700;padding:0 5px;border-radius:4px 4px 0 0;white-space:nowrap;z-index:3;pointer-events:none}
 @keyframes remoteFlash{0%{box-shadow:inset 0 0 0 3px #A855F7;background-color:#F3E8FF}100%{box-shadow:inset 0 0 0 0 transparent}}
 .board.edit td.remote,.remote{animation:remoteFlash 2.5s ease-out}
+
+.edothers .kickbtn{margin-left:10px;padding:3px 10px;font-size:12px;vertical-align:middle}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2426,7 +2428,7 @@ document.addEventListener('keydown',e=>{if(!schedEdit||!(e.metaKey||e.ctrlKey)||
 let edOthers=[];
 function showOthers(list){edOthers=list||[];const el=$('edOthers');if(el){el.hidden=!edOthers.length;el.innerHTML=othersText()}markOthers()}
 function markOthers(){document.querySelectorAll('.othered').forEach(x=>{x.classList.remove('othered');x.removeAttribute('data-who')});if(!schedEdit)return;edOthers.forEach(o=>{if(!o.key)return;const td=keyTd(o.key);if(td){td.classList.add('othered');td.dataset.who=o.name}})}
-function othersText(){return edOthers.length?'👥 '+edOthers.map(o=>esc(o.name)).join('、')+' 也在編輯這一天：大家改的會自動合併，框起來的格子是對方正在改的（同一格同時改，以後存的為準）':''}
+function othersText(){return edOthers.length?'👥 '+edOthers.map(o=>esc(o.name)).join('、')+' 也在編輯這一天：大家改的會自動合併，框起來的格子是對方正在改的（同一格同時改，以後存的為準）'+(legacy?'':'<button type="button" class="btn kickbtn" data-e="kick">🚪 請其他人離開</button>'):''}
 setInterval(()=>{if(legacy&&schedEdit&&draft&&isAdmin())api('ed_ping',{date:draft.date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})},30000);
 // ---- 像 Google 試算表一樣自動存到雲端 ----
 let saveTimer=null,saving=false,saveSt={s:'',m:'',t:''};
@@ -2463,9 +2465,13 @@ function applyRemote(day,ver){if(!draft||!day)return;const T=normDay(day);const 
 function flashKeys(ks){ks.forEach(k=>{const td=keyTd(k);if(td){td.classList.remove('remote');void td.offsetWidth;td.classList.add('remote');setTimeout(()=>td.classList.remove('remote'),2600)}})}
 async function syncNow(){if(!schedEdit||!draft||!isAdmin()||syncing||legacy)return;syncing=true;const date=draft.date;
   try{const r=await api('sched_sync',{date,ver:draft.ver==null?'':draft.ver,focus:gpopKey||''});const d=r.data||{};if(!draft||draft.date!==date)return;showOthers(d.others);
-    if(d.day){if(!saving)applyRemote(d.day,d.ver)}else if(draft.ver==null)draft.ver=d.ver}
+    if(d.day){if(!saving)applyRemote(d.day,d.ver)}else if(draft.ver==null)draft.ver=d.ver;if(d.kicked)kickedOut(d.kicked.by)}
   catch(e){if(/未知的動作/.test(e.message)){legacy=true;api('ed_ping',{date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})}}
   finally{syncing=false}}
+// 被別人請離開：先把改到一半的存好，再切回總表
+async function kickedOut(by){if(!schedEdit||!draft)return;closePick();try{await Promise.race([flushSave(),new Promise(r=>setTimeout(r,6000))])}catch(e){}
+  if(!schedEdit||!draft)return;schedDate=draft.date;schedEdit=false;draft=null;dropDraft();renderToday();load();
+  openModal('已切回總表','<div class="foot" style="font-size:15px">「'+esc(by||'管理者')+'」接手編輯這一天，所以先把你切回總表。你剛剛改的已經存好了。<br>如果還要改，可以再按「編輯這天排班」。</div>',[['知道了','close','primary']],()=>true)}
 setInterval(()=>{if(!document.hidden)syncNow()},4000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow()});
 function payloadOf(d){return {date:d.date,auto:true,restD:d.restD.filter(Boolean),restW:d.restW.filter(Boolean),
@@ -2519,6 +2525,8 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   else if(act==='rmsite'){const c=draft.crews[i];const lines=crewSites(c);const gone=lines.splice(+b.dataset.j,1)[0];c.site=lines.join('\n');const s=sites.find(x=>x.name===gone);if(s)c.siteIds=c.siteIds.filter(x=>x!==s.id);renderSchedEditor()}
   else if(act==='copy'){const prev=addDays(draft.date,-1);const src=crewsOf(prev);if(!src.length){toast('前一天沒有排班');return}
     draft.crews=src.map(c=>toCrew(Object.assign({},c,{id:''})));while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班')}
+  else if(act==='kick'){const names=edOthers.map(o=>o.name).join('、');if(!confirm('要請「'+names+'」離開這一天的排班編輯嗎？\n他們改到一半的會先存好，然後被切回總表。'))return;
+    try{const r=await api('sched_kick',{date:draft.date});const n=(r.data||{}).names||[];showOthers([]);toast(n.length?'已請 '+n.join('、')+' 離開（幾秒內生效）':'現在沒有其他人在編輯')}catch(err){toast(/未知的動作/.test(err.message)?'後台還沒更新：請部署新版 富林系統.gs':'沒成功：'+err.message)}}
   else if(act==='done'){b.disabled=true;b.textContent='儲存中…';const ok=await flushSave();b.disabled=false;b.textContent='完成';
     if(!ok){toast('還沒存到雲端（'+(saveSt.m||'網路問題')+'），請再按一次');return}
     schedDate=draft.date;schedEdit=false;draft=null;dropDraft();renderToday();api('thai_fill',{}).then(()=>load()).catch(()=>{});load()}},true);
