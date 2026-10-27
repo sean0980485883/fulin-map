@@ -1238,6 +1238,18 @@ html.mt .group h2{color:#B5651D}
 .board.edit td.remote,.remote{animation:remoteFlash 2.5s ease-out}
 
 .edothers .kickbtn{margin-left:10px;padding:3px 10px;font-size:12px;vertical-align:middle}
+
+/* 管理名單：拖曳換順序 */
+#managePage .lrow.dg{grid-template-columns:22px minmax(0,1fr) auto auto}
+#managePage .lrow.t2.dg{grid-template-columns:22px minmax(0,1fr) minmax(0,1fr) auto}
+#managePage .lrow.acc.dg{grid-template-columns:22px 1fr 1fr 70px auto auto}
+.lgrip{display:flex;align-items:center;justify-content:center;height:34px;border-radius:6px;color:var(--muted);font-size:16px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.lgrip:hover{background:var(--hover);color:var(--accent)}
+#managePage .lrow.ldrag{opacity:.45}
+#managePage .lrow.lbefore{box-shadow:0 -3px 0 var(--accent)}
+#managePage .lrow.lafter{box-shadow:0 3px 0 var(--accent)}
+@keyframes needsave{0%,100%{box-shadow:0 0 0 0 rgba(255,160,40,.0)}50%{box-shadow:0 0 0 6px rgba(255,160,40,.45)}}
+.btn.needsave{animation:needsave 1.2s ease-in-out infinite}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2769,7 +2781,7 @@ let mdraft=null,mdirty=false;
 let accDraft=null;
 function renderAcc(){const el=$('accCard');if(!el)return;if(!accDraft){el.querySelector('.foot').textContent='讀取中…';return}
   el.innerHTML='<h3>登入帳號 <button class="btn primary" data-acc="save">儲存</button></h3><div class="foot">每個人一組自己的密碼，紀錄會寫是誰改的。密碼留空＝不變。原本的共用密碼還是能用。</div>'+
-   accDraft.map((u,i)=>'<div class="lrow acc"><input data-ak="name" data-i="'+i+'" value="'+esc(u.name)+'" placeholder="名字"><input data-ak="pin" data-i="'+i+'" value="'+esc(u.pin||'')+'" placeholder="'+(u.hasPin?'密碼（不改留空）':'設定密碼')+'" inputmode="numeric" autocomplete="off"><select data-ak="role" data-i="'+i+'"><option'+(u.role==='管理'?' selected':'')+'>管理</option><option'+(u.role==='現場'?' selected':'')+'>現場</option></select><label class="accon"><input type="checkbox" data-ak="on" data-i="'+i+'"'+(u.on!==false?' checked':'')+'>啟用</label><button data-adel="'+i+'" aria-label="刪除">×</button></div>').join('')+
+   accDraft.map((u,i)=>'<div class="lrow acc dg"><span class="lgrip" data-list="acc" data-i="'+i+'" title="按住拖曳換順序">⠿</span><input data-ak="name" data-i="'+i+'" value="'+esc(u.name)+'" placeholder="名字"><input data-ak="pin" data-i="'+i+'" value="'+esc(u.pin||'')+'" placeholder="'+(u.hasPin?'密碼（不改留空）':'設定密碼')+'" inputmode="numeric" autocomplete="off"><select data-ak="role" data-i="'+i+'"><option'+(u.role==='管理'?' selected':'')+'>管理</option><option'+(u.role==='現場'?' selected':'')+'>現場</option></select><label class="accon"><input type="checkbox" data-ak="on" data-i="'+i+'"'+(u.on!==false?' checked':'')+'>啟用</label><button data-adel="'+i+'" aria-label="刪除">×</button></div>').join('')+
    '<button class="btn" data-acc="add">＋ 新增帳號</button>'}
 function loadAcc(){api('users_list',{}).then(r=>{accDraft=(r.data.users||[]).map(u=>Object.assign({},u,{pin:''}));renderAcc()}).catch(err=>{const el=$('accCard');if(el)el.querySelector('.foot').textContent=/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回並部署新版本':err.message})}
 function renderManage(){const el=$('managePage');if(!isAdmin()){el.innerHTML='';return}
@@ -2778,10 +2790,24 @@ function renderManage(){const el=$('managePage');if(!isAdmin()){el.innerHTML='';
   el.innerHTML='<div class="pagehead"><h2>管理<small>名單與設定</small></h2>'+(DB.sheetUrl?'<a class="btn" href="'+DB.sheetUrl+'" target="_blank" rel="noopener">打開資料庫試算表（備份）</a>':'')+'</div>'+
   '<div class="mgrid">'+
   '<div class="mcard" id="accCard"><h3>登入帳號 <button class="btn primary" data-acc="save">儲存</button></h3><div class="foot">讀取中…</div></div>'+
-  '<div class="mcard"><h3>人員 <button class="btn primary" data-ms="people">儲存</button></h3>'+mdraft.people.map((p,i)=>'<div class="lrow"><input data-mk="people" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><select data-mk="people" data-i="'+i+'" data-f="kind">'+kinds.map(k=>'<option'+(k===p.kind?' selected':'')+'>'+k+'</option>').join('')+'</select><button data-mdel="people" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="people">＋ 新增人員</button></div>'+
-  '<div class="mcard"><h3>車輛 <button class="btn primary" data-ms="cars">儲存</button></h3>'+mdraft.cars.map((p,i)=>'<div class="lrow" style="grid-template-columns:1fr auto"><input data-mk="cars" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><button data-mdel="cars" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="cars">＋ 新增車輛</button></div>'+
-  '<div class="mcard"><h3>施作項目（中／泰） <button class="btn primary" data-ms="tasks">儲存</button></h3><div class="foot">泰文留空，儲存時會自動翻譯。</div>'+mdraft.tasks.map((p,i)=>'<div class="lrow t2"><input data-mk="tasks" data-i="'+i+'" data-f="zh" value="'+esc(p.zh)+'"><input data-mk="tasks" data-i="'+i+'" data-f="th" value="'+esc(p.th)+'"><button data-mdel="tasks" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="tasks">＋ 新增項目</button></div>'+
+  '<div class="mcard"><h3>人員 <button class="btn primary" data-ms="people">儲存</button></h3><div class="foot">按住左邊 ⠿ 上下拖曳可以換順序（排班選人時也照這個順序），改完記得按「儲存」。</div>'+mdraft.people.map((p,i)=>'<div class="lrow dg"><span class="lgrip" data-list="people" data-i="'+i+'" title="按住拖曳換順序">⠿</span><input data-mk="people" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><select data-mk="people" data-i="'+i+'" data-f="kind">'+kinds.map(k=>'<option'+(k===p.kind?' selected':'')+'>'+k+'</option>').join('')+'</select><button data-mdel="people" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="people">＋ 新增人員</button></div>'+
+  '<div class="mcard"><h3>車輛 <button class="btn primary" data-ms="cars">儲存</button></h3>'+mdraft.cars.map((p,i)=>'<div class="lrow dg" style="grid-template-columns:22px 1fr auto"><span class="lgrip" data-list="cars" data-i="'+i+'" title="按住拖曳換順序">⠿</span><input data-mk="cars" data-i="'+i+'" data-f="name" value="'+esc(p.name)+'"><button data-mdel="cars" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="cars">＋ 新增車輛</button></div>'+
+  '<div class="mcard"><h3>施作項目（中／泰） <button class="btn primary" data-ms="tasks">儲存</button></h3><div class="foot">泰文留空，儲存時會自動翻譯。</div>'+mdraft.tasks.map((p,i)=>'<div class="lrow t2 dg"><span class="lgrip" data-list="tasks" data-i="'+i+'" title="按住拖曳換順序">⠿</span><input data-mk="tasks" data-i="'+i+'" data-f="zh" value="'+esc(p.zh)+'"><input data-mk="tasks" data-i="'+i+'" data-f="th" value="'+esc(p.th)+'"><button data-mdel="tasks" data-i="'+i+'" aria-label="刪除">×</button></div>').join('')+'<button class="btn" data-madd="tasks">＋ 新增項目</button></div>'+
   '</div><div class="foot">密碼在 Apps Script 的「指令碼屬性」修改：ADMIN_PIN（管理）、FIELD_PIN（現場）。每一筆寫入都記錄在資料庫的「紀錄」分頁。</div>';if(accDraft)renderAcc();else loadAcc()}
+// ---- 管理名單：按住 ⠿ 拖曳換順序（滑鼠、手機都可以） ----
+let ld=null;
+function ldClear(){document.querySelectorAll('#managePage .lrow.ldrag,#managePage .lrow.lbefore,#managePage .lrow.lafter').forEach(r=>r.classList.remove('ldrag','lbefore','lafter'))}
+$('managePage').addEventListener('pointerdown',e=>{const g=e.target.closest('.lgrip');if(!g)return;e.preventDefault();const row=g.closest('.lrow');
+  ld={list:g.dataset.list,from:+g.dataset.i,card:row.parentElement,to:null};row.classList.add('ldrag');try{g.setPointerCapture(e.pointerId)}catch(x){}});
+$('managePage').addEventListener('pointermove',e=>{if(!ld)return;e.preventDefault();const rows=[...ld.card.querySelectorAll(':scope>.lrow')];let to=rows.length;
+  for(let i=0;i<rows.length;i++){const r=rows[i].getBoundingClientRect();if(e.clientY<r.top+r.height/2){to=i;break}}ld.to=to;
+  rows.forEach((r,i)=>{r.classList.toggle('lbefore',i===to);r.classList.toggle('lafter',to===rows.length&&i===rows.length-1)});
+  const v=$('v-manage');if(e.clientY>innerHeight-70)v.scrollTop+=14;else if(e.clientY<110)v.scrollTop-=14});
+function ldEnd(){if(!ld)return;const {list,from}=ld;let to=ld.to;ldClear();ld=null;if(to==null)return;if(to>from)to--;if(to===from)return;
+  const arr=list==='acc'?accDraft:mdraft[list];if(!arr)return;const x=arr.splice(from,1)[0];arr.splice(to,0,x);
+  if(list==='acc')renderAcc();else{mdirty=true;renderManage()}
+  const b=document.querySelector(list==='acc'?'#managePage [data-acc=save]':'#managePage [data-ms="'+list+'"]');if(b)b.classList.add('needsave');toast('順序已調整，記得按「儲存」')}
+$('managePage').addEventListener('pointerup',ldEnd);$('managePage').addEventListener('pointercancel',()=>{ldClear();ld=null});
 $('managePage').addEventListener('input',e=>{const t=e.target;if(t.dataset.ak&&accDraft){const u=accDraft[+t.dataset.i];u[t.dataset.ak]=t.type==='checkbox'?t.checked:t.value;return}if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
 $('managePage').addEventListener('change',e=>{const t=e.target;if(t.dataset.ak&&accDraft){const u=accDraft[+t.dataset.i];u[t.dataset.ak]=t.type==='checkbox'?t.checked:t.value;return}if(t.dataset.mk)mdirty=true,mdraft[t.dataset.mk][+t.dataset.i][t.dataset.f]=t.value});
 $('managePage').addEventListener('click',async e=>{const ac=e.target.closest('[data-acc],[data-adel]');if(ac&&accDraft){
