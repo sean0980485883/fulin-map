@@ -2458,7 +2458,16 @@ const DKEY='fulin-sched-draft';
 function keepDraft(){if(draft){const cur=snapOf();draft.hist=draft.hist||[];if(draft.last&&cur!==draft.last){draft.hist.push(draft.last);if(draft.hist.length>60)draft.hist.shift();draft.fut=[]}draft.last=cur;
     const u=$('undoBtn');if(u)u.disabled=!draft.hist.length;const rd=$('redoBtn');if(rd)rd.disabled=!(draft.fut&&draft.fut.length)}
   const dirty=schedEdit&&draft&&snapOf()!==draft.snap;try{if(dirty)localStorage.setItem(DKEY,JSON.stringify(Object.assign({},draft,{hist:undefined,last:undefined,fut:undefined})));else localStorage.removeItem(DKEY)}catch(e){}
-  if(dirty&&!saving){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,1200);setSaveState('wait')}markOthers()}
+  if(dirty&&!saving){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,1200);setSaveState('wait')}markOthers();queueTaskTh()}
+// ---- 施作項目沒有泰文：背景自動翻，翻好加進「管理 → 施作項目」（翻譯老師可以在那裡修改）----
+let thPending=new Set(),thTried=new Set(),thTimer=0;
+function taskNeed(){const need=[];if(!draft)return need;draft.crews.forEach(c=>(c.tasks||[]).forEach(t=>{t=String(t||'').trim();if(t&&!taskTh(t)&&!thPending.has(t)&&!thTried.has(t)&&!need.includes(t))need.push(t)}));return need}
+function queueTaskTh(){if(!schedEdit||!draft||!isAdmin()||!taskNeed().length)return;clearTimeout(thTimer);thTimer=setTimeout(runTaskTh,800)}
+async function runTaskTh(){const need=taskNeed();if(!need.length)return;need.forEach(z=>thPending.add(z));
+  try{const r=await api('task_add',{items:need});const m=(r.data||{}).map||{};let got=0;DB.tasks=DB.tasks||[];
+    need.forEach(z=>{thPending.delete(z);thTried.add(z);if(m[z]){const ex=DB.tasks.find(x=>x.zh===z);if(ex){if(!ex.th){ex.th=m[z];got++}}else{DB.tasks.push({zh:z,th:m[z]});got++}}});
+    if(got){try{localStorage.setItem('fulin-db',JSON.stringify(DB))}catch(e){}if(schedEdit){if(gpopKey)pendingRender=true;else renderSchedEditor()}toast('已自動翻好 '+got+' 個施作項目的泰文（可在「管理 → 施作項目」修改）')}}
+  catch(e){need.forEach(z=>{thPending.delete(z);thTried.add(z)})}}
 $('todayPage').addEventListener('toggle',e=>{if(draft&&e.target.classList&&e.target.classList.contains('edsugg'))draft.suggOpen=e.target.open},true);
 // ---- 復原（Ctrl/⌘+Z）：自動存檔也能改回來 ----
 function undoDraft(){if(!draft||!draft.hist||!draft.hist.length){toast('沒有可以復原的了');return}const cur=snapOf();const prev=draft.hist.pop();const a=JSON.parse(prev);
