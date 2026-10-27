@@ -2167,7 +2167,7 @@ function renderSchedEditor(){pendingRender=false;if(isPhone())return renderSched
   const free=allPeople.filter(n=>!usedPeople('').has(n)&&!SPECIAL.test(n));
   let h='<div class="pagehead"><h2>編輯排班<small>點格子 → 點名字。選過的人和車不會再出現</small></h2>'+dayTabs(D.date,'e')+'<div class="actions">'+
    '<input type="date" id="edDate" value="'+D.date+'" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit">'+
-   '<button class="btn" id="undoBtn" data-e="undo" title="復原上一步（⌘/Ctrl+Z）"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr" title="上傳舊的排班截圖，AI 自動填入">📷 從圖片匯入</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
+   '<button class="btn" id="undoBtn" data-e="undo" title="復原上一步（⌘/Ctrl+Z）"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" id="redoBtn" data-e="redo" title="重做：把復原的改回來（⌘/Ctrl+Shift+Z）"'+(draft.fut&&draft.fut.length?'':' disabled')+'>↷ 重做</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr" title="上傳舊的排班截圖，AI 自動填入">📷 從圖片匯入</button><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div></div>'+
    '<div class="edothers" id="edOthers"'+(edOthers.length?'':' hidden')+'>'+othersText()+'</div><div class="freebox"><b>還沒排到的人</b>'+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
    '<div class="clrbar"><details class="clrmenu"><summary>🧹 一次清除</summary><div class="clrpop"><div class="foot">清掉這天所有的：</div>'+
      '<button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="sites">案場</button><button data-e="clr" data-v="all" class="danger">全部清空</button>'+
@@ -2265,7 +2265,7 @@ function renderSchedMobile(){const el=$('todayPage');const D=draft;const dd=toDa
   const restCnt=D.restD.filter(Boolean).length+D.restW.filter(Boolean).length;
   let h='<div class="mhead"><div class="mtop"><b>編輯排班</b><span id="saveSt" class="savest '+saveSt.s+'">'+saveText()+'</span><button class="btn primary" data-e="done">完成</button></div>'+
     dayTabs(D.date,'e')+
-    '<div class="mtools"><button class="btn" id="undoBtn" data-e="undo"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr">📷 匯入</button>'+
+    '<div class="mtools"><button class="btn" id="undoBtn" data-e="undo"'+(draft.hist&&draft.hist.length?'':' disabled')+'>↶ 復原</button><button class="btn" id="redoBtn" data-e="redo"'+(draft.fut&&draft.fut.length?'':' disabled')+'>↷ 重做</button><button class="btn" data-e="copy">複製前一天</button><button class="btn" data-e="ocr">📷 匯入</button>'+
     '<details class="clrmenu"><summary>🧹 清除</summary><div class="clrpop"><button data-e="clr" data-v="people">人員、車、休息</button><button data-e="clr" data-v="tasks">施作項目</button><button data-e="clr" data-v="notes">備註</button><button data-e="clr" data-v="all" class="danger">全部清空</button></div></details></div></div>'+
     '<div class="edothers" id="edOthers"'+(edOthers.length?'':' hidden')+'>'+othersText()+'</div><div class="mfree"><b>還沒排到</b> '+(free.length?esc(free.join('、')):'全部都排了')+'</div>'+edChecks(D)+
     '<details class="mbox"><summary>🏖 休息人員 <small>'+(restCnt?restCnt+' 位':'')+'</small></summary><div class="mrow"><span>司機</span><div class="mchips">'+D.restD.map((v,j)=>gsel('rd|'+j,[],v,new Set())).join('')+'</div></div>'+
@@ -2433,15 +2433,20 @@ document.addEventListener('keydown',e=>{if(!$('gpop'))return;if(e.key==='Escape'
 $('todayPage').addEventListener('input',e=>{const t=e.target;if(schedEdit&&t.dataset.note!==undefined){draft.crews[+t.dataset.note].note=t.value;keepDraft()}});
 // 編輯中的排班隨時存在這台電腦，重新整理、手機鎖屏、不小心關掉都不會不見
 const DKEY='fulin-sched-draft';
-function keepDraft(){if(draft){const cur=snapOf();draft.hist=draft.hist||[];if(draft.last&&cur!==draft.last){draft.hist.push(draft.last);if(draft.hist.length>60)draft.hist.shift()}draft.last=cur;
-    const u=$('undoBtn');if(u)u.disabled=!draft.hist.length}
-  const dirty=schedEdit&&draft&&snapOf()!==draft.snap;try{if(dirty)localStorage.setItem(DKEY,JSON.stringify(Object.assign({},draft,{hist:undefined,last:undefined})));else localStorage.removeItem(DKEY)}catch(e){}
+function keepDraft(){if(draft){const cur=snapOf();draft.hist=draft.hist||[];if(draft.last&&cur!==draft.last){draft.hist.push(draft.last);if(draft.hist.length>60)draft.hist.shift();draft.fut=[]}draft.last=cur;
+    const u=$('undoBtn');if(u)u.disabled=!draft.hist.length;const rd=$('redoBtn');if(rd)rd.disabled=!(draft.fut&&draft.fut.length)}
+  const dirty=schedEdit&&draft&&snapOf()!==draft.snap;try{if(dirty)localStorage.setItem(DKEY,JSON.stringify(Object.assign({},draft,{hist:undefined,last:undefined,fut:undefined})));else localStorage.removeItem(DKEY)}catch(e){}
   if(dirty&&!saving){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,1200);setSaveState('wait')}markOthers()}
 $('todayPage').addEventListener('toggle',e=>{if(draft&&e.target.classList&&e.target.classList.contains('edsugg'))draft.suggOpen=e.target.open},true);
 // ---- 復原（Ctrl/⌘+Z）：自動存檔也能改回來 ----
-function undoDraft(){if(!draft||!draft.hist||!draft.hist.length){toast('沒有可以復原的了');return}const prev=draft.hist.pop();const a=JSON.parse(prev);
-  draft.date=a[0];draft.restD=a[1];draft.restW=a[2];draft.crews=a[3];draft.last=prev;closePick();renderSchedEditor();toast('已復原上一步')}
-document.addEventListener('keydown',e=>{if(!schedEdit||!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='z'||e.shiftKey)return;const t=e.target;if(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.id!=='gpq'))return;e.preventDefault();undoDraft()});
+function undoDraft(){if(!draft||!draft.hist||!draft.hist.length){toast('沒有可以復原的了');return}const cur=snapOf();const prev=draft.hist.pop();const a=JSON.parse(prev);
+  draft.fut=draft.fut||[];draft.fut.push(cur);
+  draft.date=a[0];draft.restD=a[1];draft.restW=a[2];draft.crews=a[3];draft.last=prev;closePick();renderSchedEditor();toast('已復原上一步（按「↷ 重做」可以改回來）')}
+// ---- 重做（Ctrl/⌘+Shift+Z、Ctrl+Y）：復原過頭可以再做回來 ----
+function redoDraft(){if(!draft||!draft.fut||!draft.fut.length){toast('沒有可以重做的了');return}const cur=snapOf();const nx=draft.fut.pop();const a=JSON.parse(nx);
+  draft.hist=draft.hist||[];draft.hist.push(cur);
+  draft.date=a[0];draft.restD=a[1];draft.restW=a[2];draft.crews=a[3];draft.last=nx;closePick();renderSchedEditor();toast('已重做')}
+document.addEventListener('keydown',e=>{if(!schedEdit||!(e.metaKey||e.ctrlKey))return;const k=e.key.toLowerCase();if(k!=='z'&&k!=='y')return;const t=e.target;if(t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&t.id!=='gpq'))return;e.preventDefault();if(k==='y'||e.shiftKey)redoDraft();else undoDraft()});
 // ---- 誰也在編輯這一天（每 30 秒問一次）----
 let edOthers=[];
 function showOthers(list){edOthers=list||[];const el=$('edOthers');if(el){el.hidden=!edOthers.length;el.innerHTML=othersText()}markOthers()}
@@ -2524,6 +2529,7 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   if(act==='squote'){openQuotesModal(sites.find(x=>x.name===b.dataset.v),b.dataset.v);return}
   if(act==='ocr'){schedFromImage();return}
   if(act==='undo'){undoDraft();return}
+  if(act==='redo'){redoDraft();return}
   if(act==='clr'){const v=b.dataset.v;const det=b.closest('details');if(det)det.open=false;doClear(allKeys(),v);return}
   if(act==='selclr'){doClear(edSel,b.dataset.v);return}
   if(act==='selnone'){edSel=new Set();paintSel();return}
