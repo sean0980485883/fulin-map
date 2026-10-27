@@ -2056,8 +2056,11 @@ function meBanner(d){const n=meName;const rest=restOf(d);const crews=crewsOf(d);
 // 一組的出車資料（跟「排路線→分享路線」同一套，精簡版）：案場、聯絡人電話、地址、導航
 function crewShareText(c){const L=['【'+mdw(c.date)+'】'+[c.leader,c.car].filter(Boolean).join('｜')];let n=0;
   crewSites(c).forEach(l=>{const s=siteMatch(c,l);if(SPECIAL_SITES.includes(l)){L.push('・'+l);return}n++;
-    L.push(n+'. '+l+(s&&(s.contact||s.phone)?'｜'+[s.contact,s.phone].filter(Boolean).join(' '):''));if(s&&s.address)L.push('   '+s.address)});
+    const ct=s&&s.contact&&!l.includes(s.contact)?s.contact:'';L.push(n+'. '+l+(ct?'｜'+ct:''));
+    if(s&&s.phone)telList(s.phone).forEach(t=>L.push('📞 '+t));if(s&&s.address)L.push('📍 '+s.address)});
   const u=crewNavUrl(c);if(u)L.push('導航：'+u);return L.join('\n')}
+// 電話自己一行、加上「-」，LINE 比較會變成可以直接點的藍字（手機版）
+function telList(p){return String(p||'').split(/[\s,，、\/；;]+/).filter(x=>x.replace(/[^\d]/g,'').length>=7).map(x=>{const d=x.replace(/[^\d+]/g,'');return /^09\d{8}$/.test(d)?d.slice(0,4)+'-'+d.slice(4,7)+'-'+d.slice(7):x})}
 // 全部複製：每個有帶頭的組，一組一段（人名、電話、地址、導航連結）
 function allShareText(d){const cs=crewsOf(d).filter(c=>String(c.leader||'').trim()&&crewSites(c).length);if(!cs.length)return '【'+mdw(d)+'】這天還沒有排班';
   return '【富林組合屋 '+mdw(d)+' 出車】\n\n'+cs.map((c,k)=>{const L=crewShareText(c).split('\n');L[0]=(k+1)+') '+[c.leader,c.car].filter(Boolean).join('｜');return L.join('\n')}).join('\n\n')}
