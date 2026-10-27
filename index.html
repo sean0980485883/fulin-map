@@ -1250,6 +1250,12 @@ html.mt .group h2{color:#B5651D}
 #managePage .lrow.lafter{box-shadow:0 3px 0 var(--accent)}
 @keyframes needsave{0%,100%{box-shadow:0 0 0 0 rgba(255,160,40,.0)}50%{box-shadow:0 0 0 6px rgba(255,160,40,.45)}}
 .btn.needsave{animation:needsave 1.2s ease-in-out infinite}
+
+/* 同一組多個案場：↑ 往上移 */
+.board.edit .sitechips span button[data-e=siteup],.mchips em button[data-e=siteup]{display:inline-flex!important;align-items:center;justify-content:center;width:18px;height:18px;margin-left:3px;border-radius:50%;color:#1F63E0!important;font-size:11px;font-weight:700;background:#E6F0FF!important;border:0;cursor:pointer;opacity:.55}
+.board.edit td.site:hover .sitechips span button[data-e=siteup]{opacity:1}
+.board.edit .sitechips span button[data-e=siteup]:hover,.mchips em button[data-e=siteup]:hover{background:#1F63E0!important;color:#fff!important}
+.mchips em button[data-e=siteup]{opacity:1;width:24px;height:24px}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2176,7 +2182,7 @@ function renderSchedEditor(){pendingRender=false;if(isPhone())return renderSched
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
     h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）"><span class="grip" draggable="true" data-gi="'+i+'" title="按住拖曳，可以把這組拉到別的順序">⠿</span>'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<button type="button" class="addsite" data-e="addsite" data-i="'+i+'" title="這組再加一個案場">＋案場</button><div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
-      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="刪掉這個案場" title="刪掉這個案場">✕</button></span>').join('')+'</div>'+
+      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+(j?'<button data-e="siteup" data-i="'+i+'" data-j="'+j+'" aria-label="往上移" title="往上移（導航順序也會跟著改）">↑</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="刪掉這個案場" title="刪掉這個案場">✕</button></span>').join('')+'</div>'+
         '<button type="button" class="gcell gsite'+(siteList.length?' more':'')+('s|'+i===gpopKey?' act':'')+'" title="'+(siteList.length?'再加一個案場':'選案場')+'" data-g="s|'+i+'">'+(siteList.length?'＋':'＋ 選案場')+'</button></td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
       '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
@@ -2272,7 +2278,7 @@ function renderSchedMobile(){const el=$('todayPage');const D=draft;const dd=toDa
       '<button class="mch" data-e="mtog" data-i="'+i+'"><span class="mno">'+(i+1)+'</span><span class="mcs"><b>'+(sl.length?esc(sl.join('、')):'（還沒選案場）')+'</b>'+
         '<small>'+esc([c.leader,c.car,nW?nW+' 人':''].filter(Boolean).join('｜')||'點這裡填')+'</small></span><i>'+(open?'▲':'▼')+'</i></button>';
     if(open){h+='<div class="mcb">'+
-      '<div class="mrow"><span>案場</span><div class="mchips">'+sl.map((l,j)=>'<em>'+esc(l)+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></em>').join('')+
+      '<div class="mrow"><span>案場</span><div class="mchips">'+sl.map((l,j)=>'<em>'+esc(l)+(j?'<button data-e="siteup" data-i="'+i+'" data-j="'+j+'" aria-label="往上移" title="往上移（導航順序也會跟著改）">↑</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></em>').join('')+
         '<button type="button" class="gcell madd" data-g="s|'+i+'">＋ 案場</button></div></div>'+
       (sl.length?'<div class="mthai">'+esc(crewThai(c)).replace(/\n/g,'、')+'</div>':'')+
       '<div class="mrow two"><div><span>帶頭</span>'+gsel('l|'+i,[],c.leader,new Set())+'</div><div><span>車</span>'+gsel('c|'+i,[],c.car,new Set())+'</div></div>'+
@@ -2534,6 +2540,7 @@ $('todayPage').addEventListener('click',async e=>{if(!schedEdit)return;
   else if(act==='del'){const c=draft.crews[i];const empty=!c.site&&!c.leader&&!c.car&&!c.workers.some(Boolean)&&!c.tasks.some(Boolean);
     if(empty&&draft.crews.length>1)draft.crews.splice(i,1);else draft.crews[i]=blankCrew();renderSchedEditor()}
   else if(act==='up'){const c=draft.crews.splice(i,1)[0];draft.crews.splice(i-1,0,c);renderSchedEditor()}
+  else if(act==='siteup'){const c=draft.crews[i];const lines=crewSites(c);const j=+b.dataset.j;if(j>0){const t=lines[j-1];lines[j-1]=lines[j];lines[j]=t;c.site=lines.join('\n');renderSchedEditor()}}
   else if(act==='rmsite'){const c=draft.crews[i];const lines=crewSites(c);const gone=lines.splice(+b.dataset.j,1)[0];c.site=lines.join('\n');const s=sites.find(x=>x.name===gone);if(s)c.siteIds=c.siteIds.filter(x=>x!==s.id);renderSchedEditor()}
   else if(act==='copy'){const prev=addDays(draft.date,-1);const src=crewsOf(prev);if(!src.length){toast('前一天沒有排班');return}
     draft.crews=src.map(c=>toCrew(Object.assign({},c,{id:''})));while(draft.crews.length<8)draft.crews.push(blankCrew());const r=restOf(prev);draft.restD=pad4(r.drivers);draft.restW=pad4(r.workers);renderSchedEditor();toast('已複製 '+mdw(prev)+' 的排班')}
