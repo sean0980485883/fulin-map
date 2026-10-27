@@ -1256,6 +1256,11 @@ html.mt .group h2{color:#B5651D}
 .board.edit td.site:hover .sitechips span button[data-e=siteup]{opacity:1}
 .board.edit .sitechips span button[data-e=siteup]:hover,.mchips em button[data-e=siteup]:hover{background:#1F63E0!important;color:#fff!important}
 .mchips em button[data-e=siteup]{opacity:1;width:24px;height:24px}
+
+/* 狀態方塊拖曳換順序 */
+.chip{touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.chip.cdrag{opacity:.5;transform:scale(.95)}
+.chip.cdrop{outline:2px dashed var(--accent);outline-offset:2px}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -1322,6 +1327,8 @@ const BUCKETS=[
   {k:'done',label:'已完工',c:'--done',bg:'--done-bg'}
 ];
 const BK=Object.fromEntries(BUCKETS.map(b=>[b.k,b]));
+// 上面五個狀態方塊的順序：可以拖曳調整，每台裝置記住自己的（下面列表的分組也照這個順序）
+try{const o=JSON.parse(localStorage.getItem('fulin-chip-order')||'null');if(Array.isArray(o)&&o.length===BUCKETS.length&&o.every(k=>BK[k])){const a=o.map(k=>BK[k]);BUCKETS.splice(0,BUCKETS.length,...a)}}catch(e){}
 
 // ---------- parsing ----------
 function parseStatus(v){v=String(v||'');
@@ -1456,7 +1463,16 @@ $('fit').onclick=fitAll;
 // ---------- panel ----------
 function renderChips(){const c={issue:0,active:0,week:0,later:0,done:0};sites.forEach(s=>c[bucket(s)]++);
   $('chips').innerHTML=BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+filters.has(b.k)+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
-$('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const k=b.dataset.k;
+let chipDrag=null,chipDragged=false;
+$('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
+$('chips').addEventListener('pointermove',e=>{if(!chipDrag)return;if(!chipDrag.on){if(Math.hypot(e.clientX-chipDrag.x,e.clientY-chipDrag.y)<8)return;chipDrag.on=true;chipDrag.el.classList.add('cdrag');try{chipDrag.el.setPointerCapture(chipDrag.id)}catch(x){}}
+  e.preventDefault();const cs=[...$('chips').querySelectorAll('.chip')];let best=0,bd=1e9;cs.forEach((c,i)=>{const r=c.getBoundingClientRect();const d=Math.abs(e.clientX-(r.left+r.width/2))+Math.abs(e.clientY-(r.top+r.height/2))*2;if(d<bd){bd=d;best=i}});
+  chipDrag.to=best;cs.forEach((c,i)=>c.classList.toggle('cdrop',i===best&&c!==chipDrag.el))});
+function chipEnd(){if(!chipDrag)return;const d=chipDrag;chipDrag=null;if(!d.on)return;chipDragged=true;setTimeout(()=>chipDragged=false,50);
+  const from=BUCKETS.findIndex(b=>b.k===d.k);if(d.to==null||d.to===from){renderChips();return}const x=BUCKETS.splice(from,1)[0];BUCKETS.splice(d.to,0,x);
+  try{localStorage.setItem('fulin-chip-order',JSON.stringify(BUCKETS.map(b=>b.k)))}catch(e){}render();toast('順序已調整（這台裝置會記住）')}
+$('chips').addEventListener('pointerup',chipEnd);$('chips').addEventListener('pointercancel',()=>{chipDrag=null;renderChips()});
+$('chips').addEventListener('click',e=>{if(chipDragged){chipDragged=false;return}const b=e.target.closest('.chip');if(!b)return;const k=b.dataset.k;
   filters.has(k)?filters.delete(k):filters.add(k);try{localStorage.setItem('fulin-map-filters',JSON.stringify([...filters]))}catch(e){}render()});
 $('q').addEventListener('input',render);
 
