@@ -1267,6 +1267,11 @@ html.mt{--ink:#111111;--muted:#45404D}
 html.mt .pin .lbl{color:#111;font-weight:600}
 html.mt .pin.hl .lbl,html.mt .pin:hover .lbl{background:#fff;color:#111;border:2px solid #D9822B;font-weight:700;text-shadow:none}
 html.mt .glogo{color:#111!important}
+
+/* 總表：導航欄上方「全部複製」 */
+.navall{display:flex;flex-direction:column;align-items:center;gap:1px;width:100px;margin:0 0 6px;border:0;background:#D9822B;color:#fff;border-radius:10px;padding:6px 4px;font-size:16px;line-height:1;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.navall small{font-size:11px;font-weight:700}
+.navall:hover{filter:brightness(1.08)}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2001,7 +2006,7 @@ function crewNavUrl(c){const stops=crewNavStops(c);
 function boardHtml(d){const meName_=boardPlain?'':meName;const crews=crewsOf(d),rest=restOf(d);const dd=toDate(d);
   const total=crews.reduce((a,c)=>a+c.workers.length,0);
   let h='<table class="board" id="boardTbl"><tbody>'+
-   '<tr>'+(boardPlain?'':'<td rowspan="3" class="navc navh">導航</td>')+'<td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td><td class="restv" colspan="5">'+esc(rest.drivers.join('、')||'')+'</td></tr>'+
+   '<tr>'+(boardPlain?'':'<td rowspan="3" class="navc navh"><button type="button" class="navall" data-t="navcopyall" data-d="'+d+'" title="把每個司機今天去哪（人名、電話、地址、導航連結）一次複製，貼到 LINE 群組">🔗<small>全部複製</small></button>導航</td>')+'<td colspan="2" class="dt">'+(dd.getMonth()+1)+'/'+dd.getDate()+'</td><td colspan="7" rowspan="2" class="ttl">富林團隊</td><td class="rest">休息人員-司機</td><td class="restv" colspan="5">'+esc(rest.drivers.join('、')||'')+'</td></tr>'+
    '<tr><td colspan="2" class="dt">'+WK[dd.getDay()]+'</td><td class="rest">休息人員-工人</td><td class="restv" colspan="5">'+esc(rest.workers.join('、')||'')+'</td></tr>'+
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   crews.forEach((c,i)=>{const band=i%2===0?' band':'';const w=c.workers.concat(Array(8).fill('')).slice(0,Math.max(8,Math.ceil(c.workers.length/4)*4));
@@ -2029,11 +2034,11 @@ function renderToday(){const el=$('todayPage');if(!$('v-today').hidden)syncTabs(
     '<div class="dnav">'+dayTabs(d,'t')+'<button class="btn" data-t="prev" aria-label="前一天">‹</button><button class="btn" data-t="next" aria-label="後一天">›</button><input type="date" id="sdPick" value="'+d+'"></div></div>'+
     '<div class="sbar"><div class="seg"><button data-t="board" aria-pressed="'+(schedView==='board')+'">總表</button><button data-t="cards" aria-pressed="'+(schedView==='cards')+'">卡片</button><button data-t="week" aria-pressed="'+(schedView==='week')+'">一週</button><button data-t="month" aria-pressed="'+(schedView==='month')+'">月曆</button></div>'+
     '<label class="mesel">找人 ค้นหาชื่อ <select id="meSel"><option value="">全部</option>'+DB.people.map(p=>'<option'+(p.name===meName?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select></label>'+
-    '<div class="actions" style="margin-left:auto">'+(isAdmin()?'<button class="btn primary" data-t="edit">編輯這天排班</button>':'')+'<button class="btn" data-t="img">存成圖片</button><button class="btn" data-t="share">分享文字</button></div></div>'+
+    '<div class="actions" style="margin-left:auto">'+(isAdmin()?'<button class="btn primary" data-t="edit">編輯這天排班</button>':'')+'<button class="btn" data-t="img">存成圖片</button><button class="btn" data-t="share">分享文字</button>'+(isPhone()?'<button class="btn" data-t="navcopyall" data-d="'+d+'">🔗 全部複製</button>':'')+'</div></div>'+
     (meName&&schedView!=='week'&&schedView!=='month'?meBanner(d):'')+
     (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':schedView==='week'?weekHtml(d):schedView==='month'?monthHtml(d):cardsHtml(d))+
     '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>'}
-$('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;if(t==='navcopy'){const c=crewsOf(b.dataset.d).find(x=>x.no===+b.dataset.no);if(c)copyLink(crewShareText(c));return}
+$('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;if(t==='navcopyall'){copyLink(allShareText(b.dataset.d));return}if(t==='navcopy'){const c=crewsOf(b.dataset.d).find(x=>x.no===+b.dataset.no);if(c)copyLink(crewShareText(c));return}
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
   else if(t==='board'||t==='cards'||t==='week'||t==='month'){schedView=t;renderToday()}else if(t==='mprev'||t==='mnext'){const x=toDate(schedDate);x.setDate(1);x.setMonth(x.getMonth()+(t==='mprev'?-1:1));schedDate=ymd(x);renderToday();return}else if(t==='mday'){const v=b.dataset.v,ed=isAdmin()&&b.dataset.edit;if(e.detail>1){clearTimeout(mdayT);return}clearTimeout(mdayT);mdayT=setTimeout(()=>{if($('mplan'))return;schedDate=v;if(ed){openSchedEditor();return}schedView=isPhone()?'cards':'board';renderToday()},260);return}else if(t==='mplan'){openPlan(schedDate);return}else if(t==='msite'){goMap(b.dataset.id);return}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
@@ -2053,6 +2058,9 @@ function crewShareText(c){const L=['【'+mdw(c.date)+'】'+[c.leader,c.car].filt
   crewSites(c).forEach(l=>{const s=siteMatch(c,l);if(SPECIAL_SITES.includes(l)){L.push('・'+l);return}n++;
     L.push(n+'. '+l+(s&&(s.contact||s.phone)?'｜'+[s.contact,s.phone].filter(Boolean).join(' '):''));if(s&&s.address)L.push('   '+s.address)});
   const u=crewNavUrl(c);if(u)L.push('導航：'+u);return L.join('\n')}
+// 全部複製：每個有帶頭的組，一組一段（人名、電話、地址、導航連結）
+function allShareText(d){const cs=crewsOf(d).filter(c=>String(c.leader||'').trim()&&crewSites(c).length);if(!cs.length)return '【'+mdw(d)+'】這天還沒有排班';
+  return '【富林組合屋 '+mdw(d)+' 出車】\n\n'+cs.map((c,k)=>{const L=crewShareText(c).split('\n');L[0]=(k+1)+') '+[c.leader,c.car].filter(Boolean).join('｜');return L.join('\n')}).join('\n\n')}
 // 複製導航連結（新的瀏覽器用 clipboard，舊的手機用備用方法）
 // 手機（iPhone、LINE 內建瀏覽器）常常不給網站用剪貼簿：先在「按下去的當下」同步複製，不行再用新方法，都不行就跳出文字框讓你長按複製或直接分享
 function copySync(text){const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:0;left:0;width:2px;height:2px;padding:0;border:0;opacity:.01;font-size:16px;z-index:-1';
