@@ -1802,11 +1802,22 @@ function openDupModal(){const gs=dupGroups();
           if(d.issue&&K.issue&&String(K.issue).indexOf(d.issue)<0)K.issue=K.issue+'\n'+d.issue});
         await api('site_save',{site:K});for(const id of drop)await api('site_delete',{id})}toast('已合併成「'+(g.find(x=>x.id===keep)||{}).name+'」');await load();openDupModal();return false}
     return false},true)}
+function quickParse(t){const o={};t=String(t||'');
+  const ph=t.match(/09\d{2}[-\s]?\d{3}[-\s]?\d{3}|0\d{1,2}[-\s]?\d{6,8}/g);if(ph)o.phone=[...new Set(ph.map(x=>/^09/.test(x)?x.replace(/[-\s]/g,''):x.replace(/\s/g,'')))].join('／');
+  const u=t.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|(?:www\.)?google\.[a-z.]+\/maps)[^\s"'）)]*/);if(u)o.url=u[0];
+  const ad=t.match(/[^\s：:，,]*?((?:臺|台)?[一-鿿]{1,3}[縣市][一-鿿]{1,4}[鄉鎮市區][^\s，,。]*)/);if(ad)o.address=ad[1].replace(/^(?:安裝地|地址|住址|案場)/,'');
+  const nm=t.split(/\n/).map(x=>x.trim()).find(x=>/^[一-鿿]{2,4}(?=[\s　]*(?:0\d|先生|小姐))/.test(x));const cn=nm&&nm.match(/^[一-鿿]{2,4}/)[0];
+  if(cn){o.contact=cn;const town=o.address&&o.address.match(/[縣市]([一-鿿]{1,3}?)[鄉鎮市區]/);o.name=(town?town[1]+' ':'')+cn}
+  return o}
 function openSiteModal(s){const isNew=!s;
   openModal(isNew?'新增案場':'編輯案場',siteForm(isNew?{_new:true}:s)+'<div class="dupbox" id="fdup" hidden></div>',isNew?[['取消','close'],['新增','save','primary']]:[['刪除案場','del'],['取消','close'],['儲存','save','primary']],async (act,bg,btn)=>{
     if(act==='ai'){const t=val('fAi');if(!t){showErr('請先貼上訊息');return false}
-      const x=(await api('site_parse',{text:t})).data.site||{};
-      const set=(id,v)=>{if(v&&$(id))$(id).value=v};set('fName',x.name);set('fDate',x.startDate);set('fAddr',x.address);set('fCoord',x.coord);set('fContact',x.contact);set('fPhone',x.phone);set('fOwner',x.owner);set('fIssue',x.issue);
+      // 先馬上從文字抓電話、地址、地圖連結填上，AI 回來再補完整
+      const q=quickParse(t),filled={};const put=(id,v)=>{if(v&&$(id)&&!$(id).value){$(id).value=v;filled[id]=v}};
+      put('fName',q.name);put('fAddr',q.address);put('fCoord',q.url);put('fContact',q.contact);put('fPhone',q.phone);
+      showErr(Object.keys(filled).length?'已先填入電話／地址，AI 還在整理，可以先檢查…':'');
+      const x=(await Promise.race([api('site_parse',{text:t}),new Promise((_,j)=>setTimeout(()=>j(new Error(Object.keys(filled).length?'AI 太久沒回應，已先填入抓得到的資料，請檢查後再按新增':'AI 太久沒回應，請再按一次')),45000))])).data.site||{};
+      const set=(id,v)=>{if(v&&$(id)&&(!$(id).value||$(id).value===filled[id]))$(id).value=v};set('fName',x.name);set('fDate',x.startDate);set('fAddr',x.address);set('fCoord',x.coord);set('fContact',x.contact);set('fPhone',x.phone);set('fOwner',x.owner);set('fIssue',x.issue);
       if(x.status&&$('fSt'))$('fSt').value=x.status;showErr(x.coord?'':'AI 已填入，但沒找到座標；可以貼 Google 地圖連結，或留空用地址查。');return false}
     if(act==='del'){if(!confirmStep('del'))return false;await api('site_delete',{id:s.id});selected=null;toast('已刪除');await load();return true}
     if(act==='upd'){const x=sites.find(y=>y.id===btn.dataset.id);if(!x)return false;const base=(DB.sites||[]).find(y=>y.id===x.id)||{};
