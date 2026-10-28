@@ -2159,6 +2159,10 @@ async function saveBoardImage(){if(!window.html2canvas){toast('圖片功能載�
   const box=document.createElement('div');box.style.cssText='position:fixed;left:-99999px;top:0;width:1400px;background:#fff;padding:12px';boardPlain=true;box.innerHTML=boardHtml(schedDate);boardPlain=false;document.body.appendChild(box);
   try{const cv=await html2canvas(box,{scale:2,backgroundColor:'#ffffff'});const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const name='排班_'+schedDate+'.png';
     const file=new File([blob],name,{type:'image/png'});
+    // 手機：圖片做好後跳出預覽，按「存到相簿」會打開手機的分享選單，選「儲存影像」就存進照片（直接分享會因為等太久被手機擋掉）
+    if(navigator.canShare&&navigator.canShare({files:[file]})&&window.matchMedia('(pointer:coarse)').matches){const url=URL.createObjectURL(blob);
+      openModal('排班圖片','<div class="foot" style="font-size:15px;margin-bottom:8px">按「📲 存到相簿」→ 選「<b>儲存影像</b>」就會存進手機相簿；也可以直接分享到 LINE。<br>或是<b>長按下面的圖片</b> →「加入照片」。</div><img src="'+url+'" alt="排班圖片" style="width:100%;border:1px solid var(--line);border-radius:8px">',
+        [['📲 存到相簿／分享','share','primary'],['關閉','close']],async act=>{if(act==='share'){try{await navigator.share({files:[file]})}catch(e){if(e.name!=='AbortError')toast('請長按圖片 →「加入照片」')}return false}return true},true);return}
     if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:'排班 '+schedDate});return}catch(e){if(e.name==='AbortError')return}}
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();toast('已下載排班圖片')}
   catch(e){toast('產生圖片失敗')}finally{box.remove()}}
