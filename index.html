@@ -88,7 +88,13 @@ button{cursor:pointer}
 h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.02em}
 .meta{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .meta button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:1px 8px;font-family:var(--sans);font-size:12px}
-.chips{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.chip.tchip{--c:#E0A800;--cbg:rgba(224,168,0,.12)}
+.row.trow .sub{grid-column:2}
+.row .donebtn,.row .donetag{grid-column:3;grid-row:1/3;align-self:center}
+.row .donebtn{white-space:nowrap;border:1px solid var(--active);color:var(--active);background:var(--panel);border-radius:6px;padding:3px 9px;font-size:13px;font-weight:700;cursor:pointer}
+.row .donebtn.sure{background:var(--active);color:#fff}
+.row .donetag{white-space:nowrap;font-size:12px;color:var(--muted)}
 .chip{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 7px;text-align:left;display:grid;opacity:.5;transition:opacity .15s}
 .chip[aria-pressed="true"]{opacity:1;border-color:var(--c);background:var(--cbg)}
 .chip b{font-family:var(--mono);font-size:20px;line-height:1.2;color:var(--c)}
@@ -1379,7 +1385,7 @@ function dLabel(n){if(n===null)return '';if(n===0)return '今天';if(n<0)return 
 
 // ---------- state ----------
 let sites=[],selected=null,loaded=false;
-let filters=new Set(['issue','active','week','later']);
+let filters=new Set(['issue','active','week','later']);let todayOnly=false,doneArm=null;
 try{const f=JSON.parse(localStorage.getItem('fulin-map-filters')||'null');if(Array.isArray(f))filters=new Set(f)}catch(e){}
 
 // ---------- map ----------
@@ -1448,7 +1454,7 @@ function initMap(){
   document.head.appendChild(sc);
 }
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
-function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>filters.has(bucket(s))&&(!q||matchQ(s,q)))}
+function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>(todayOnly?todayBySite[s.id]:filters.has(bucket(s)))&&(!q||matchQ(s,q)))}
 function drawPins(){if(!M)return;const z=M.zoom();$('map').style.setProperty('--ps',(z<=8?20:z<=10?24:z<=12?30:36)+'px');M.clear();for(const k in pinHandles)delete pinHandles[k];const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=M.zoom()>=13;
   const vis=visible();const inRoute=new Set(route);
   sites.forEach(s=>{if(inRoute.has(s.id)&&!vis.includes(s))vis.push(s)});
@@ -1473,9 +1479,10 @@ $('fit').onclick=fitAll;
 
 // ---------- panel ----------
 function renderChips(){const c={issue:0,active:0,week:0,later:0,done:0};sites.forEach(s=>c[bucket(s)]++);
-  $('chips').innerHTML=BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+filters.has(b.k)+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
+  const tn=sites.filter(s=>todayBySite[s.id]).length;
+  $('chips').innerHTML='<button class="chip tchip" data-today="1" aria-pressed="'+todayOnly+'" title="只看今天要出車的案場，可以直接按完工"><b>'+tn+'</b><span>★ 今日出車</span></button>'+BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+(!todayOnly&&filters.has(b.k))+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
 let chipDrag=null,chipDragged=false;
-$('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
+$('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0||b.dataset.today)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
 $('chips').addEventListener('pointermove',e=>{if(!chipDrag)return;if(!chipDrag.on){if(Math.hypot(e.clientX-chipDrag.x,e.clientY-chipDrag.y)<8)return;chipDrag.on=true;chipDrag.el.classList.add('cdrag');try{chipDrag.el.setPointerCapture(chipDrag.id)}catch(x){}}
   e.preventDefault();const cs=[...$('chips').querySelectorAll('.chip')];let best=0,bd=1e9;cs.forEach((c,i)=>{const r=c.getBoundingClientRect();const d=Math.abs(e.clientX-(r.left+r.width/2))+Math.abs(e.clientY-(r.top+r.height/2))*2;if(d<bd){bd=d;best=i}});
   chipDrag.to=best;cs.forEach((c,i)=>c.classList.toggle('cdrop',i===best&&c!==chipDrag.el))});
@@ -1483,11 +1490,20 @@ function chipEnd(){if(!chipDrag)return;const d=chipDrag;chipDrag=null;if(!d.on)r
   const from=BUCKETS.findIndex(b=>b.k===d.k);if(d.to==null||d.to===from){renderChips();return}const x=BUCKETS.splice(from,1)[0];BUCKETS.splice(d.to,0,x);
   try{localStorage.setItem('fulin-chip-order',JSON.stringify(BUCKETS.map(b=>b.k)))}catch(e){}render();toast('順序已調整（這台裝置會記住）')}
 $('chips').addEventListener('pointerup',chipEnd);$('chips').addEventListener('pointercancel',()=>{chipDrag=null;renderChips()});
-$('chips').addEventListener('click',e=>{if(chipDragged){chipDragged=false;return}const b=e.target.closest('.chip');if(!b)return;const k=b.dataset.k;
+$('chips').addEventListener('click',e=>{if(chipDragged){chipDragged=false;return}const b=e.target.closest('.chip');if(!b)return;
+  if(b.dataset.today){todayOnly=!todayOnly;doneArm=null;selected=null;render();if(todayOnly)fitAll();return}
+  if(todayOnly){todayOnly=false;render();return}const k=b.dataset.k;
   filters.has(k)?filters.delete(k):filters.add(k);try{localStorage.setItem('fulin-map-filters',JSON.stringify([...filters]))}catch(e){}render()});
 $('q').addEventListener('input',render);
 
 function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];let any=false;
+  if(todayOnly){const items=sites.filter(s=>todayBySite[s.id]&&(!q||matchQ(s,q))).sort((a,c)=>(c.lat??-99)-(a.lat??-99));
+    html.push('<div class="group"><h2>★ 今日出車 · '+items.length+'</h2>');
+    for(const s of items){const b=BK[bucket(s)];const c=todayBySite[s.id];const done=s.status==='done';
+      const btn=done?'<span class="donetag">✓ 已完工</span>':(isAdmin()?'<span class="donebtn'+(doneArm===s.id?' sure':'')+'" data-done="'+s.id+'">'+(doneArm===s.id?'確定完工？':'✓ 完工')+'</span>':'');
+      html.push('<button class="row trow" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm"><span class="star">★</span>'+esc(s.name)+'</span>'+btn+'<div class="sub">'+esc([c&&c.leader?'帶頭 '+c.leader:'',b.label,s.address].filter(Boolean).join(' · '))+'</div></button>')}
+    html.push('</div>');if(!items.length)html.push('<div class="empty">今天的排班還沒有對到案場。</div>');
+    $('pbody').innerHTML=html.join('');return}
   for(const b of BUCKETS){if(!filters.has(b.k))continue;
     const items=sites.filter(s=>bucket(s)===b.k&&(!q||matchQ(s,q)));
     // 7 天內進場依日期；其他分類由北到南（緯度高到低），沒座標的排最後
@@ -1537,11 +1553,15 @@ $('map').addEventListener('mouseover',e=>{const p=e.target.closest&&e.target.clo
 $('map').addEventListener('mouseout',e=>{const p=e.target.closest&&e.target.closest('.pin[data-id]');if(p&&!(e.relatedTarget&&p.contains(e.relatedTarget)))setHover(null)});
 $('pbody').addEventListener('click',e=>{
   const a=e.target.closest('[data-r]');if(a)return routeAction(a.dataset.r,a.dataset.id);
+  const dn=e.target.closest('[data-done]');if(dn){const id=dn.dataset.done;if(doneArm!==id){doneArm=id;renderList();clearTimeout(window.__dnT);window.__dnT=setTimeout(()=>{if(doneArm===id){doneArm=null;if(todayOnly&&!selected)renderList()}},4000);return}
+    doneArm=null;markDone(id);return}
   const r=e.target.closest('.row');if(r)return routeMode?toggleStop(r.dataset.id):openDetail(r.dataset.id,true);
   if(e.target.closest('[data-act="back"]')){selected=null;render()}});
 function openDetail(id,fly){selected=id;const s=sites.find(x=>x.id===id);render();
   if(fly&&s&&s.lat!=null&&M)M.setView(s.lat,s.lng,Math.max(M.zoom(),14));
   if(!fly&&window.matchMedia('(max-width:760px)').matches)$('pbody').scrollIntoView({behavior:'smooth'})}
+async function markDone(id){const s=sites.find(x=>x.id===id);if(!s)return;const old=s.statusText;localSite(id,{status:'已完工'});toast('「'+s.name+'」已完工');
+  try{await api('site_status',{id,status:'已完工'});load()}catch(err){localSite(id,{status:old});toast('沒存到：'+err.message)}}
 function render(){renderChips();(selected&&!routeMode)?renderDetail():renderList();drawPins()}
 
 // ---------- 排路線：連線、估算路程、分享 ----------
