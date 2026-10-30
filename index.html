@@ -1386,6 +1386,7 @@ function dLabel(n){if(n===null)return '';if(n===0)return '今天';if(n<0)return 
 // ---------- state ----------
 let sites=[],selected=null,loaded=false;
 let filters=new Set(['issue','active','week','later']);let todayOnly=false,doneArm=null;
+const tLead=s=>{const c=todayBySite[s.id];return !!(c&&String(c.leader||'').trim())}; // 今日出車只算有帶頭的
 try{const f=JSON.parse(localStorage.getItem('fulin-map-filters')||'null');if(Array.isArray(f))filters=new Set(f)}catch(e){}
 
 // ---------- map ----------
@@ -1454,7 +1455,7 @@ function initMap(){
   document.head.appendChild(sc);
 }
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
-function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>(todayOnly?todayBySite[s.id]:filters.has(bucket(s)))&&(!q||matchQ(s,q)))}
+function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>(todayOnly?tLead(s):filters.has(bucket(s)))&&(!q||matchQ(s,q)))}
 function drawPins(){if(!M)return;const z=M.zoom();$('map').style.setProperty('--ps',(z<=8?20:z<=10?24:z<=12?30:36)+'px');M.clear();for(const k in pinHandles)delete pinHandles[k];const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=M.zoom()>=13;
   const vis=visible();const inRoute=new Set(route);
   sites.forEach(s=>{if(inRoute.has(s.id)&&!vis.includes(s))vis.push(s)});
@@ -1479,7 +1480,7 @@ $('fit').onclick=fitAll;
 
 // ---------- panel ----------
 function renderChips(){const c={issue:0,active:0,week:0,later:0,done:0};sites.forEach(s=>c[bucket(s)]++);
-  const tn=sites.filter(s=>todayBySite[s.id]).length;
+  const tn=sites.filter(tLead).length;
   $('chips').innerHTML='<button class="chip tchip" data-today="1" aria-pressed="'+todayOnly+'" title="只看今天要出車的案場，可以直接按完工"><b>'+tn+'</b><span>★ 今日出車</span></button>'+BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+(!todayOnly&&filters.has(b.k))+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
 let chipDrag=null,chipDragged=false;
 $('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0||b.dataset.today)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
@@ -1497,7 +1498,7 @@ $('chips').addEventListener('click',e=>{if(chipDragged){chipDragged=false;return
 $('q').addEventListener('input',render);
 
 function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];let any=false;
-  if(todayOnly){const items=sites.filter(s=>todayBySite[s.id]&&(!q||matchQ(s,q))).sort((a,c)=>(c.lat??-99)-(a.lat??-99));
+  if(todayOnly){const items=sites.filter(s=>tLead(s)&&(!q||matchQ(s,q))).sort((a,c)=>(c.lat??-99)-(a.lat??-99));
     html.push('<div class="group"><h2>★ 今日出車 · '+items.length+'</h2>');
     for(const s of items){const b=BK[bucket(s)];const c=todayBySite[s.id];const done=s.status==='done';
       const btn=done?'<span class="donetag">✓ 已完工</span>':(isAdmin()?'<span class="donebtn'+(doneArm===s.id?' sure':'')+'" data-done="'+s.id+'">'+(doneArm===s.id?'確定完工？':'✓ 完工')+'</span>':'');
