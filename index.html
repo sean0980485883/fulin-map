@@ -88,7 +88,8 @@ button{cursor:pointer}
 h1{font-size:17px;font-weight:700;margin:0;letter-spacing:.02em}
 .meta{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .meta button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:1px 8px;font-family:var(--sans);font-size:12px}
-.chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+.chip.mchip{--c:#C98A00;--cbg:rgba(201,138,0,.10)}
 .chip.tchip{--c:#E0A800;--cbg:rgba(224,168,0,.12)}
 .row.trow .sub{grid-column:2}
 .row .donebtn,.row .donetag{grid-column:3;grid-row:1/3;align-self:center}
@@ -1385,8 +1386,12 @@ function dLabel(n){if(n===null)return '';if(n===0)return '今天';if(n<0)return 
 
 // ---------- state ----------
 let sites=[],selected=null,loaded=false;
-let filters=new Set(['issue','active','week','later']);let todayOnly=false,doneArm=null;
-const tLead=s=>{const c=todayBySite[s.id];return !!(c&&String(c.leader||'').trim())}; // 今日出車只算有帶頭的
+let filters=new Set(['issue','active','week','later']);let doneArm=null,tmrBySite={};
+// 今日／明天出車：只算有帶頭的；可以跟問題單等其他方塊一起選
+const DAYS=[{k:'today',label:'★ 今日出車',map:()=>todayBySite,tip:'今天要出車的案場，可以直接按完工'},{k:'tomorrow',label:'☆ 明天出車',map:()=>tmrBySite,tip:'明天要出車的案場'}];
+const dLead=(k,s)=>{const c=(k==='today'?todayBySite:tmrBySite)[s.id];return !!(c&&String(c.leader||'').trim())};
+const tLead=s=>dLead('today',s);
+const dayHit=s=>DAYS.some(d=>filters.has(d.k)&&dLead(d.k,s));
 try{const f=JSON.parse(localStorage.getItem('fulin-map-filters')||'null');if(Array.isArray(f))filters=new Set(f)}catch(e){}
 
 // ---------- map ----------
@@ -1455,7 +1460,7 @@ function initMap(){
   document.head.appendChild(sc);
 }
 function matchQ(s,q){return [s.name,s.address,s.owner,s.contact,s.issue].some(v=>String(v||'').toLowerCase().includes(q))}
-function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>(todayOnly?tLead(s):filters.has(bucket(s)))&&(!q||matchQ(s,q)))}
+function visible(){const q=$('q').value.trim().toLowerCase();return sites.filter(s=>(filters.has(bucket(s))||dayHit(s))&&(!q||matchQ(s,q)))}
 function drawPins(){if(!M)return;const z=M.zoom();$('map').style.setProperty('--ps',(z<=8?20:z<=10?24:z<=12?30:36)+'px');M.clear();for(const k in pinHandles)delete pinHandles[k];const order={done:0,later:1,active:2,week:3,issue:4};const showLbl=M.zoom()>=13;
   const vis=visible();const inRoute=new Set(route);
   sites.forEach(s=>{if(inRoute.has(s.id)&&!vis.includes(s))vis.push(s)});
@@ -1480,31 +1485,34 @@ $('fit').onclick=fitAll;
 
 // ---------- panel ----------
 function renderChips(){const c={issue:0,active:0,week:0,later:0,done:0};sites.forEach(s=>c[bucket(s)]++);
-  const tn=sites.filter(tLead).length;
-  $('chips').innerHTML='<button class="chip tchip" data-today="1" aria-pressed="'+todayOnly+'" title="只看今天要出車的案場，可以直接按完工"><b>'+tn+'</b><span>★ 今日出車</span></button>'+BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+(!todayOnly&&filters.has(b.k))+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
+  $('chips').innerHTML=DAYS.map(d=>'<button class="chip tchip'+(d.k==='tomorrow'?' mchip':'')+'" data-day="'+d.k+'" aria-pressed="'+filters.has(d.k)+'" title="'+d.tip+'"><b>'+sites.filter(s=>dLead(d.k,s)).length+'</b><span>'+d.label+'</span></button>').join('')+BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+filters.has(b.k)+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
 let chipDrag=null,chipDragged=false;
-$('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0||b.dataset.today)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
+$('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0||b.dataset.day)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
 $('chips').addEventListener('pointermove',e=>{if(!chipDrag)return;if(!chipDrag.on){if(Math.hypot(e.clientX-chipDrag.x,e.clientY-chipDrag.y)<8)return;chipDrag.on=true;chipDrag.el.classList.add('cdrag');try{chipDrag.el.setPointerCapture(chipDrag.id)}catch(x){}}
-  e.preventDefault();const cs=[...$('chips').querySelectorAll('.chip')];let best=0,bd=1e9;cs.forEach((c,i)=>{const r=c.getBoundingClientRect();const d=Math.abs(e.clientX-(r.left+r.width/2))+Math.abs(e.clientY-(r.top+r.height/2))*2;if(d<bd){bd=d;best=i}});
+  e.preventDefault();const cs=[...$('chips').querySelectorAll('.chip[data-k]')];let best=0,bd=1e9;cs.forEach((c,i)=>{const r=c.getBoundingClientRect();const d=Math.abs(e.clientX-(r.left+r.width/2))+Math.abs(e.clientY-(r.top+r.height/2))*2;if(d<bd){bd=d;best=i}});
   chipDrag.to=best;cs.forEach((c,i)=>c.classList.toggle('cdrop',i===best&&c!==chipDrag.el))});
 function chipEnd(){if(!chipDrag)return;const d=chipDrag;chipDrag=null;if(!d.on)return;chipDragged=true;setTimeout(()=>chipDragged=false,50);
   const from=BUCKETS.findIndex(b=>b.k===d.k);if(d.to==null||d.to===from){renderChips();return}const x=BUCKETS.splice(from,1)[0];BUCKETS.splice(d.to,0,x);
   try{localStorage.setItem('fulin-chip-order',JSON.stringify(BUCKETS.map(b=>b.k)))}catch(e){}render();toast('順序已調整（這台裝置會記住）')}
 $('chips').addEventListener('pointerup',chipEnd);$('chips').addEventListener('pointercancel',()=>{chipDrag=null;renderChips()});
 $('chips').addEventListener('click',e=>{if(chipDragged){chipDragged=false;return}const b=e.target.closest('.chip');if(!b)return;
-  if(b.dataset.today){todayOnly=!todayOnly;doneArm=null;selected=null;render();if(todayOnly)fitAll();return}
-  if(todayOnly){todayOnly=false;render();return}const k=b.dataset.k;
+  if(b.dataset.day){const k=b.dataset.day;const anyDay=DAYS.some(d=>filters.has(d.k));
+    // 第一次點今天／明天：先只看這一天；之後再點問題單等方塊就會一起顯示
+    if(!filters.has(k)&&!anyDay)BUCKETS.forEach(x=>filters.delete(x.k));
+    filters.has(k)?filters.delete(k):filters.add(k);
+    if(!filters.size)filters=new Set(['issue','active','week','later']);
+    doneArm=null;selected=null;try{localStorage.setItem('fulin-map-filters',JSON.stringify([...filters]))}catch(e){}render();if(filters.has(k))fitAll();return}
+  const k=b.dataset.k;
   filters.has(k)?filters.delete(k):filters.add(k);try{localStorage.setItem('fulin-map-filters',JSON.stringify([...filters]))}catch(e){}render()});
 $('q').addEventListener('input',render);
 
 function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];let any=false;
-  if(todayOnly){const items=sites.filter(s=>tLead(s)&&(!q||matchQ(s,q))).sort((a,c)=>(c.lat??-99)-(a.lat??-99));
-    html.push('<div class="group"><h2>★ 今日出車 · '+items.length+'</h2>');
-    for(const s of items){const b=BK[bucket(s)];const c=todayBySite[s.id];const done=s.status==='done';
-      const btn=done?'<span class="donetag">✓ 已完工</span>':(isAdmin()?'<span class="donebtn'+(doneArm===s.id?' sure':'')+'" data-done="'+s.id+'">'+(doneArm===s.id?'確定完工？':'✓ 完工')+'</span>':'');
-      html.push('<button class="row trow" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm"><span class="star">★</span>'+esc(s.name)+'</span>'+btn+'<div class="sub">'+esc([c&&c.leader?'帶頭 '+c.leader:'',b.label,s.address].filter(Boolean).join(' · '))+'</div></button>')}
-    html.push('</div>');if(!items.length)html.push('<div class="empty">今天的排班還沒有對到案場。</div>');
-    $('pbody').innerHTML=html.join('');return}
+  for(const d of DAYS){if(!filters.has(d.k))continue;const M2=d.map();const items=sites.filter(s=>dLead(d.k,s)&&(!q||matchQ(s,q))).sort((a,c)=>(c.lat??-99)-(a.lat??-99));
+    any=true;html.push('<div class="group"><h2>'+d.label+' · '+items.length+'</h2>');
+    for(const s of items){const b=BK[bucket(s)];const c=M2[s.id];const done=s.status==='done';
+      const btn=done?'<span class="donetag">✓ 已完工</span>':(d.k==='today'&&isAdmin()?'<span class="donebtn'+(doneArm===s.id?' sure':'')+'" data-done="'+s.id+'">'+(doneArm===s.id?'確定完工？':'✓ 完工')+'</span>':'');
+      html.push('<button class="row trow" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm"><span class="star">'+(d.k==='today'?'★':'☆')+'</span>'+esc(s.name)+'</span>'+btn+'<div class="sub">'+esc([c&&c.leader?'帶頭 '+c.leader:'',b.label,s.address].filter(Boolean).join(' · '))+'</div></button>')}
+    if(!items.length)html.push('<div class="empty">'+(d.k==='today'?'今天':'明天')+'的排班還沒有對到有帶頭的案場。</div>');html.push('</div>')}
   for(const b of BUCKETS){if(!filters.has(b.k))continue;
     const items=sites.filter(s=>bucket(s)===b.k&&(!q||matchQ(s,q)));
     // 7 天內進場依日期；其他分類由北到南（緯度高到低），沒座標的排最後
@@ -1554,7 +1562,7 @@ $('map').addEventListener('mouseover',e=>{const p=e.target.closest&&e.target.clo
 $('map').addEventListener('mouseout',e=>{const p=e.target.closest&&e.target.closest('.pin[data-id]');if(p&&!(e.relatedTarget&&p.contains(e.relatedTarget)))setHover(null)});
 $('pbody').addEventListener('click',e=>{
   const a=e.target.closest('[data-r]');if(a)return routeAction(a.dataset.r,a.dataset.id);
-  const dn=e.target.closest('[data-done]');if(dn){const id=dn.dataset.done;if(doneArm!==id){doneArm=id;renderList();clearTimeout(window.__dnT);window.__dnT=setTimeout(()=>{if(doneArm===id){doneArm=null;if(todayOnly&&!selected)renderList()}},4000);return}
+  const dn=e.target.closest('[data-done]');if(dn){const id=dn.dataset.done;if(doneArm!==id){doneArm=id;renderList();clearTimeout(window.__dnT);window.__dnT=setTimeout(()=>{if(doneArm===id){doneArm=null;if(!selected)renderList()}},4000);return}
     doneArm=null;markDone(id);return}
   const r=e.target.closest('.row');if(r)return routeMode?toggleStop(r.dataset.id):openDetail(r.dataset.id,true);
   if(e.target.closest('[data-act="back"]')){selected=null;render()}});
@@ -2025,7 +2033,8 @@ function siteMatch(c,line){
   if(!line)return null;const n=norm(line);let s=sites.find(x=>norm(x.name)===n);if(s)return s;
   const p=line.trim().split(/\s+/);const person=p.length>1?p[p.length-1]:'';
   if(person.length>=2)s=sites.find(x=>norm(x.name).includes(person));return s||null}
-function matchToday(){todayBySite={};crewsOf(DB.today).forEach(c=>crewSites(c).forEach(l=>{const s=siteMatch(c,l);if(s)todayBySite[s.id]=c}));
+function matchToday(){todayBySite={};tmrBySite={};crewsOf(DB.today).forEach(c=>crewSites(c).forEach(l=>{const s=siteMatch(c,l);if(s)todayBySite[s.id]=c}));
+  crewsOf(addDays(DB.today,1)).forEach(c=>crewSites(c).forEach(l=>{const s=siteMatch(c,l);if(s)tmrBySite[s.id]=c}));
   $('cntToday').textContent=crewsOf(DB.today).length}
 function goMap(id){showTab('map');const s=sites.find(x=>x.id===id);if(s){selected=id;routeMode=false;render();setTimeout(()=>{if(M){M.resize&&M.resize();if(s.lat!=null)M.setView(s.lat,s.lng,14)}},50)}}
 
