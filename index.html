@@ -1543,7 +1543,7 @@ function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=n
     '<div><span class="pill" style="--c:var('+b.c+');--cbg:var('+b.bg+')">'+b.label+'</span><h3>'+esc(s.name)+'</h3></div>'+
     (s.issue?'<div><div class="mono" style="color:var(--muted);margin-bottom:4px">'+(s.status==='issue'?'問題描述':'備註')+'</div><div class="'+(s.status==='issue'?'issuebox':'note')+'">'+esc(s.issue)+'</div></div>':'')+
     '<dl class="kv">'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('')+'</dl>'+
-    (nav?'<div class="actions"><a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a></div>':'')+
+    '<div class="actions">'+(nav?'<a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a>':'')+'<button class="btn" data-act="cpinfo">📋 複製資訊</button></div>'+
     (canField()?adminDetailHtml(s):'')+(isAdmin()?'<div class="adminbox" id="quoteBox"><h4>報價單</h4><div class="foot">讀取中…</div></div>':'')+(canField()?'<div class="adminbox" id="histBox"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>':'')+reportsHtml(s)+'</div>';
   if(isAdmin())fillQuotes(s);if(canField())fillHist(s)}
 // ---------- 滑鼠連動：列表 ↔ 地圖標記 ----------
@@ -1565,7 +1565,20 @@ $('pbody').addEventListener('click',e=>{
   const dn=e.target.closest('[data-done]');if(dn){const id=dn.dataset.done;if(doneArm!==id){doneArm=id;renderList();clearTimeout(window.__dnT);window.__dnT=setTimeout(()=>{if(doneArm===id){doneArm=null;if(!selected)renderList()}},4000);return}
     doneArm=null;markDone(id);return}
   const r=e.target.closest('.row');if(r)return routeMode?toggleStop(r.dataset.id):openDetail(r.dataset.id,true);
+  if(e.target.closest('[data-act="cpinfo"]')){const s=sites.find(x=>x.id===selected);if(s)copyInfo(s);return}
   if(e.target.closest('[data-act="back"]')){selected=null;render()}});
+// 複製案場資訊：電話每支一行、只留數字，貼到 LINE 會變藍色可以直接撥
+function siteInfoText(s){const L=['【'+s.name+'】'];
+  if(s.startDate)L.push('進場：'+s.startDate);
+  if(s.address)L.push('地址：'+s.address);
+  if(s.contact)L.push('聯絡人：'+s.contact);
+  String(s.phone||'').split(/[／\/、,，\s]+/).map(x=>x.replace(/[^\d+]/g,'')).filter(x=>x.length>=7).forEach((p,i)=>L.push((i?'　　　':'電話：')+p));
+  if(s.issue)L.push((s.status==='issue'?'問題：':'備註：')+s.issue);
+  const nav=navUrl(s);if(nav)L.push('導航：'+nav);
+  return L.join('\n')}
+function copyInfo(s){const t=siteInfoText(s);if(copySync(t)){toast('已複製「'+s.name+'」資訊，可以貼到 LINE');return}
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(()=>toast('已複製「'+s.name+'」資訊')).catch(()=>copyBox(t));return}
+  copyBox(t)}
 function openDetail(id,fly){selected=id;const s=sites.find(x=>x.id===id);render();
   if(fly&&s&&s.lat!=null&&M)M.setView(s.lat,s.lng,Math.max(M.zoom(),14));
   if(!fly&&window.matchMedia('(max-width:760px)').matches)$('pbody').scrollIntoView({behavior:'smooth'})}
