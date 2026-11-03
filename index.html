@@ -1574,7 +1574,7 @@ function siteInfoText(s){const L=['【'+s.name+'】'];
   if(s.contact)L.push('聯絡人：'+s.contact);
   String(s.phone||'').split(/[／\/、,，\s]+/).map(x=>x.replace(/[^\d+]/g,'')).filter(x=>x.length>=7).forEach((p,i)=>L.push((i?'　　　':'電話：')+p));
   if(s.issue)L.push((s.status==='issue'?'問題：':'備註：')+s.issue);
-  const nav=navUrl(s);if(nav)L.push('導航：'+nav);
+  const nav=s.lat!=null?shortNav([(+s.lat).toFixed(5)+','+(+s.lng).toFixed(5)]):(s.address?shortNav([s.address]):'');if(nav)L.push('導航：'+nav);
   return L.join('\n')}
 function copyInfo(s){const t=siteInfoText(s);if(copySync(t)){toast('已複製「'+s.name+'」資訊，可以貼到 LINE');return}
   if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(()=>toast('已複製「'+s.name+'」資訊')).catch(()=>copyBox(t));return}
@@ -2053,10 +2053,11 @@ function goMap(id){showTab('map');const s=sites.find(x=>x.id===id);if(s){selecte
 
 let boardPlain=false;
 // 一組的所有案場串成一條 Google 地圖導航（從目前位置出發，依序經過，最後一站是終點）
-function crewNavStops(c){return crewSites(c).filter(l=>!SPECIAL_SITES.includes(l)).map(l=>{const s=siteMatch(c,l);return s&&s.lat!=null?s.lat+','+s.lng:(s&&s.address?s.address:'')}).filter(Boolean)}
+function crewNavStops(c){return crewSites(c).filter(l=>!SPECIAL_SITES.includes(l)).map(l=>{const s=siteMatch(c,l);return s&&s.lat!=null?(+s.lat).toFixed(5)+','+(+s.lng).toFixed(5):(s&&s.address?s.address:'')}).filter(Boolean)}
 function crewNavUrl(c){const stops=crewNavStops(c);
-  if(!stops.length)return '';const dest=stops[stops.length-1],way=stops.slice(0,-1).slice(0,9);
-  return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(dest)+(way.length?'&waypoints='+encodeURIComponent(way.join('|')):'')}
+  if(!stops.length)return '';return shortNav(stops.slice(0,10))}
+// 短網址版導航：maps/dir//站1/站2/…（開頭空白＝從目前位置出發），比原本短一大半，貼到 LINE 比較清爽
+function shortNav(stops){return 'https://www.google.com/maps/dir//'+stops.map(x=>/^-?[\d.]+,-?[\d.]+$/.test(x)?x:encodeURIComponent(x)).join('/')}
 function boardHtml(d){const meName_=boardPlain?'':meName;const crews=crewsOf(d),rest=restOf(d);const dd=toDate(d);
   const total=crews.reduce((a,c)=>a+c.workers.length,0);
   let h='<table class="board" id="boardTbl"><tbody>'+
