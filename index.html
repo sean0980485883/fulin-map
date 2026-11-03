@@ -674,7 +674,7 @@ details.esg summary{list-style:none;cursor:pointer}
 .mdh{border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;padding:2px 0;font:inherit;width:100%}
 .mdh b{font-size:15px;font-weight:600}.mdh b.sun{color:#D93025}.mdh b.sat{color:#1F63E0}.mdh small{font-size:11px;color:var(--muted)}
 .mday.today .mdh b{background:#1F5C55;color:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center}
-.mev,.mpl{border:0;border-radius:4px;padding:2px 5px;font:inherit;font-size:12px;font-weight:700;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.mev,.mpl{border:0;border-radius:4px;padding:2px 5px;font:inherit;font-size:12px;font-weight:700;text-align:left;cursor:pointer;white-space:normal;overflow-wrap:anywhere;line-height:1.35;width:100%} /* 月曆：排班文字全部顯示，太長就換行 */
 .mev{background:#12A37A;color:#fff}.mev small{font-weight:400;opacity:.85;margin-left:4px}
 .mpl{background:#fff;color:#1F63E0;border:1.5px solid #1F63E0}.mpl[draggable=true],.mev[draggable=true]{cursor:grab}
 @media (max-width:760px){.mday{min-height:84px;padding:1px}.mev,.mpl{font-size:10px;padding:1px 3px}.mev small{display:none}.mlegend em{display:none}}
