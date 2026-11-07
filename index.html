@@ -2573,7 +2573,7 @@ function othersText(){return edOthers.length?'👥 '+edOthers.map(o=>esc(o.name)
 setInterval(()=>{if(legacy&&schedEdit&&draft&&isAdmin())api('ed_ping',{date:draft.date}).then(r=>showOthers((r.data||{}).others)).catch(()=>{})},30000);
 // ---- 像 Google 試算表一樣自動存到雲端 ----
 let saveTimer=null,saving=false,saveSt={s:'',m:'',t:''};
-function saveText(){return {wait:'編輯中…',saving:'儲存中…',ok:'✓ 已自動存到雲端 '+saveSt.t,err:'⚠ 沒存到，稍後自動重試'}[saveSt.s]||'會自動儲存'}
+function saveText(){return {wait:'編輯中…',saving:'儲存中…',ok:'✓ 已自動存到雲端 '+saveSt.t,err:'⚠ 沒存到，'+(/忙碌/.test(saveSt.m)?'系統忙碌，馬上重試':saveSt.m?'（'+String(saveSt.m).slice(0,20)+'）稍後重試':'稍後自動重試')}[saveSt.s]||'會自動儲存'}
 function setSaveState(st,m){const d=new Date();saveSt={s:st,m:m||'',t:pad(d.getHours())+':'+pad(d.getMinutes())};const e=$('saveSt');if(e){e.className='savest '+st;e.textContent=saveText();e.title=m||''}}
 // ================= 多人一起排班（像 Google 試算表）：每 4 秒同步一次，大家改的自動合併 =================
 let syncing=false,pendingRender=false,legacy=false;
@@ -2626,10 +2626,10 @@ async function cloudSave(){clearTimeout(saveTimer);if(!draft||saving)return;if(s
   try{const rs=await api('sched_save',p);const d=rs.data||{};showOthers(d.others);
     if(d.conflict){saving=false;if(draft&&draft.date===p.date)applyRemote(d.day,d.ver);setSaveState('wait');clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,200);return}
     localSched(p);if(draft&&draft.date===p.date){draft.snap=snap;if(d.ver!=null){draft.ver=d.ver;draft.base=normDay(p)}}saving=false;setSaveState('ok');keepDraft()}
-  catch(e){saving=false;setSaveState('err',e.message);saveTimer=setTimeout(cloudSave,8000);return}
+  catch(e){saving=false;setSaveState('err',e.message);saveTimer=setTimeout(cloudSave,/忙碌/.test(e.message)?2500:6000);return}
   if(draft&&snapOf()!==draft.snap){clearTimeout(saveTimer);saveTimer=setTimeout(cloudSave,600)}}
 async function flushSave(){for(let n=0;n<60;n++){if(!draft||(!saving&&snapOf()===draft.snap))return true;
-    if(!saving){await cloudSave();if(saveSt.s==='err')return false}else await new Promise(r=>setTimeout(r,250))}return false}
+    if(!saving){await cloudSave();if(saveSt.s==='err'){if(/忙碌/.test(saveSt.m)){await new Promise(r=>setTimeout(r,2500));continue}return false}}else await new Promise(r=>setTimeout(r,250))}return false}
 async function switchEditDay(v){const ok=await flushSave();if(!ok){toast('這天還沒存到雲端（'+(saveSt.m||'網路問題')+'），先別切換');renderSchedEditor();return}
   schedDate=v;openSchedEditor()}
 function dropDraft(){try{localStorage.removeItem(DKEY)}catch(e){}}
