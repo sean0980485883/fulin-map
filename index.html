@@ -1279,6 +1279,17 @@ html.mt .glogo{color:#111!important}
 .navall{display:flex;flex-direction:column;align-items:center;gap:1px;width:100px;margin:0 0 6px;border:0;background:#D9822B;color:#fff;border-radius:10px;padding:6px 4px;font-size:16px;line-height:1;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .navall small{font-size:11px;font-weight:700}
 .navall:hover{filter:brightness(1.08)}
+
+/* 月曆：每個案場自己的顏色 */
+.mev.segs{background:rgba(127,127,127,.07)!important;box-shadow:none!important;padding:2px!important;border:1px solid var(--line)!important;border-radius:6px;color:var(--ink)!important;display:flex;flex-wrap:wrap;gap:2px;align-items:center}
+.mev.segs .mseg{background:var(--sc);color:#fff;border-radius:4px;padding:2px 5px;line-height:1.35}
+.mev.segs .mlead{font-size:11px;font-weight:600;color:var(--muted)!important;opacity:1;margin-left:2px}
+@media (max-width:760px){.mev.segs .mseg{padding:1px 3px}}
+.swatches{display:flex;flex-wrap:wrap;gap:6px}.swatches label{display:inline-flex}.swatches input{position:absolute;opacity:0;pointer-events:none}
+.swatches span{width:28px;height:28px;border-radius:50%;background:var(--sc);border:3px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.15);cursor:pointer;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:700}
+.swatches input:checked+span{border-color:#fff;box-shadow:0 0 0 2px var(--sc)}
+.swatches .auto span{width:auto;padding:0 10px;border-radius:14px;background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.swatches .auto input:checked+span{box-shadow:0 0 0 2px var(--ink)}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -1808,6 +1819,7 @@ function siteForm(s){s=s||{};const st=s.statusText||'問題件';
   '<div class="fld"><label for="fCoord">座標或 Google 地圖連結</label><input id="fCoord" value="'+esc(s.coordText||'')+'" placeholder="22.701, 120.352 或 https://maps.app.goo.gl/…"><span class="hint">留空會用地址自動查座標</span></div>'+
   '<div class="grid2"><div class="fld"><label for="fContact">聯絡人</label><input id="fContact" value="'+esc(s.contact||'')+'"></div><div class="fld"><label for="fPhone">電話</label><input id="fPhone" type="tel" value="'+esc(s.phone||'')+'"></div></div>'+
   (s._new?'':'<div class="fld"><label for="fThai">泰文名（自動翻譯，可以修改）</label><input id="fThai" value="'+esc(s.thai||'')+'" placeholder="留空會自動翻譯"></div>')+
+  '<div class="fld"><label>月曆顏色</label><div class="swatches">'+'<label class="auto"><input type="radio" name="fColor" value=""'+(s.color?'':' checked')+'><span>自動</span></label>'+SITE_COLORS.map(c=>'<label><input type="radio" name="fColor" value="'+c+'"'+(String(s.color||'').toLowerCase()===c.toLowerCase()?' checked':'')+'><span style="--sc:'+c+'"></span></label>').join('')+'</div></div>'+
   '<div class="fld"><label for="fOwner">負責人（我方）</label><input id="fOwner" value="'+esc(s.owner||'')+'"></div>'+
   '<div class="fld"><label for="fIssue">問題描述／備註</label><textarea id="fIssue">'+esc(s.issue||'')+'</textarea></div><div class="merr" id="merr" hidden></div>'}
 // ---- 重複案場：同一個人（去掉地區後的名字一樣）或同一支電話 ----
@@ -1867,7 +1879,7 @@ function openSiteModal(s){const isNew=!s;
         contact:val('fContact')||base.contact||'',phone:val('fPhone')||base.phone||'',owner:val('fOwner')||base.owner||'',issue:[base.issue,val('fIssue')].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join('\n'),thai:base.thai||''};
       const d=(await api('site_save',{site:f2})).data;localSite(d.id,Object.assign({},f2,{coord:d.coord||''}));showTab('map');openDetail(d.id,true);toast('已更新「'+f2.name+'」，沒有新增重複的');load();return true}
     if(act!=='save')return true;
-    const f={id:isNew?'':s.id,name:val('fName'),status:val('fSt'),startDate:val('fDate'),address:val('fAddr'),coord:val('fCoord'),contact:val('fContact'),phone:val('fPhone'),owner:val('fOwner'),issue:val('fIssue'),thai:$('fThai')?val('fThai'):''};
+    const f={id:isNew?'':s.id,name:val('fName'),status:val('fSt'),startDate:val('fDate'),address:val('fAddr'),coord:val('fCoord'),contact:val('fContact'),phone:val('fPhone'),owner:val('fOwner'),issue:val('fIssue'),thai:$('fThai')?val('fThai'):'',color:(document.querySelector('input[name=fColor]:checked')||{}).value||''};
     if(!isNew&&s.name!==f.name&&f.thai===(s.thai||''))f.thai='';
     if(!f.name){showErr('請填案名');return false}
     const dups=findDups(f,isNew?'':s.id);const box=$('fdup');
@@ -2041,6 +2053,11 @@ const crewsOf=d=>(DB.sched||[]).filter(c=>c.date===d).sort((a,b)=>a.no-b.no);
 const restOf=d=>(DB.rest||[]).find(r=>r.date===d)||{drivers:[],workers:[]};
 const taskTh=zh=>{const t=(DB.tasks||[]).find(x=>x.zh===zh);return t?t.th:''};
 function crewSites(c){return String(c.site||'').split('\n').map(x=>x.trim()).filter(Boolean)}
+// 案場顏色：每個案場固定一個顏色（自動依案場配色；在「編輯資料」可以自己挑）
+const SITE_COLORS=['#E8710A','#D93025','#C2185B','#8E24AA','#5E35B1','#3949AB','#1E88E5','#0288D1','#00897B','#43A047','#689F38','#B8860B','#6D4C41','#546E7A','#AD1457','#00838F'];
+function hashIdx(t){let h=0;t=String(t||'');for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))>>>0;return h%SITE_COLORS.length}
+function siteColor(s){const c=String(s&&s.color||'').trim();return /^#[0-9a-f]{6}$/i.test(c)?c:SITE_COLORS[hashIdx(s&&(s.id||s.name))]}
+function lineColor(c,l){if(SPECIAL_SITES.includes(l))return '#8A9399';const s=siteMatch(c,l);return s?siteColor(s):SITE_COLORS[hashIdx(l)]}
 function siteMatch(c,line){
   const ids=c.siteIds||[];for(const id of ids){const s=sites.find(x=>x.id===id);if(s&&(!line||norm(s.name)===norm(line)))return s}
   if(!line)return null;const n=norm(line);let s=sites.find(x=>norm(x.name)===n);if(s)return s;
@@ -2146,7 +2163,7 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
     const plan=sites.filter(s=>s.startDate===dd&&s.status!=='done'&&!inSched.has(s.name));
     h+='<div class="mday'+(other?' other':'')+(dd===DB.today?' today':'')+(dd===d?' sel':'')+'" data-day="'+dd+'">'+
       '<button class="mdh" data-t="mday" data-v="'+dd+'"'+(A?' data-edit="1" title="編輯這天排班"':'')+'><b class="'+(wd===0?'sun':wd===6?'sat':'')+'">'+t.getDate()+'</b><small>'+lunar(dd)+'</small></button>'+
-      crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev" data-t="mday" data-v="'+dd+'" data-no="'+c.no+'"'+(A?' draggable="true"':'')+' title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+esc(crewSites(c).join('、'))+(c.leader?'<small>'+esc(c.leader)+'</small>':'')+'</button>').join('')+
+      crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev segs" data-t="mday" data-v="'+dd+'" data-no="'+c.no+'"'+(A?' draggable="true"':'')+' title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+crewSites(c).map(l=>'<span class="mseg" style="--sc:'+lineColor(c,l)+'">'+esc(l)+'</span>').join('')+(c.leader?'<small class="mlead">'+esc(c.leader)+'</small>':'')+'</button>').join('')+
       plan.map(s=>'<button class="mpl" data-t="msite" data-id="'+s.id+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+'</button>').join('')+
       '</div>'});
   return h+'</div></div>'}
