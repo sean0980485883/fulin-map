@@ -1293,7 +1293,7 @@ html body .mev.segs .mlead{font-size:11px;font-weight:600;color:var(--muted)!imp
 
 /* 排班表：距離上次進場天數 */
 .lvtag{font-style:normal;font-size:11px;font-weight:700;color:#5F6B6A;background:#EEF1F0;border-radius:8px;padding:0 5px;margin-left:3px;white-space:nowrap;line-height:1.5}
-.lvtag.first{color:#0B7A55;background:#DDF5EA}.lvtag.long{color:#B54708;background:#FFF0DD}
+.lvtag.first{color:#0B7A55;background:#DDF5EA}.mchips em .lvtag,.mcs .lvtag{display:inline-block}.lvtag.long{color:#B54708;background:#FFF0DD}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2394,10 +2394,10 @@ function renderSchedMobile(){const el=$('todayPage');const D=draft;const dd=toDa
   D.crews.forEach((c,i)=>{const sl=crewSites(c);const nW=c.workers.filter(Boolean).length;const open=mOpen.has(i);
     const empty=!sl.length&&!c.leader&&!c.car&&!nW;
     h+='<section class="mcard'+(open?' open':'')+(empty?' empty':'')+'">'+
-      '<button class="mch" data-e="mtog" data-i="'+i+'"><span class="mno">'+(i+1)+'</span><span class="mcs"><b>'+(sl.length?esc(sl.join('、')):'（還沒選案場）')+'</b>'+
+      '<button class="mch" data-e="mtog" data-i="'+i+'"><span class="mno">'+(i+1)+'</span><span class="mcs"><b>'+(sl.length?sl.map(l=>esc(l)+lastVisitTag(l,draft&&draft.date||schedDate)).join('、'):'（還沒選案場）')+'</b>'+
         '<small>'+esc([c.leader,c.car,nW?nW+' 人':''].filter(Boolean).join('｜')||'點這裡填')+'</small></span><i>'+(open?'▲':'▼')+'</i></button>';
     if(open){h+='<div class="mcb">'+
-      '<div class="mrow"><span>案場</span><div class="mchips">'+sl.map((l,j)=>'<em>'+esc(l)+(j?'<button data-e="siteup" data-i="'+i+'" data-j="'+j+'" aria-label="往上移" title="往上移（導航順序也會跟著改）">↑</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></em>').join('')+
+      '<div class="mrow"><span>案場</span><div class="mchips">'+sl.map((l,j)=>'<em>'+esc(l)+lastVisitTag(l,draft&&draft.date||schedDate)+(j?'<button data-e="siteup" data-i="'+i+'" data-j="'+j+'" aria-label="往上移" title="往上移（導航順序也會跟著改）">↑</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="移除">×</button></em>').join('')+
         '<button type="button" class="gcell madd" data-g="s|'+i+'">＋ 案場</button></div></div>'+
       (sl.length?'<div class="mthai">'+esc(crewThai(c)).replace(/\n/g,'、')+'</div>':'')+
       '<div class="mrow two"><div><span>帶頭</span>'+gsel('l|'+i,[],c.leader,new Set())+'</div><div><span>車</span>'+gsel('c|'+i,[],c.car,new Set())+'</div></div>'+
