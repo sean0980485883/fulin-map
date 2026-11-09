@@ -1290,6 +1290,10 @@ html body .mev.segs .mlead{font-size:11px;font-weight:600;color:var(--muted)!imp
 .swatches input:checked+span{border-color:#fff;box-shadow:0 0 0 2px var(--sc)}
 .swatches .auto span{width:auto;padding:0 10px;border-radius:14px;background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
 .swatches .auto input:checked+span{box-shadow:0 0 0 2px var(--ink)}
+
+/* 排班表：距離上次進場天數 */
+.lvtag{font-style:normal;font-size:11px;font-weight:700;color:#5F6B6A;background:#EEF1F0;border-radius:8px;padding:0 5px;margin-left:3px;white-space:nowrap;line-height:1.5}
+.lvtag.first{color:#0B7A55;background:#DDF5EA}.lvtag.long{color:#B54708;background:#FFF0DD}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2050,6 +2054,12 @@ function shrink(file){return new Promise((res,rej)=>{const fr=new FileReader();f
 let meName='';try{meName=localStorage.getItem('fulin-me')||''}catch(e){}
 let schedDate='',schedView=(window.matchMedia('(max-width:760px)').matches?'cards':'board'),schedEdit=false,draft=null;
 const crewsOf=d=>(DB.sched||[]).filter(c=>c.date===d).sort((a,b)=>a.no-b.no);
+// 距離上次進場：這天之前，最後一次有帶頭去這個案場的日期（沒帶頭的不算；40 天前的由後端算好）
+function lastVisit(name,d){let best='';(DB.sched||[]).forEach(c=>{if(c.date<d&&c.date>best&&String(c.leader||'').trim()&&crewSites(c).includes(name))best=c.date});
+  return best||((DB.oldVisit||{})[name]||'')}
+function lastVisitTag(name,d){if(!d||SPECIAL_SITES.includes(name))return '';const lv=lastVisit(name,d);
+  if(!lv)return '<em class="lvtag first" title="之前沒有排班紀錄">首次</em>';
+  const n=Math.round((toDate(d)-toDate(lv))/864e5);return '<em class="lvtag'+(n>=30?' long':'')+'" title="上次進場：'+lv+'">'+n+'天前</em>'}
 const restOf=d=>(DB.rest||[]).find(r=>r.date===d)||{drivers:[],workers:[]};
 const taskTh=zh=>{const t=(DB.tasks||[]).find(x=>x.zh===zh);return t?t.th:''};
 function crewSites(c){return String(c.site||'').split('\n').map(x=>x.trim()).filter(Boolean)}
@@ -2291,7 +2301,7 @@ function renderSchedEditor(){pendingRender=false;if(isPhone())return renderSched
    '<tr style="background:#F2F4F1"><th colspan="2" class="dt">案場</th><th>帶頭</th><th>車</th><th>工人</th><th>工人</th><th>工人</th><th>工人</th><th>'+total+'</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>施作項目</th><th>備註</th></tr>';
   D.crews.forEach((c,i)=>{const band=i%2===0?' band':'';const siteList=crewSites(c);
     h+='<tr class="'+band+'"><td rowspan="2" class="thsite" data-grp="'+i+'" title="點這裡選取整組（Shift 可以連選多組）"><span class="grip" draggable="true" data-gi="'+i+'" title="按住拖曳，可以把這組拉到別的順序">⠿</span>'+esc(crewThai(c)).replace(/\n/g,'<br>')+'<button type="button" class="addsite" data-e="addsite" data-i="'+i+'" title="這組再加一個案場">＋案場</button><div class="rowops">'+(i?'<button data-e="up" data-i="'+i+'" title="上移">↑</button>':'')+'<button data-e="del" data-i="'+i+'" title="清空／刪除這組">✕</button></div>'+(siteList.length?'<button type="button" class="dupbtn" data-e="dup" data-i="'+i+'" title="下面多一組，案場自動帶入，不用再選">⧉ 同案場再派一組</button>':'')+'</td>'+
-      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+(j?'<button data-e="siteup" data-i="'+i+'" data-j="'+j+'" aria-label="往上移" title="往上移（導航順序也會跟著改）">↑</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="刪掉這個案場" title="刪掉這個案場">✕</button></span>').join('')+'</div>'+
+      '<td rowspan="2" class="site"><div class="sitechips">'+siteList.map((l,j)=>'<span>'+esc(l)+lastVisitTag(l,draft&&draft.date||schedDate)+(!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="hist" data-v="'+esc(l)+'" data-i="'+i+'" title="施工紀錄：以前誰去過">🕘</button>':'')+(isAdmin()&&!SPECIAL_SITES.includes(l)?'<button class="qbtn" data-e="quote" data-v="'+esc(l)+'" data-i="'+i+'" title="看報價單">📄</button>':'')+(j?'<button data-e="siteup" data-i="'+i+'" data-j="'+j+'" aria-label="往上移" title="往上移（導航順序也會跟著改）">↑</button>':'')+'<button data-e="rmsite" data-i="'+i+'" data-j="'+j+'" aria-label="刪掉這個案場" title="刪掉這個案場">✕</button></span>').join('')+'</div>'+
         '<button type="button" class="gcell gsite'+(siteList.length?' more':'')+('s|'+i===gpopKey?' act':'')+'" title="'+(siteList.length?'再加一個案場':'選案場')+'" data-g="s|'+i+'">'+(siteList.length?'＋':'＋ 選案場')+'</button></td>'+
       '<td rowspan="2" class="lead">'+gsel('l|'+i,L,c.leader,usedPeople('l|'+i))+'</td>'+
       '<td rowspan="2" class="car">'+gsel('c|'+i,C,c.car,usedCars('c|'+i))+'</td>'+
