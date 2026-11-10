@@ -2059,7 +2059,7 @@ function lastVisit(name,d){let best='';(DB.sched||[]).forEach(c=>{if(c.date<d&&c
   return best||((DB.oldVisit||{})[name]||'')}
 function lastVisitTag(name,d){if(!d||SPECIAL_SITES.includes(name))return '';const lv=lastVisit(name,d);
   if(!lv)return '<em class="lvtag first" title="之前沒有排班紀錄">首次</em>';
-  const n=Math.round((toDate(d)-toDate(lv))/864e5);return '<em class="lvtag'+(n>=30?' long':'')+'" title="上次進場：'+lv+'">'+n+'天前</em>'}
+  const n=Math.round((toDate(d)-toDate(lv))/864e5);if(n<=1)return '';return '<em class="lvtag'+(n>=30?' long':'')+'" title="上次進場：'+lv+'">'+n+'天前</em>'}
 const restOf=d=>(DB.rest||[]).find(r=>r.date===d)||{drivers:[],workers:[]};
 const taskTh=zh=>{const t=(DB.tasks||[]).find(x=>x.zh===zh);return t?t.th:''};
 function crewSites(c){return String(c.site||'').split('\n').map(x=>x.trim()).filter(Boolean)}
