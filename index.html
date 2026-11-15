@@ -1309,6 +1309,10 @@ html body .mev.segs .mlead{font-size:11px;font-weight:600;color:var(--muted)!imp
 .pin .dot.tmr{left:calc(var(--ps,26px)*-.62);top:calc(var(--ps,26px)*-.62);width:calc(var(--ps,26px)*1.24);height:calc(var(--ps,26px)*1.24);font-size:calc(var(--ps,26px)*.8);background:#fff!important;color:#C98A00;border:3px dashed #E0A800!important;box-shadow:0 1px 4px rgba(0,0,0,.35)}
 .pin.hl .dot.tmr,.pin:hover .dot.tmr{transform:scale(1.35)}
 .legend .ltmr{color:#C98A00;font-size:14px;line-height:1}
+
+/* 施工紀錄：今天／明天標籤 */
+.hday{display:inline-block;font-style:normal;font-size:12px;font-weight:700;border-radius:6px;padding:0 6px;margin-right:4px;vertical-align:2px;text-decoration:none}
+.hday.t{background:#E0A800;color:#fff}.hday.m{background:#fff;color:#C98A00;border:1.5px dashed #E0A800}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -1986,7 +1990,7 @@ async function fillHist(s,boxId){boxId=boxId||'histBox';let list,partial=false;c
   const ppl=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);const all=!!histAll[s.id];const shown=all?list:list.slice(0,8);
   box.innerHTML='<h4>施工紀錄 <small style="font-weight:400;color:var(--muted)">共 '+days.length+' 天'+(partial?'（只有近期，後台更新後可看全部）':'')+'</small></h4>'+
     '<div class="hppl"><span>去過的人</span>'+ppl.map(n=>'<i title="最後一次 '+esc(mdw(last[n]))+'">'+esc(n)+' <b>'+cnt[n]+'</b></i>').join('')+'</div>'+
-    '<div class="hlist">'+shown.map(x=>'<div class="hrow"><button class="hd" data-h="'+esc(x.date)+'" title="打開這天的排班">'+esc(mdw(x.date))+'<small>第 '+x.no+' 組</small></button><div>'+
+    '<div class="hlist">'+shown.map(x=>'<div class="hrow"><button class="hd" data-h="'+esc(x.date)+'" title="打開這天的排班">'+(x.date===DB.today?'<em class="hday t">今天</em>':x.date===addDays(DB.today,1)?'<em class="hday m">明天</em>':'')+esc(mdw(x.date))+'<small>第 '+x.no+' 組</small></button><div>'+
       '<div><b>'+esc(x.leader||'—')+'</b>'+(x.car?' <span class="hcar">'+esc(x.car)+'</span>':'')+(x.workers.length?'｜'+esc(x.workers.join('、')):'')+'</div>'+
       (x.tasks.length?'<div class="ht">'+esc(x.tasks.join('、'))+'</div>':'')+(x.note?'<div class="hn">'+esc(x.note)+'</div>':'')+'</div></div>').join('')+'</div>'+
     (list.length>8?'<button class="btn" data-h="more" data-box="'+boxId+'" data-id="'+s.id+'">'+(all?'收起':'顯示全部 '+list.length+' 筆')+'</button>':'')}
