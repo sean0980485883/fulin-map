@@ -1377,6 +1377,28 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 /* 施作項目：中文在上（大）、泰文在下 */
 .wvt .tz{font-size:15px;font-weight:800;color:#1C2A33;line-height:1.3}.wvt .tt{font-size:12.5px;color:#7A5A1A;font-weight:600;line-height:1.3}
 @media (max-width:520px){.wvt .tz{font-size:13px}.wvt .tt{font-size:11px}}
+
+/* 工人版標題：富林施工團隊＋大日期 */
+.wvbrand{font-size:20px;font-weight:800;letter-spacing:.35em;color:#F3D68B;margin-bottom:4px}
+.wvtop h3{font-size:34px!important;line-height:1.15}.wvtop h3 small{font-size:18px!important}.wvth{font-size:16px!important}
+@media (max-width:520px){.wvbrand{font-size:17px;letter-spacing:.25em}.wvtop h3{font-size:28px!important}.wvtop h3 small{font-size:16px!important}.wvth{font-size:14px!important}}
+
+/* 工人版整體配色：深藍＋香檳金（跟工人名牌同一套），看起來比較高端 */
+.wv{background:#F3F1EC!important}
+.wvtop{background:linear-gradient(135deg,#17222F 0%,#22344A 60%,#2C4460 100%)!important;border-bottom:3px solid #C9A24A}
+.wvtop h3,.wvtop h3 small{color:#FFFFFF!important}.wvth{color:#D9C79A!important;opacity:1!important}
+.wvbrand{color:#E9C46A!important;text-shadow:0 1px 0 rgba(0,0,0,.25)}
+.wvrest{background:rgba(233,196,106,.14)!important;border:1px solid rgba(233,196,106,.45);color:#F3E7C4}.wvrest b{color:#FFFFFF}
+.wvc{border:1px solid #E6DFCF;box-shadow:0 2px 6px rgba(23,34,47,.08)!important}
+.wvh{background:linear-gradient(180deg,#FBF8F1,#F5EFE2)!important;border-bottom:1px solid #E6D7AE!important}
+.wvno{background:linear-gradient(135deg,#1E2A3A,#33465C)!important;color:#F3D68B!important;box-shadow:0 0 0 1.5px #C9A24A}
+.wvld{color:#17222F!important}.wvcar{color:#A3281C!important}
+.wvsites .z{color:#23426B!important}.wvsites .t{color:#6B6455!important}
+.wvt>div{background:#FFFBF2!important;border-color:#E9D8A8!important}.wvt .tt{color:#8A6A2A!important}
+.wvfoot{color:#8A8170!important;letter-spacing:.05em}
+
+.wvh{grid-template-columns:22px minmax(0,1fr) auto!important}.wvld{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.wvcar{white-space:nowrap}
+@media (max-width:520px){.wvld{font-size:14px!important}.wvcar{font-size:12.5px!important}.wvh{gap:4px!important;padding:7px 6px!important}}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2208,7 +2230,7 @@ function workerHtml(d,plain){const crews=crewsOf(d).filter(c=>String(c.leader||'
   const rel=d===DB.today?['今天','วันนี้']:d===addDays(DB.today,1)?['明天','พรุ่งนี้']:d===addDays(DB.today,-1)?['昨天','เมื่อวาน']:['',''];
   const restAll=(rest.drivers||[]).concat(rest.workers||[]).filter(Boolean);const ppl=crews.reduce((n,c)=>n+1+(c.workers||[]).filter(Boolean).length,0);
   const me=plain?'':meName;const list=crews.map((c,i)=>({c,i})).sort((a,b)=>(me?(crewHas(b.c,me)-crewHas(a.c,me)):0));
-  return '<div class="wv'+(plain?' plain':'')+'"><div class="wvtop"><h3>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+(rel[0]?'<small>'+rel[0]+'</small>':'')+'</h3>'+
+  return '<div class="wv'+(plain?' plain':'')+'"><div class="wvtop"><div class="wvbrand">富林施工團隊</div><h3>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+(rel[0]?'<small>'+rel[0]+'</small>':'')+'</h3>'+
     '<div class="wvth">'+TH_WK[dd.getDay()]+' '+dd.getDate()+'/'+(dd.getMonth()+1)+(rel[1]?' · '+rel[1]:'')+'</div>'+
     (restAll.length?'<div class="wvrest">😴 休息 พักงาน：<b>'+esc(restAll.join('、'))+'</b></div>':'')+'</div>'+
     '<div class="wvg">'+(crews.length?list.map(({c,i})=>{const ls=crewSites(c);const th=String(c.siteThai||'').split('\n');const ws=(c.workers||[]).filter(Boolean);const ts=(c.tasks||[]).filter(Boolean);
