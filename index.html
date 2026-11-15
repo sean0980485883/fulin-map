@@ -584,7 +584,9 @@ details.esg summary{list-style:none;cursor:pointer}
 .board.edit .gcell.gsite.more{position:absolute;top:2px;right:2px;margin:0;padding:0 6px;min-height:16px;line-height:16px;font-size:12px;display:none;background:#fff}
 .board.edit td.site:hover .gcell.gsite.more,.board.edit .gcell.gsite.more.act{display:block}
 .board.edit .gcell.gsite:not(.more){min-height:24px;margin:0}
-.board.edit td.thsite .rowops{position:absolute;left:4px;bottom:3px;margin:0;display:none;opacity:1}
+.board.edit td.thsite .rowops{position:absolute;left:3px;top:3px;margin:0;display:none;opacity:1;z-index:3} /* ↑ ✕ 移到左上角，才不會被「同案場再派一組」蓋住 */
+.board.edit td.thsite .rowops button{background:#fff!important;color:#1F2A2A!important;font-size:12px;padding:1px 6px;min-width:22px}
+.board.edit td.thsite .rowops button[data-e=del]{color:#D93025!important;border-color:#F3B5AF!important}
 .board.edit td.thsite .dupbtn{position:absolute;right:4px;bottom:3px;margin:0;display:none;font-size:11px;padding:1px 6px;width:auto}
 .board.edit td.thsite:hover .rowops,.board.edit td.thsite:hover .dupbtn{display:flex}
 .board.edit td.note{padding:0}.board.edit .gnote{min-height:46px;height:100%;padding:2px 4px;font-size:13px;color:#C0201B;font-weight:700;font-style:italic;text-align:center}
