@@ -1304,6 +1304,11 @@ html body .mev.segs .mlead{font-size:11px;font-weight:600;color:var(--muted)!imp
 .mpstage button.on{background:#1F63E0;border-color:#1F63E0;color:#fff}
 .stglist{display:flex;flex-wrap:wrap;gap:6px}.stgi{display:inline-flex;align-items:center;gap:4px;border:1.5px solid #1F63E0;color:#1F63E0;border-radius:8px;padding:3px 8px;font-size:13px}
 .stgi.past{opacity:.5}.stgi button{border:0;background:none;color:#D93025;cursor:pointer;font-size:12px;padding:0 2px}
+
+/* 地圖：明天出車＝白底虛線圈＋空心星 */
+.pin .dot.tmr{left:calc(var(--ps,26px)*-.62);top:calc(var(--ps,26px)*-.62);width:calc(var(--ps,26px)*1.24);height:calc(var(--ps,26px)*1.24);font-size:calc(var(--ps,26px)*.8);background:#fff!important;color:#C98A00;border:3px dashed #E0A800!important;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pin.hl .dot.tmr,.pin:hover .dot.tmr{transform:scale(1.35)}
+.legend .ltmr{color:#C98A00;font-size:14px;line-height:1}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -1337,6 +1342,7 @@ html body .mev.segs .mlead{font-size:11px;font-weight:600;color:var(--muted)!imp
       <span><i style="background:var(--later)"></i>待安排</span>
       <span><i style="background:var(--done)"></i>已完工</span>
       <span><b class="lstar">★</b>今日出車</span>
+      <span><b class="ltmr">☆</b>明天出車</span>
     </div>
   </div>
   <aside class="panel">
@@ -1493,13 +1499,13 @@ function drawPins(){if(!M)return;const z=M.zoom();$('map').style.setProperty('--
     const b=bucket(s);const sel=selected===s.id;const no=route.indexOf(s.id)+1;
     let h='<div class="pin'+(sel?' sel':'')+(no?' stop':'')+(hoverId===s.id?' hl':'')+'" data-id="'+s.id+'" style="--c:var('+BK[b].c+')">';
     if(b==='issue'&&!no)h+='<div class="halo"></div>';
-    const tcx=todayBySite[s.id];
-    h+=no?'<div class="num">'+no+'</div>':(tcx?'<div class="dot star">★</div>':'<div class="dot">'+(b==='issue'?'!':'')+'</div>');
+    const tcx=todayBySite[s.id];const mcx=!tcx&&dLead('tomorrow',s)?tmrBySite[s.id]:null; // 明天出車（今天沒去的）用空心星、虛線圈區分
+    h+=no?'<div class="num">'+no+'</div>':(tcx?'<div class="dot star">★</div>':mcx?'<div class="dot tmr">☆</div>':'<div class="dot">'+(b==='issue'?'!':'')+'</div>');
     if(b==='week')h+='<div class="tag">'+esc(dLabel(daysUntil(s.startDate)))+'</div>';
 
-    h+='<div class="lbl'+(showLbl||sel?'':' hide')+'">'+(tcx?'★ 今日 '+esc(tcx.leader||'出車')+'｜':'')+esc(s.name)+'</div>';
+    h+='<div class="lbl'+(showLbl||sel?'':' hide')+'">'+(tcx?'★ 今日 '+esc(tcx.leader||'出車')+'｜':mcx?'☆ 明天 '+esc(mcx.leader||'出車')+'｜':'')+esc(s.name)+'</div>';
     h+='</div>';
-    const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0)+(no?5000:0)+(todayBySite[s.id]?3000:0),s.name,()=>routeMode?toggleStop(s.id):openDetail(s.id,false));
+    const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0)+(no?5000:0)+(todayBySite[s.id]?3000:mcx?2000:0),s.name,()=>routeMode?toggleStop(s.id):openDetail(s.id,false));
     if(hnd){pinHandles[s.id]=hnd;if(hoverId===s.id)hnd.front(true)}});
   drawRouteLine()}
 function fitAll(){if(!M)return;const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
