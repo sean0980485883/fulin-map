@@ -1359,6 +1359,24 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 .wvn{font-size:12px;padding:4px 7px}
 .wvf{margin-top:7px}.wvnav{padding:6px;font-size:13px;border-radius:8px}
 .wvtop{padding:11px 14px 10px}.wvtop h3{font-size:21px}.wvth{font-size:13px}.wvrest{font-size:13px;padding:5px 9px}
+
+/* 工人版：對齊（同一排卡片的每一段等高；案場、名牌、施作都排成整齊的欄） */
+.wvg{grid-auto-rows:auto;align-items:stretch}
+.wvg>.wvc{display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:0}
+.wvh{display:grid;grid-template-columns:22px auto 1fr;align-items:center;gap:6px}
+.wvcar{justify-self:end;text-align:right}
+.wvsec{padding:6px 9px 0}.wvsec:last-child{padding-bottom:9px}
+.wvsites{display:grid;grid-template-columns:16px auto 1fr;column-gap:4px;row-gap:3px;align-items:baseline;align-content:start;padding-top:8px}
+.wvsites .ic{font-size:12px}.wvsites .z{font-size:14px;color:#1F4FB0;font-weight:800;white-space:nowrap}.wvsites .t{font-size:12.5px;color:#4A5A63;font-weight:600;padding-left:4px}
+.wvr{display:grid;grid-template-columns:16px 1fr;column-gap:4px;align-items:start;align-content:start;margin:0}
+.wvr .ic{width:auto}
+.wvw{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:4px}.wvw span{text-align:center;padding:1px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wvt{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:4px}.wvt>div{min-width:0}
+@media (max-width:520px){.wvsites{grid-template-columns:16px 1fr}.wvsites .t{grid-column:2;padding-left:0;margin-top:-2px}.wvsites .z{white-space:normal}.wvw{grid-template-columns:repeat(auto-fill,minmax(54px,1fr))}.wvt{grid-template-columns:1fr;gap:3px}.wvt>div{padding:3px 5px}.wvt .tz{font-size:13px}.wvt .tt{font-size:11px}.wvsec{padding-left:7px;padding-right:7px}}
+
+/* 施作項目：中文在上（大）、泰文在下 */
+.wvt .tz{font-size:15px;font-weight:800;color:#1C2A33;line-height:1.3}.wvt .tt{font-size:12.5px;color:#7A5A1A;font-weight:600;line-height:1.3}
+@media (max-width:520px){.wvt .tz{font-size:13px}.wvt .tt{font-size:11px}}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2194,13 +2212,13 @@ function workerHtml(d,plain){const crews=crewsOf(d).filter(c=>String(c.leader||'
     '<div class="wvth">'+TH_WK[dd.getDay()]+' '+dd.getDate()+'/'+(dd.getMonth()+1)+(rel[1]?' · '+rel[1]:'')+'</div>'+
     (restAll.length?'<div class="wvrest">😴 休息 พักงาน：<b>'+esc(restAll.join('、'))+'</b></div>':'')+'</div>'+
     '<div class="wvg">'+(crews.length?list.map(({c,i})=>{const ls=crewSites(c);const th=String(c.siteThai||'').split('\n');const ws=(c.workers||[]).filter(Boolean);const ts=(c.tasks||[]).filter(Boolean);
-      return '<div class="wvc'+(me&&crewHas(c,me)?' me':'')+'"><div class="wvh"><span class="wvno">'+(i+1)+'</span><b class="wvld">'+esc(c.leader)+'</b>'+(c.car?'<span class="wvcar">'+esc(c.car)+'</span>':'')+'</div><div class="wvb">'+
-        ls.map((l,k)=>'<div class="wvs"><b class="z">📍'+esc(l)+'</b>'+(th[k]?' <span class="t">'+esc(th[k])+'</span>':'')+'</div>').join('')+
-        (ws.length?'<div class="wvr"><span class="ic">👷</span><div class="wvw">'+ws.map(w=>'<span'+(me&&w===me?' class="on"':'')+'>'+esc(w)+'</span>').join('')+'</div></div>':'')+
-        (ts.length?'<div class="wvr"><span class="ic">🔧</span><div class="wvt">'+ts.map(t=>{const tt=taskTh(t);return '<div>'+(tt&&tt!==t?'<div class="t">'+esc(tt)+'</div><div class="z">'+esc(t)+'</div>':'<div class="t">'+esc(t)+'</div>')+'</div>'}).join('')+'</div></div>':'')+
-        (c.note?'<div class="wvr"><span class="ic">📝</span><div class="wvn">'+esc(c.note).replace(/\n/g,'<br>')+'</div></div>':'')+
-        (!plain&&crewNavStops(c).length?'<div class="wvf"><a class="wvnav" href="'+esc(crewNavUrl(c))+'" target="_blank" rel="noopener">📍 導航 นำทาง'+(crewNavStops(c).length>1?'（'+crewNavStops(c).length+' 站）':'')+'</a></div>':'')+
-        '</div></div>'}).join(''):'<div class="wvc"><div class="wvb" style="text-align:center;color:#7A8A93">這天還沒有排班</div></div>')+'</div>'+
+      // 每張卡固定 5 段（頭、案場、工人、施作、備註），用 subgrid 讓同一排的卡片每一段都對齊
+      return '<div class="wvc'+(me&&crewHas(c,me)?' me':'')+'"><div class="wvh"><span class="wvno">'+(i+1)+'</span><b class="wvld">'+esc(c.leader)+'</b>'+(c.car?'<span class="wvcar">'+esc(c.car)+'</span>':'')+'</div>'+
+        '<div class="wvsec wvsites">'+ls.map((l,k)=>'<span class="ic">📍</span><b class="z">'+esc(l)+'</b><span class="t">'+esc(th[k]||'')+'</span>').join('')+'</div>'+
+        '<div class="wvsec wvr"><span class="ic">'+(ws.length?'👷':'')+'</span><div class="wvw">'+ws.map(w=>'<span'+(me&&w===me?' class="on"':'')+'>'+esc(w)+'</span>').join('')+'</div></div>'+
+        '<div class="wvsec wvr"><span class="ic">'+(ts.length?'🔧':'')+'</span><div class="wvt">'+ts.map(t=>{const tt=taskTh(t);return '<div><div class="tz">'+esc(t)+'</div>'+(tt&&tt!==t?'<div class="tt">'+esc(tt)+'</div>':'')+'</div>'}).join('')+'</div></div>'+
+        '<div class="wvsec wvr">'+(c.note?'<span class="ic">📝</span><div class="wvn">'+esc(c.note).replace(/\n/g,'<br>')+'</div>':'')+'</div>'+
+        '</div>'}).join(''):'<div class="wvc"><div class="wvb" style="text-align:center;color:#7A8A93">這天還沒有排班</div></div>')+'</div>'+
     '<div class="wvfoot">富林團隊 · '+crews.length+' 組 · '+ppl+' 人</div></div>'}
 function cardsHtml(d){return workerHtml(d,false)}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
