@@ -1992,6 +1992,7 @@ async function fillHist(s,boxId){boxId=boxId||'histBox';let list,partial=false;c
   catch(err){partial=true;// 後台還沒更新：先用網站上有的近期排班
     list=(DB.sched||[]).filter(c=>(c.siteIds||[]).includes(s.id)||crewSites(c).includes(s.name)).map(c=>({date:c.date,no:c.no,site:c.site,leader:c.leader,car:c.car,workers:c.workers,tasks:c.tasks,note:c.note})).sort((a,b)=>b.date.localeCompare(a.date))}
   const box=$(boxId);if(!box||(boxId==='histBox'&&selected!==s.id))return;
+  list=list.filter(x=>String(x.leader||'').trim()||String(x.car||'').trim()||(x.workers||[]).filter(Boolean).length||(x.tasks||[]).filter(Boolean).length); // 空白的那幾天（沒帶頭、沒車、沒人、沒施作）不顯示
   if(!list.length){box.innerHTML='<h4>施工紀錄</h4><div class="foot">還沒有排班紀錄。'+(partial?'（後台更新後可以看到全部歷史）':'')+'</div>';return}
   const days=[...new Set(list.map(x=>x.date))];const cnt={},last={};
   list.forEach(x=>[x.leader].concat(x.workers).filter(n=>n&&!SPECIAL.test(n)).forEach(n=>{cnt[n]=(cnt[n]||0)+1;if(!last[n])last[n]=x.date}));
