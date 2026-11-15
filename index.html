@@ -1341,6 +1341,24 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 .wvn{background:#FDECEC;color:#B42318;border-radius:8px;padding:6px 10px;font-size:14px;line-height:1.45}
 .wvf{margin-top:10px}.wvnav{display:block;text-align:center;background:#1F63E0;color:#fff!important;border-radius:10px;padding:8px;font-weight:700;text-decoration:none}
 .wvfoot{text-align:center;color:#7A8A93;font-size:12px;padding:12px 0 10px}
+
+/* 工人版：兩欄、字縮小（手機不會太長） */
+.wv{max-width:960px}.wv.plain{width:760px}
+.wvg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px}
+@media (min-width:1000px){.wv:not(.plain) .wvg{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.wvg .wvc{margin:0;border-radius:12px}
+.wvh{padding:7px 8px;gap:5px;flex-wrap:wrap;row-gap:0}
+.wvno{width:22px;height:22px;font-size:12px}
+.wvld{font-size:15px}
+.wvcar{margin-left:0;background:none;padding:0;color:#C0392B;font-size:13.5px;font-weight:800;letter-spacing:.02em}
+.wvb{padding:7px 9px 9px}
+.wvs{margin-bottom:4px;line-height:1.35}.wvs .z{font-size:14px;color:#1F4FB0;font-weight:800}.wvs .t{font-size:12.5px;color:#4A5A63;font-weight:600}
+.wvr{gap:4px;margin-top:6px}.wvr .ic{width:16px;font-size:12px;line-height:1.9}
+.wvw{gap:4px}.wvw span{font-size:12.5px;padding:1px 8px}
+.wvt{gap:4px}.wvt>div{padding:2px 6px;border-radius:6px}.wvt .t{font-size:12px}.wvt .z{font-size:10.5px}
+.wvn{font-size:12px;padding:4px 7px}
+.wvf{margin-top:7px}.wvnav{padding:6px;font-size:13px;border-radius:8px}
+.wvtop{padding:11px 14px 10px}.wvtop h3{font-size:21px}.wvth{font-size:13px}.wvrest{font-size:13px;padding:5px 9px}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2175,14 +2193,14 @@ function workerHtml(d,plain){const crews=crewsOf(d).filter(c=>String(c.leader||'
   return '<div class="wv'+(plain?' plain':'')+'"><div class="wvtop"><h3>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+(rel[0]?'<small>'+rel[0]+'</small>':'')+'</h3>'+
     '<div class="wvth">'+TH_WK[dd.getDay()]+' '+dd.getDate()+'/'+(dd.getMonth()+1)+(rel[1]?' · '+rel[1]:'')+'</div>'+
     (restAll.length?'<div class="wvrest">😴 休息 พักงาน：<b>'+esc(restAll.join('、'))+'</b></div>':'')+'</div>'+
-    (crews.length?list.map(({c,i})=>{const ls=crewSites(c);const th=String(c.siteThai||'').split('\n');const ws=(c.workers||[]).filter(Boolean);const ts=(c.tasks||[]).filter(Boolean);
-      return '<div class="wvc'+(me&&crewHas(c,me)?' me':'')+'"><div class="wvh"><span class="wvno">'+(i+1)+'</span><b class="wvld">'+esc(c.leader)+'</b>'+(c.car?'<span class="wvcar">🚚 '+esc(c.car)+'</span>':'')+'</div><div class="wvb">'+
-        ls.map((l,k)=>'<div class="wvs">'+(th[k]?'<div class="t">📍 '+esc(th[k])+'</div><div class="z">'+esc(l)+'</div>':'<div class="t">📍 '+esc(l)+'</div>')+'</div>').join('')+
+    '<div class="wvg">'+(crews.length?list.map(({c,i})=>{const ls=crewSites(c);const th=String(c.siteThai||'').split('\n');const ws=(c.workers||[]).filter(Boolean);const ts=(c.tasks||[]).filter(Boolean);
+      return '<div class="wvc'+(me&&crewHas(c,me)?' me':'')+'"><div class="wvh"><span class="wvno">'+(i+1)+'</span><b class="wvld">'+esc(c.leader)+'</b>'+(c.car?'<span class="wvcar">'+esc(c.car)+'</span>':'')+'</div><div class="wvb">'+
+        ls.map((l,k)=>'<div class="wvs"><b class="z">📍'+esc(l)+'</b>'+(th[k]?' <span class="t">'+esc(th[k])+'</span>':'')+'</div>').join('')+
         (ws.length?'<div class="wvr"><span class="ic">👷</span><div class="wvw">'+ws.map(w=>'<span'+(me&&w===me?' class="on"':'')+'>'+esc(w)+'</span>').join('')+'</div></div>':'')+
         (ts.length?'<div class="wvr"><span class="ic">🔧</span><div class="wvt">'+ts.map(t=>{const tt=taskTh(t);return '<div>'+(tt&&tt!==t?'<div class="t">'+esc(tt)+'</div><div class="z">'+esc(t)+'</div>':'<div class="t">'+esc(t)+'</div>')+'</div>'}).join('')+'</div></div>':'')+
         (c.note?'<div class="wvr"><span class="ic">📝</span><div class="wvn">'+esc(c.note).replace(/\n/g,'<br>')+'</div></div>':'')+
         (!plain&&crewNavStops(c).length?'<div class="wvf"><a class="wvnav" href="'+esc(crewNavUrl(c))+'" target="_blank" rel="noopener">📍 導航 นำทาง'+(crewNavStops(c).length>1?'（'+crewNavStops(c).length+' 站）':'')+'</a></div>':'')+
-        '</div></div>'}).join(''):'<div class="wvc"><div class="wvb" style="text-align:center;color:#7A8A93">這天還沒有排班</div></div>')+
+        '</div></div>'}).join(''):'<div class="wvc"><div class="wvb" style="text-align:center;color:#7A8A93">這天還沒有排班</div></div>')+'</div>'+
     '<div class="wvfoot">富林團隊 · '+crews.length+' 組 · '+ppl+' 人</div></div>'}
 function cardsHtml(d){return workerHtml(d,false)}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
@@ -2319,7 +2337,7 @@ function weekHtml(d){const mon=mondayOf(d);const days=[0,1,2,3,4,5,6].map(k=>add
   h+='<tr class="wrest"><th>休息</th>'+days.map(x=>{const r=restOf(x);const all=r.drivers.concat(r.workers);return '<td>'+esc(all.join('、'))+'</td>'}).join('')+'</tr>';
   return h+'</tbody></table></div><div class="foot">點日期可以打開那一天的總表。'+(n?'黃色是「'+esc(n)+'」有排到的。':'選「找人」可以標出某個人這週在哪裡。')+'</div>'}
 async function saveBoardImage(){if(!window.html2canvas){toast('圖片功能載入失敗，請重新整理');return}
-  const box=document.createElement('div');const W=schedView==='cards';box.style.cssText='position:fixed;left:-99999px;top:0;width:'+(W?'430px':'1400px')+';background:#fff;padding:'+(W?'0':'12px');boardPlain=true;box.innerHTML=W?workerHtml(schedDate,true):boardHtml(schedDate);boardPlain=false;document.body.appendChild(box);
+  const box=document.createElement('div');const W=schedView==='cards';box.style.cssText='position:fixed;left:-99999px;top:0;width:'+(W?'760px':'1400px')+';background:#fff;padding:'+(W?'0':'12px');boardPlain=true;box.innerHTML=W?workerHtml(schedDate,true):boardHtml(schedDate);boardPlain=false;document.body.appendChild(box);
   try{const cv=await html2canvas(box,{scale:2,backgroundColor:'#ffffff'});const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const name='排班_'+schedDate+'.png';
     const file=new File([blob],name,{type:'image/png'});
     // 手機：圖片做好後跳出預覽，按「存到相簿」會打開手機的分享選單，選「儲存影像」就存進照片（直接分享會因為等太久被手機擋掉）
