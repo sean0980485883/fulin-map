@@ -1296,6 +1296,14 @@ html body .mev.segs .mlead{font-size:11px;font-weight:600;color:var(--muted)!imp
 /* 排班表：距離上次進場天數 */
 .lvtag{font-style:normal;font-size:11px;font-weight:700;color:#5F6B6A;background:#EEF1F0;border-radius:8px;padding:0 5px;margin-left:3px;white-space:nowrap;line-height:1.5}
 .lvtag.first{color:#0B7A55;background:#DDF5EA}.mchips em .lvtag,.mcs .lvtag{display:inline-block}.lvtag.long{color:#B54708;background:#FFF0DD}
+
+/* 進場階段 */
+.mpl small{font-weight:600;opacity:.85}
+.mpstage{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px;color:var(--muted)}
+.mpstage button{border:1px solid var(--line);background:var(--panel,#fff);color:var(--ink);border-radius:14px;padding:4px 10px;font:inherit;font-size:13px;cursor:pointer}
+.mpstage button.on{background:#1F63E0;border-color:#1F63E0;color:#fff}
+.stglist{display:flex;flex-wrap:wrap;gap:6px}.stgi{display:inline-flex;align-items:center;gap:4px;border:1.5px solid #1F63E0;color:#1F63E0;border-radius:8px;padding:3px 8px;font-size:13px}
+.stgi.past{opacity:.5}.stgi button{border:0;background:none;color:#D93025;cursor:pointer;font-size:12px;padding:0 2px}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -1747,7 +1755,7 @@ async function load(){
   loading=false}
 function fail(msg){const n=$('notice');n.className='notice err';n.textContent=msg;n.hidden=false;$('updated').textContent='未更新';loaded=true;render()}
 function applyData(){
-  sites=DB.sites.map(s=>{const co=parseCoord(s.coord);return Object.assign({},s,{status:parseStatus(s.status),statusText:s.status,coordText:s.coord,lat:co?co[0]:null,lng:co?co[1]:null})});
+  sites=DB.sites.map(s=>{const co=parseCoord(s.coord);return Object.assign({},s,{status:parseStatus(s.status),statusText:s.status,coordText:s.coord,lat:co?co[0]:null,lng:co?co[1]:null,stages:s.stages||[],mainDate:s.startDate||'',startDate:effStart(s)})});
   loaded=true;restoreRoute();matchToday();
   const noLoc=sites.filter(x=>x.lat==null).length;const n=$('notice');n.className='notice';const dg=isAdmin()?dupGroups():[];
   n.innerHTML=(noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'')+(dg.length?(noLoc?'<br>':'')+'<button class="dupnote" id="dupBtn">⚠ 有 '+dg.length+' 組案場可能重複（同一個人），點這裡檢查合併</button>':'');n.hidden=!noLoc&&!dg.length;
@@ -1904,7 +1912,8 @@ function confirmStep(k){const now=Date.now();if(confirmKey===k&&now-confirmAt<40
 $('addSiteBtn').onclick=()=>openSiteModal(null);
 
 function adminDetailHtml(s){const cur=s.statusText;
-  return '<div class="adminbox"><h4>'+(isAdmin()?'管理':'現場')+'</h4>'+(isAdmin()?'<div class="segs">'+ST_OPTS.map(o=>'<button data-adm="status" data-v="'+o+'" aria-pressed="'+(o===cur)+'">'+o+'</button>').join('')+'</div>':'')+
+  return (s.stages&&s.stages.length?'<div class="adminbox"><h4>進場階段</h4><div class="stglist">'+s.stages.map((x,i)=>'<span class="stgi'+(x.d<DB.today?' past':'')+'"><b>'+esc(x.n||'進場')+'</b> '+esc(mdw(x.d))+(isAdmin()?'<button data-adm="stgdel" data-k="'+i+'" title="刪掉這個階段" aria-label="刪掉這個階段">✕</button>':'')+'</span>').join('')+'</div><div class="foot">在月曆雙擊某天可以新增階段；拖曳藍框可以改日期</div></div>':'')+
+  '<div class="adminbox"><h4>'+(isAdmin()?'管理':'現場')+'</h4>'+(isAdmin()?'<div class="segs">'+ST_OPTS.map(o=>'<button data-adm="status" data-v="'+o+'" aria-pressed="'+(o===cur)+'">'+o+'</button>').join('')+'</div>':'')+
     '<div class="actions">'+(isAdmin()?'<button class="btn'+(s.lat==null?' primary':'')+'" data-adm="pick">📍 '+(s.lat==null?'在地圖上點位置':'移動位置')+'</button><button class="btn" data-adm="edit">編輯資料</button>':'')+'<button class="btn primary" data-adm="report">現場回報＋照片</button></div></div>'}
 // 先改畫面上的資料（馬上看到），再背景存到雲端
 function localSite(id,patch){let x=(DB.sites||[]).find(y=>y.id===id);if(!x){x={id,name:'',status:'問題件',startDate:'',address:'',coord:'',owner:'',contact:'',phone:'',issue:'',thai:'',updated:''};DB.sites.push(x)}
@@ -2002,6 +2011,8 @@ function reportsHtml(s){const list=(DB.reports||[]).filter(r=>r.siteId===s.id||(
 $('pbody').addEventListener('click',async e=>{const b=e.target.closest('[data-adm]');if(!b)return;e.stopPropagation();
   const s=sites.find(x=>x.id===selected);if(!s)return;
   if(b.dataset.adm==='edit')return openSiteModal(s);
+  if(b.dataset.adm==='stgdel'){const base=(DB.sites||[]).find(x=>x.id===s.id);const list=((base&&base.stages)||[]).filter((_,i)=>i!==+b.dataset.k);const gone=((base&&base.stages)||[])[+b.dataset.k];
+    if(!confirmStep('stg'+s.id+b.dataset.k))return;saveStages(s.id,list,'已刪掉「'+((gone&&gone.n)||'進場')+'」');return}
   if(b.dataset.adm==='pick')return startPick(s);
   if(b.dataset.adm==='report')return openReportModal(s);
   if(b.dataset.adm==='album')return openAlbum(s);
@@ -2056,6 +2067,20 @@ function shrink(file){return new Promise((res,rej)=>{const fr=new FileReader();f
 let meName='';try{meName=localStorage.getItem('fulin-me')||''}catch(e){}
 let schedDate='',schedView=(window.matchMedia('(max-width:760px)').matches?'cards':'board'),schedEdit=false,draft=null;
 const crewsOf=d=>(DB.sched||[]).filter(c=>c.date===d).sort((a,b)=>a.no-b.no);
+// 進場階段：一個案場可以有好幾次進場（化糞池、水泥板模、組合屋進場…）
+const STAGE_NAMES=['化糞池','水泥板模','組合屋進場'];
+// 地圖「7 天內／待安排」用最近一個還沒到的日期；都過了就用最後一個
+function effStart(s){const ds=(s.stages||[]).map(x=>x.d).concat(s.startDate?[s.startDate]:[]).filter(Boolean).sort();if(!ds.length)return '';const t=DB.today||ymd(new Date());return ds.find(d=>d>=t)||ds[ds.length-1]}
+// 月曆藍框：原本的進場日（沒有同一天的階段時）＋每個階段
+function planItems(s){const st=s.stages||[];const out=[];if(s.mainDate&&!st.some(x=>x.d===s.mainDate))out.push({k:'m',d:s.mainDate,n:''});st.forEach((x,i)=>out.push({k:String(i),d:x.d,n:x.n}));return out}
+async function saveStages(id,list,msg){const base=(DB.sites||[]).find(x=>x.id===id);if(!base)return;const old={stages:base.stages||[],status:base.status};
+  const st=parseStatus(base.status)==='issue'&&!/維修|客訴/.test(base.status)||!base.status?'預定進場':base.status;
+  list=list.slice().sort((a,b)=>a.d.localeCompare(b.d));localSite(id,{stages:list,status:st});renderToday();if(msg)toast(msg);
+  try{await api('site_stages',{id,stages:list,status:st!==base.status?st:''})}catch(err){localSite(id,old);renderToday();toast('沒存到：'+err.message)}}
+function setStage(id,name,day){const base=(DB.sites||[]).find(x=>x.id===id);if(!base)return;const list=(base.stages||[]).map(x=>({n:x.n,d:x.d}));
+  const ex=list.find(x=>x.n===name);if(ex)ex.d=day;else list.push({n:name,d:day});saveStages(id,list,'「'+base.name+'｜'+name+'」預定 '+mdw(day))}
+function moveStage(id,k,day){const base=(DB.sites||[]).find(x=>x.id===id);if(!base)return;const list=(base.stages||[]).map(x=>({n:x.n,d:x.d}));if(!list[+k])return;
+  if(list[+k].d===day){renderToday();return}list[+k].d=day;saveStages(id,list,'「'+base.name+'｜'+(list[+k].n||'進場')+'」改到 '+mdw(day))}
 // 距離上次進場：這天之前，最後一次有帶頭去這個案場的日期（沒帶頭的不算；40 天前的由後端算好）
 function lastVisit(name,d){let best='';(DB.sched||[]).forEach(c=>{if(c.date<d&&c.date>best&&String(c.leader||'').trim()&&crewSites(c).includes(name))best=c.date});
   return best||((DB.oldVisit||{})[name]||'')}
@@ -2172,20 +2197,20 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
     (A?'<button class="btn primary" data-t="mplan">＋ 預定進場</button>':'')+'<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>雙擊空白處＝預定進場；拖曳綠色／藍色＝改日期；點日期數字＝編輯那天排班</em>':'')+'</span></div>'+
     '<div class="mgrid"><div class="mwd">日</div><div class="mwd">一</div><div class="mwd">二</div><div class="mwd">三</div><div class="mwd">四</div><div class="mwd">五</div><div class="mwd">六</div>';
   days.forEach(dd=>{const t=toDate(dd);const other=t.getMonth()!==mo;const wd=t.getDay();const crews=crewsOf(dd).filter(c=>String(c.leader||'').trim());const inSched=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inSched.add(l)));
-    const plan=sites.filter(s=>s.startDate===dd&&s.status!=='done'&&!inSched.has(s.name));
+    const plan=[];sites.forEach(s=>{if(s.status==='done'||inSched.has(s.name))return;planItems(s).forEach(it=>{if(it.d===dd)plan.push({s,it})})});
     h+='<div class="mday'+(other?' other':'')+(dd===DB.today?' today':'')+(dd===d?' sel':'')+'" data-day="'+dd+'">'+
       '<button class="mdh" data-t="mday" data-v="'+dd+'"'+(A?' data-edit="1" title="編輯這天排班"':'')+'><b class="'+(wd===0?'sun':wd===6?'sat':'')+'">'+t.getDate()+'</b><small>'+lunar(dd)+'</small></button>'+
       crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev segs" data-t="mday" data-v="'+dd+'" data-no="'+c.no+'"'+(A?' draggable="true"':'')+' title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+crewSites(c).map(l=>'<span class="mseg" style="--sc:'+lineColor(c,l)+'">'+esc(l)+'</span>').join('')+(c.leader?'<small class="mlead">'+esc(c.leader)+'</small>':'')+'</button>').join('')+
-      plan.map(s=>'<button class="mpl" data-t="msite" data-id="'+s.id+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+'</button>').join('')+
+      plan.map(({s,it})=>'<button class="mpl" data-t="msite" data-id="'+s.id+'" data-k="'+it.k+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+(it.n?'<small>｜'+esc(it.n)+'</small>':'')+'</button>').join('')+
       '</div>'});
   return h+'</div></div>'}
 // 拖曳「預定進場」到別天：改進場日
-$('todayPage').addEventListener('dragstart',e=>{if(!isAdmin()||!e.target.closest)return;const b=e.target.closest('.mpl');if(b){e.dataTransfer.setData('text/fulin-site',b.dataset.id);e.dataTransfer.effectAllowed='move';return}
+$('todayPage').addEventListener('dragstart',e=>{if(!isAdmin()||!e.target.closest)return;const b=e.target.closest('.mpl');if(b){e.dataTransfer.setData('text/fulin-site',b.dataset.id+'|'+(b.dataset.k||'m'));e.dataTransfer.effectAllowed='move';return}
   const g=e.target.closest('.mev');if(g){e.dataTransfer.setData('text/fulin-crew',g.dataset.v+'|'+g.dataset.no);e.dataTransfer.effectAllowed='move'}});
 $('todayPage').addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||!(e.dataTransfer.types.includes('text/fulin-site')||e.dataTransfer.types.includes('text/fulin-crew')))return;e.preventDefault();document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));c.classList.add('drop')});
 $('todayPage').addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.mday');document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));const cr=e.dataTransfer.getData('text/fulin-crew');if(c&&cr){e.preventDefault();const [fd,no]=cr.split('|');moveCrew(fd,+no,c.dataset.day);return}
-  const id=e.dataTransfer.getData('text/fulin-site');if(!c||!id)return;e.preventDefault();
-  setStartDate(id,c.dataset.day)});
+  const v=e.dataTransfer.getData('text/fulin-site');if(!c||!v)return;e.preventDefault();const [id,k]=v.split('|');
+  if(k&&k!=='m')moveStage(id,k,c.dataset.day);else setStartDate(id,c.dataset.day)});
 // 月曆拖曳綠色（已排班）到別天：整組搬過去（帶頭、車、工人、施作都跟著）
 function dayPayload(d,crews){const r=restOf(d);return {date:d,auto:true,restD:(r.drivers||[]).filter(Boolean),restW:(r.workers||[]).filter(Boolean),
   crews:crews.map(c=>({site:c.site,siteIds:c.siteIds||[],leader:c.leader||'',car:c.car||'',workers:(c.workers||[]).filter(Boolean),tasks:(c.tasks||[]).filter(Boolean),note:c.note||''}))}}
@@ -2207,9 +2232,11 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
   p.innerHTML='<div class="mph"><button class="x" data-p="close" aria-label="關閉">✕</button><b>預定進場</b><button class="btn primary" data-p="save" disabled>儲存</button></div>'+
     '<input id="mpName" class="mpname" placeholder="案場名稱（必填）" autocomplete="off">'+
     '<label class="mpdate">進場日 <input type="date" id="mpDate" value="'+day+'"></label>'+
+    '<div class="mpstage" id="mpStage"><span>階段</span>'+[''].concat(STAGE_NAMES).map(n=>'<button type="button" data-p="stg" data-v="'+esc(n)+'"'+(n?'':' class="on"')+'>'+(n?esc(n):'不分')+'</button>').join('')+'<button type="button" data-p="stgx">＋自訂</button></div>'+
     '<div class="mplist" id="mpList"></div>';
   document.body.appendChild(p);document.body.classList.add('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'));const cell=document.querySelector('.mday[data-day="'+day+'"]');if(cell)cell.classList.add('pick');
-  let pick=null;const inp=$('mpName'),list=$('mpList'),sv=p.querySelector('[data-p=save]');
+  let pick=null,stg='';const inp=$('mpName'),list=$('mpList'),sv=p.querySelector('[data-p=save]');
+  const markStg=()=>p.querySelectorAll('[data-p=stg]').forEach(x=>x.classList.toggle('on',x.dataset.v===stg));
   const norm=t=>String(t||'').replace(/[\s　]/g,'').toLowerCase();
   function draw(){const q=norm(inp.value);
     const pool=sites.filter(x=>x.status!=='done');
@@ -2222,9 +2249,11 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const f=list.querySelector('.mpi');if(pick)sv.click();else if(f)f.click()}else if(e.key==='Escape')closePlan()});
   p.addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const t=b.dataset.p;
     if(t==='close')closePlan();
+    else if(t==='stg'){stg=b.dataset.v;markStg()}
+    else if(t==='stgx'){const n=(prompt('階段名稱（例如：補修、驗收）')||'').trim().slice(0,20);if(n){stg=n;if(!p.querySelector('[data-p=stg][data-v="'+CSS.escape(n)+'"]')){const nb=document.createElement('button');nb.type='button';nb.dataset.p='stg';nb.dataset.v=n;nb.textContent=n;b.before(nb)}markStg()}}
     else if(t==='pick'){pick=b.dataset.id;const x=sites.find(y=>y.id===pick);inp.value=x?x.name:'';draw();sv.focus()}
     else if(t==='new'){const nm=inp.value.trim(),dd=$('mpDate').value||day;closePlan();openSiteModal(null);setTimeout(()=>{if($('fName'))$('fName').value=nm;if($('fDate'))$('fDate').value=dd;if($('fSt'))$('fSt').value='預定進場'},0)}
-    else if(t==='save'&&pick){const dd=$('mpDate').value||day;closePlan();setStartDate(pick,dd)}});
+    else if(t==='save'&&pick){const dd=$('mpDate').value||day;closePlan();if(stg)setStage(pick,stg,dd);else setStartDate(pick,dd)}});
   draw();setTimeout(()=>inp.focus(),0)}
 function closePlan(){const p=$('mplan');if(p)p.remove();document.body.classList.remove('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'))}
 $('todayPage').addEventListener('dblclick',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||e.target.closest('.mev,.mpl'))return;e.preventDefault();openPlan(c.dataset.day)});
