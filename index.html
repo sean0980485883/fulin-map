@@ -1420,6 +1420,30 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 .wvpick button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel,#fff);color:var(--ink);border-radius:16px;padding:3px 10px 3px 4px;font:inherit;font-size:13px;cursor:pointer}
 .wvpick button[aria-pressed=true]{border-color:#C9A24A;box-shadow:0 0 0 2px rgba(201,162,74,.35);font-weight:700}
 .wvpick i{width:18px;height:18px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+
+/* 長輩版：大字＋高對比（手機改一欄，字才放得大） */
+.wv[data-wt=eldw]{--top1:#000;--top2:#1A1A1A;--acc:#FFD400;--accl:#000;--sub:#FFFFFF;--bg:#FFFFFF;--hd1:#FFF3B0;--hd2:#FFE97A;--hdb:#000;--chip1:#FFD400;--chip2:#FFD400;--chiptx:#000;--ld:#000;--car:#B00000;--site:#002E8A;--tkbg:#FFFFFF;--tkbd:#000;--tktx:#222}
+.wv[data-wt=eldk]{--top1:#000;--top2:#000;--acc:#FFD400;--accl:#FFD400;--sub:#FFFFFF;--bg:#000;--hd1:#1A1A1A;--hd2:#1A1A1A;--hdb:#FFD400;--chip1:#FFD400;--chip2:#FFD400;--chiptx:#000;--ld:#FFFFFF;--car:#FF6B6B;--site:#7FD3FF;--tkbg:#000;--tkbd:#FFD400;--tktx:#FFE680}
+.wv[data-wt^=eld] .wvc{border:2px solid var(--hdb)!important;box-shadow:none!important}
+.wv[data-wt=eldk] .wvc{background:#000!important}
+.wv[data-wt=eldk] .wvsites .t,.wv[data-wt=eldk] .wvt .tz,.wv[data-wt=eldk] .wvfoot,.wv[data-wt=eldk] .wvr .ic{color:#FFFFFF!important}
+.wv[data-wt=eldw] .wvsites .t{color:#222!important}.wv[data-wt=eldw] .wvt .tz{color:#000!important}
+.wv[data-wt^=eld] .wvw span{border:2px solid #000!important;box-shadow:none!important;font-weight:900}
+.wv[data-wt^=eld] .wvt>div{border-width:2px!important}
+.wv[data-wt^=eld] .wvno{box-shadow:0 0 0 2px #000!important;font-weight:900}
+.wv[data-wt^=eld] .wvn{background:#FFE5E5!important;color:#A00000!important;border:2px solid #A00000;font-weight:700}
+.wv[data-wt^=eld] .wvtop h3{font-size:40px!important}.wv[data-wt^=eld] .wvbrand{font-size:24px!important}.wv[data-wt^=eld] .wvth,.wv[data-wt^=eld] .wvrest{font-size:18px!important}
+.wv[data-wt^=eld] .wvno{width:30px!important;height:30px!important;font-size:17px!important}
+.wv[data-wt^=eld] .wvh{grid-template-columns:30px minmax(0,1fr) auto!important;padding:10px 12px!important}
+.wv[data-wt^=eld] .wvld{font-size:22px!important}.wv[data-wt^=eld] .wvcar{font-size:20px!important}
+.wv[data-wt^=eld] .wvsites{grid-template-columns:22px 1fr!important}.wv[data-wt^=eld] .wvsites .t{grid-column:2;padding-left:0!important}
+.wv[data-wt^=eld] .wvsites .z{font-size:21px!important;white-space:normal!important}.wv[data-wt^=eld] .wvsites .t{font-size:17px!important}
+.wv[data-wt^=eld] .wvsites .ic,.wv[data-wt^=eld] .wvr .ic{font-size:17px!important}.wv[data-wt^=eld] .wvr{grid-template-columns:22px 1fr!important}
+.wv[data-wt^=eld] .wvw{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))!important;gap:6px!important}.wv[data-wt^=eld] .wvw span{font-size:19px!important;padding:3px 6px!important}
+.wv[data-wt^=eld] .wvt{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important;gap:6px!important}.wv[data-wt^=eld] .wvt .tz{font-size:20px!important}.wv[data-wt^=eld] .wvt .tt{font-size:16px!important}
+.wv[data-wt^=eld] .wvn{font-size:18px!important}.wv[data-wt^=eld] .wvsec{padding:9px 12px 0!important}
+.wv[data-wt^=eld] .wvfoot{font-size:16px!important}
+@media (max-width:520px){.wv[data-wt^=eld] .wvg{grid-template-columns:1fr!important}.wv[data-wt^=eld] .wvt{grid-template-columns:repeat(2,minmax(0,1fr))!important}.wv[data-wt^=eld] .wvtop h3{font-size:34px!important}}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2264,7 +2288,7 @@ function workerHtml(d,plain){const crews=crewsOf(d).filter(c=>String(c.leader||'
         '</div>'}).join(''):'<div class="wvc"><div class="wvb" style="text-align:center;color:#7A8A93">這天還沒有排班</div></div>')+'</div>'+
     '<div class="wvfoot">富林團隊 · '+crews.length+' 組 · '+ppl+' 人</div></div>'}
 // 工人版配色：5 種，每台裝置記住自己選的
-const WV_THEMES=[['navy','深藍金','#22344A','#E9C46A'],['green','墨綠金','#163D33','#D9B45A'],['wine','酒紅金','#5A1A26','#E2B866'],['black','黑金','#151515','#D4AF37'],['sky','藍白','#1F5FA8','#9CC9F5']];
+const WV_THEMES=[['navy','深藍金','#22344A','#E9C46A'],['green','墨綠金','#163D33','#D9B45A'],['wine','酒紅金','#5A1A26','#E2B866'],['black','黑金','#151515','#D4AF37'],['sky','藍白','#1F5FA8','#9CC9F5'],['eldw','大字白底','#FFFFFF','#111111'],['eldk','大字黑底','#000000','#FFD400']];
 let wvTheme='navy';try{const t=localStorage.getItem('fulin-wvtheme');if(WV_THEMES.some(x=>x[0]===t))wvTheme=t}catch(e){}
 function cardsHtml(d){return '<div class="wvpick"><span>配色</span>'+WV_THEMES.map(t=>'<button data-t="wvtheme" data-v="'+t[0]+'" aria-pressed="'+(t[0]===wvTheme)+'" title="'+t[1]+'"><i style="background:linear-gradient(135deg,'+t[2]+' 50%,'+t[3]+' 50%)"></i>'+t[1]+'</button>').join('')+'</div>'+workerHtml(d,false)}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
