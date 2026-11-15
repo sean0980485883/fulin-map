@@ -1399,6 +1399,27 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 
 .wvh{grid-template-columns:22px minmax(0,1fr) auto!important}.wvld{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.wvcar{white-space:nowrap}
 @media (max-width:520px){.wvld{font-size:14px!important}.wvcar{font-size:12.5px!important}.wvh{gap:4px!important;padding:7px 6px!important}}
+
+/* 工人版：5 種配色（用變數切換） */
+.wv{--top1:#17222F;--top2:#2C4460;--acc:#E9C46A;--accl:#C9A24A;--sub:#D9C79A;--bg:#F3F1EC;--hd1:#FBF8F1;--hd2:#F5EFE2;--hdb:#E6D7AE;--chip1:#1E2A3A;--chip2:#33465C;--chiptx:#F3D68B;--ld:#17222F;--car:#A3281C;--site:#23426B;--tkbg:#FFFBF2;--tkbd:#E9D8A8;--tktx:#8A6A2A}
+.wv[data-wt=green]{--top1:#0E2A22;--top2:#1F4D40;--acc:#D9B45A;--accl:#B8963E;--sub:#CFC08E;--bg:#F1F2EC;--hd1:#F9F8F0;--hd2:#EEF0E2;--hdb:#D6D2A8;--chip1:#12352C;--chip2:#245245;--chiptx:#EBD08A;--ld:#0E2A22;--car:#9A2B1C;--site:#1F5240;--tkbg:#FBFBF2;--tkbd:#DDD6A6;--tktx:#7A6A2A}
+.wv[data-wt=wine]{--top1:#3A0F18;--top2:#6B2232;--acc:#E2B866;--accl:#C49A48;--sub:#E3C9A0;--bg:#F5F0EE;--hd1:#FCF7F4;--hd2:#F5EAE4;--hdb:#E7CDB8;--chip1:#4A1520;--chip2:#6E2433;--chiptx:#F2D492;--ld:#3A0F18;--car:#8C1D2C;--site:#5A1A26;--tkbg:#FFF9F4;--tkbd:#ECD3B5;--tktx:#8A5A2A}
+.wv[data-wt=black]{--top1:#0B0B0B;--top2:#2A2A2A;--acc:#D4AF37;--accl:#B8952B;--sub:#CDBB85;--bg:#EFEEEA;--hd1:#FAFAF7;--hd2:#F0EEE6;--hdb:#DCCF9F;--chip1:#151515;--chip2:#353535;--chiptx:#E6C55A;--ld:#111111;--car:#A3281C;--site:#2A2A2A;--tkbg:#FFFCF2;--tkbd:#E3D3A0;--tktx:#7D6522}
+.wv[data-wt=sky]{--top1:#16467F;--top2:#2E78C7;--acc:#FFFFFF;--accl:#9CC9F5;--sub:#D6E8FB;--bg:#EEF4FA;--hd1:#F7FBFF;--hd2:#EAF3FC;--hdb:#C5DCF3;--chip1:#1F5FA8;--chip2:#3C82CF;--chiptx:#FFFFFF;--ld:#123A66;--car:#C0392B;--site:#1F5FA8;--tkbg:#F5FAFF;--tkbd:#C7DDF2;--tktx:#3D6A99}
+.wv{background:var(--bg)!important}
+.wvtop{background:linear-gradient(135deg,var(--top1) 0%,var(--top2) 100%)!important;border-bottom:3px solid var(--accl)}
+.wvbrand{color:var(--acc)!important}.wvth{color:var(--sub)!important}
+.wvrest{background:rgba(255,255,255,.1)!important;border:1px solid var(--accl);color:var(--sub)}
+.wvh{background:linear-gradient(180deg,var(--hd1),var(--hd2))!important;border-bottom:1px solid var(--hdb)!important}
+.wvno{background:linear-gradient(135deg,var(--chip1),var(--chip2))!important;color:var(--chiptx)!important;box-shadow:0 0 0 1.5px var(--accl)}
+.wvld{color:var(--ld)!important}.wvcar{color:var(--car)!important}.wvsites .z{color:var(--site)!important}
+.wvw span{background:linear-gradient(135deg,var(--chip1),var(--chip2))!important;color:var(--chiptx)!important;border-color:var(--accl)!important}
+.wvt>div{background:var(--tkbg)!important;border-color:var(--tkbd)!important}.wvt .tt{color:var(--tktx)!important}
+.wvc{border-color:var(--hdb)!important}
+.wvpick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;max-width:960px;margin:0 auto 8px;font-size:13px;color:var(--muted)}
+.wvpick button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel,#fff);color:var(--ink);border-radius:16px;padding:3px 10px 3px 4px;font:inherit;font-size:13px;cursor:pointer}
+.wvpick button[aria-pressed=true]{border-color:#C9A24A;box-shadow:0 0 0 2px rgba(201,162,74,.35);font-weight:700}
+.wvpick i{width:18px;height:18px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2230,7 +2251,7 @@ function workerHtml(d,plain){const crews=crewsOf(d).filter(c=>String(c.leader||'
   const rel=d===DB.today?['今天','วันนี้']:d===addDays(DB.today,1)?['明天','พรุ่งนี้']:d===addDays(DB.today,-1)?['昨天','เมื่อวาน']:['',''];
   const restAll=(rest.drivers||[]).concat(rest.workers||[]).filter(Boolean);const ppl=crews.reduce((n,c)=>n+1+(c.workers||[]).filter(Boolean).length,0);
   const me=plain?'':meName;const list=crews.map((c,i)=>({c,i})).sort((a,b)=>(me?(crewHas(b.c,me)-crewHas(a.c,me)):0));
-  return '<div class="wv'+(plain?' plain':'')+'"><div class="wvtop"><div class="wvbrand">富林施工團隊</div><h3>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+(rel[0]?'<small>'+rel[0]+'</small>':'')+'</h3>'+
+  return '<div class="wv'+(plain?' plain':'')+'" data-wt="'+wvTheme+'"><div class="wvtop"><div class="wvbrand">富林施工團隊</div><h3>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+(rel[0]?'<small>'+rel[0]+'</small>':'')+'</h3>'+
     '<div class="wvth">'+TH_WK[dd.getDay()]+' '+dd.getDate()+'/'+(dd.getMonth()+1)+(rel[1]?' · '+rel[1]:'')+'</div>'+
     (restAll.length?'<div class="wvrest">😴 休息 พักงาน：<b>'+esc(restAll.join('、'))+'</b></div>':'')+'</div>'+
     '<div class="wvg">'+(crews.length?list.map(({c,i})=>{const ls=crewSites(c);const th=String(c.siteThai||'').split('\n');const ws=(c.workers||[]).filter(Boolean);const ts=(c.tasks||[]).filter(Boolean);
@@ -2242,7 +2263,10 @@ function workerHtml(d,plain){const crews=crewsOf(d).filter(c=>String(c.leader||'
         '<div class="wvsec wvr">'+(c.note?'<span class="ic">📝</span><div class="wvn">'+esc(c.note).replace(/\n/g,'<br>')+'</div>':'')+'</div>'+
         '</div>'}).join(''):'<div class="wvc"><div class="wvb" style="text-align:center;color:#7A8A93">這天還沒有排班</div></div>')+'</div>'+
     '<div class="wvfoot">富林團隊 · '+crews.length+' 組 · '+ppl+' 人</div></div>'}
-function cardsHtml(d){return workerHtml(d,false)}
+// 工人版配色：5 種，每台裝置記住自己選的
+const WV_THEMES=[['navy','深藍金','#22344A','#E9C46A'],['green','墨綠金','#163D33','#D9B45A'],['wine','酒紅金','#5A1A26','#E2B866'],['black','黑金','#151515','#D4AF37'],['sky','藍白','#1F5FA8','#9CC9F5']];
+let wvTheme='navy';try{const t=localStorage.getItem('fulin-wvtheme');if(WV_THEMES.some(x=>x[0]===t))wvTheme=t}catch(e){}
+function cardsHtml(d){return '<div class="wvpick"><span>配色</span>'+WV_THEMES.map(t=>'<button data-t="wvtheme" data-v="'+t[0]+'" aria-pressed="'+(t[0]===wvTheme)+'" title="'+t[1]+'"><i style="background:linear-gradient(135deg,'+t[2]+' 50%,'+t[3]+' 50%)"></i>'+t[1]+'</button>').join('')+'</div>'+workerHtml(d,false)}
 function dayTabs(d,attr){return '<div class="daytabs">'+[-1,0,1].map(o=>{const x=addDays(DB.today,o);const dd=toDate(x);
   return '<button data-'+attr+'="day" data-v="'+x+'" aria-pressed="'+(x===d)+'">'+['昨天','今天','明天'][o+1]+'<small>'+(dd.getMonth()+1)+'/'+dd.getDate()+' '+WK[dd.getDay()]+'</small></button>'}).join('')+'</div>'}
 function renderToday(){const el=$('todayPage');if(!$('v-today').hidden)syncTabs('today');if(schedView!=='month')closePlan();if(schedEdit)return renderSchedEditor();if(!schedDate)return;
@@ -2255,7 +2279,7 @@ function renderToday(){const el=$('todayPage');if(!$('v-today').hidden)syncTabs(
     (meName&&schedView!=='week'&&schedView!=='month'?meBanner(d):'')+
     (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':schedView==='week'?weekHtml(d):schedView==='month'?monthHtml(d):cardsHtml(d))+
     '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>'}
-$('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;if(t==='navcopyall'){copyLink(allShareText(b.dataset.d));return}if(t==='navcopy'){const c=crewsOf(b.dataset.d).find(x=>x.no===+b.dataset.no);if(c)copyLink(crewShareText(c));return}
+$('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;if(t==='wvtheme'){wvTheme=b.dataset.v;try{localStorage.setItem('fulin-wvtheme',wvTheme)}catch(x){}renderToday();return}if(t==='navcopyall'){copyLink(allShareText(b.dataset.d));return}if(t==='navcopy'){const c=crewsOf(b.dataset.d).find(x=>x.no===+b.dataset.no);if(c)copyLink(crewShareText(c));return}
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
   else if(t==='board'||t==='cards'||t==='week'||t==='month'){schedView=t;renderToday()}else if(t==='mprev'||t==='mnext'){const x=toDate(schedDate);x.setDate(1);x.setMonth(x.getMonth()+(t==='mprev'?-1:1));schedDate=ymd(x);renderToday();return}else if(t==='mday'){const v=b.dataset.v,ed=isAdmin()&&b.dataset.edit;if(e.detail>1){clearTimeout(mdayT);return}clearTimeout(mdayT);mdayT=setTimeout(()=>{if($('mplan'))return;schedDate=v;if(ed){openSchedEditor();return}schedView=isPhone()?'cards':'board';renderToday()},260);return}else if(t==='mplan'){openPlan(schedDate);return}else if(t==='msite'){goMap(b.dataset.id);return}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
