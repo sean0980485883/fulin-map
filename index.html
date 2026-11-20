@@ -2099,7 +2099,7 @@ $('addSiteBtn').onclick=()=>openSiteModal(null);
 
 function adminDetailHtml(s){const cur=s.statusText;
   return (s.stages&&s.stages.length?'<div class="adminbox"><h4>進場階段</h4><div class="stglist">'+s.stages.map((x,i)=>'<span class="stgi'+(x.d<DB.today?' past':'')+'"><b>'+esc(x.n||'進場')+'</b> '+esc(mdw(x.d))+(isAdmin()?'<button data-adm="stgdel" data-k="'+i+'" title="刪掉這個階段" aria-label="刪掉這個階段">✕</button>':'')+'</span>').join('')+'</div><div class="foot">在月曆雙擊某天可以新增階段；拖曳藍框可以改日期</div></div>':'')+
-  '<div class="adminbox"><h4>'+(isAdmin()?'管理':'現場')+'</h4>'+(isAdmin()?'<div class="segs">'+ST_OPTS.map(o=>'<button data-adm="status" data-v="'+o+'" aria-pressed="'+(o===cur)+'">'+o+'</button>').join('')+'</div>':'')+
+  '<div class="adminbox"><h4>'+(isAdmin()?'管理':'現場')+'</h4>'+(isAdmin()?'<div class="segs">'+['問題件','施工中','預定進場','待安排','已完工'].map(o=>{const on=o==='預定進場'?(cur===o&&bucket(s)==='week'):o==='待安排'?(cur==='預定進場'&&bucket(s)==='later'):o===cur;return '<button data-adm="status" data-v="'+o+'" aria-pressed="'+on+'"'+(o==='待安排'?' title="還沒定進場日（清掉進場日）"':'')+'>'+o+'</button>'}).join('')+'</div>':'')+
     '<div class="actions">'+(isAdmin()?'<button class="btn'+(s.lat==null?' primary':'')+'" data-adm="pick">📍 '+(s.lat==null?'在地圖上點位置':'移動位置')+'</button><button class="btn" data-adm="edit">編輯資料</button>':'')+'<button class="btn primary" data-adm="report">現場回報＋照片</button></div></div>'}
 // 先改畫面上的資料（馬上看到），再背景存到雲端
 function localSite(id,patch){let x=(DB.sites||[]).find(y=>y.id===id);if(!x){x={id,name:'',status:'問題件',startDate:'',address:'',coord:'',owner:'',contact:'',phone:'',issue:'',thai:'',updated:''};DB.sites.push(x)}
@@ -2205,6 +2205,7 @@ $('pbody').addEventListener('click',async e=>{const b=e.target.closest('[data-ad
   if(b.dataset.adm==='pick')return startPick(s);
   if(b.dataset.adm==='report')return openReportModal(s);
   if(b.dataset.adm==='album')return openAlbum(s);
+  if(b.dataset.adm==='status'&&b.dataset.v==='待安排'){if(s.statusText==='預定進場'&&bucket(s)==='later'&&!s.mainDate)return;toast('「'+s.name+'」改成待安排');await unplanSites([s.id]);render();return}
   if(b.dataset.adm==='status'){const v=b.dataset.v;const old=s.statusText;if(v===old)return;
     localSite(s.id,{status:v});toast('已改為「'+v+'」');
     try{await api('site_status',{id:s.id,status:v});load()}catch(err){localSite(s.id,{status:old});toast('沒存到：'+err.message)}}},true);
