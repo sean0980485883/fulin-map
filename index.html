@@ -1444,6 +1444,15 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 .wv[data-wt^=eld] .wvn{font-size:18px!important}.wv[data-wt^=eld] .wvsec{padding:9px 12px 0!important}
 .wv[data-wt^=eld] .wvfoot{font-size:16px!important}
 @media (max-width:520px){.wv[data-wt^=eld] .wvg{grid-template-columns:1fr!important}.wv[data-wt^=eld] .wvt{grid-template-columns:repeat(2,minmax(0,1fr))!important}.wv[data-wt^=eld] .wvtop h3{font-size:34px!important}}
+
+/* 廠商 */
+.chip.vchip{--c:#6D4AAE;--cbg:rgba(109,74,174,.12)}
+.pin .dot.vdot{border-radius:6px!important;background:#6D4AAE!important;border:2px solid #fff!important;font-size:calc(var(--ps,24px)*.55);box-shadow:0 0 0 2px #6D4AAE,0 1px 4px rgba(0,0,0,.35)!important}
+.group h2 .vadd{float:right;border:1px solid #6D4AAE;background:#fff;color:#6D4AAE;border-radius:12px;padding:1px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+
+/* 月曆垃圾桶 */
+.mtrash{display:inline-flex;align-items:center;gap:4px;border:2px dashed #C0392B;color:#C0392B;border-radius:10px;padding:5px 12px;font-weight:700;font-size:14px;background:#FFF5F4;user-select:none}
+.mtrash.over{background:#C0392B;color:#fff;transform:scale(1.08)}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -1643,6 +1652,10 @@ function drawPins(){if(!M)return;const z=M.zoom();$('map').style.setProperty('--
     h+='</div>';
     const hnd=M.add(s.lat,s.lng,h,order[b]*100+(sel?1000:0)+(no?5000:0)+(tcx?3000:mcx?2000:0),s.name,()=>routeMode?toggleStop(s.id):openDetail(s.id,false));
     if(hnd){pinHandles[s.id]=hnd;if(hoverId===s.id)hnd.front(true)}});
+  // 廠商：紫色方形 🏭（開「廠商」方塊，或已經排進路線才顯示）
+  vendors.filter(v=>v.lat!=null&&(filters.has('vendor')||route.includes(v.id))).forEach(v=>{const no=route.indexOf(v.id)+1;
+    const h='<div class="pin vpin'+(no?' stop':'')+'" data-id="'+v.id+'">'+(no?'<div class="num">'+no+'</div>':'<div class="dot vdot">🏭</div>')+'<div class="lbl'+(M.zoom()>=12?'':' hide')+'">🏭 '+esc(v.name)+'</div></div>';
+    const hnd=M.add(v.lat,v.lng,h,2500+(no?5000:0),v.name,()=>routeMode?toggleStop(v.id):openVendor(v.id));if(hnd)pinHandles[v.id]=hnd});
   drawRouteLine()}
 function fitAll(){if(!M)return;const pts=visible().filter(s=>s.lat!=null).map(s=>[s.lat,s.lng]);
   if(!pts.length)return M.setView(CENTER.lat,CENTER.lng,8);
@@ -1652,9 +1665,10 @@ $('fit').onclick=fitAll;
 
 // ---------- panel ----------
 function renderChips(){const c={issue:0,active:0,week:0,later:0,done:0};sites.forEach(s=>c[bucket(s)]++);
-  $('chips').innerHTML=DAYS.map(d=>'<button class="chip tchip'+(d.k==='tomorrow'?' mchip':'')+'" data-day="'+d.k+'" aria-pressed="'+filters.has(d.k)+'" title="'+d.tip+'"><b>'+sites.filter(s=>dLead(d.k,s)).length+'</b><span>'+d.label+'</span></button>').join('')+BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+filters.has(b.k)+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')}
+  $('chips').innerHTML=DAYS.map(d=>'<button class="chip tchip'+(d.k==='tomorrow'?' mchip':'')+'" data-day="'+d.k+'" aria-pressed="'+filters.has(d.k)+'" title="'+d.tip+'"><b>'+sites.filter(s=>dLead(d.k,s)).length+'</b><span>'+d.label+'</span></button>').join('')+BUCKETS.map(b=>'<button class="chip" data-k="'+b.k+'" aria-pressed="'+filters.has(b.k)+'" style="--c:var('+b.c+');--cbg:var('+b.bg+')"><b>'+c[b.k]+'</b><span>'+b.label+'</span></button>').join('')+
+    '<button class="chip vchip" data-vendor="1" aria-pressed="'+filters.has('vendor')+'" title="合作廠商（材料行、吊車…），可以排進路線"><b>'+vendors.length+'</b><span>🏭 廠商</span></button>'}
 let chipDrag=null,chipDragged=false;
-$('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0||b.dataset.day)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
+$('chips').addEventListener('pointerdown',e=>{const b=e.target.closest('.chip');if(!b||e.button>0||b.dataset.day||b.dataset.vendor)return;chipDrag={k:b.dataset.k,x:e.clientX,y:e.clientY,on:false,el:b,id:e.pointerId}});
 $('chips').addEventListener('pointermove',e=>{if(!chipDrag)return;if(!chipDrag.on){if(Math.hypot(e.clientX-chipDrag.x,e.clientY-chipDrag.y)<8)return;chipDrag.on=true;chipDrag.el.classList.add('cdrag');try{chipDrag.el.setPointerCapture(chipDrag.id)}catch(x){}}
   e.preventDefault();const cs=[...$('chips').querySelectorAll('.chip[data-k]')];let best=0,bd=1e9;cs.forEach((c,i)=>{const r=c.getBoundingClientRect();const d=Math.abs(e.clientX-(r.left+r.width/2))+Math.abs(e.clientY-(r.top+r.height/2))*2;if(d<bd){bd=d;best=i}});
   chipDrag.to=best;cs.forEach((c,i)=>c.classList.toggle('cdrop',i===best&&c!==chipDrag.el))});
@@ -1663,6 +1677,7 @@ function chipEnd(){if(!chipDrag)return;const d=chipDrag;chipDrag=null;if(!d.on)r
   try{localStorage.setItem('fulin-chip-order',JSON.stringify(BUCKETS.map(b=>b.k)))}catch(e){}render();toast('順序已調整（這台裝置會記住）')}
 $('chips').addEventListener('pointerup',chipEnd);$('chips').addEventListener('pointercancel',()=>{chipDrag=null;renderChips()});
 $('chips').addEventListener('click',e=>{if(chipDragged){chipDragged=false;return}const b=e.target.closest('.chip');if(!b)return;
+  if(b.dataset.vendor){filters.has('vendor')?filters.delete('vendor'):filters.add('vendor');try{localStorage.setItem('fulin-map-filters',JSON.stringify([...filters]))}catch(x){}selected=null;render();return}
   if(b.dataset.day){const k=b.dataset.day;const anyDay=DAYS.some(d=>filters.has(d.k));
     // 第一次點今天／明天：先只看這一天；之後再點問題單等方塊就會一起顯示
     if(!filters.has(k)&&!anyDay)BUCKETS.forEach(x=>filters.delete(x.k));
@@ -1695,6 +1710,10 @@ function renderList(){const q=$('q').value.trim().toLowerCase();const html=[];le
       const no=route.indexOf(s.id)+1;if(routeMode&&no)right='<span class="stopno">第 '+no+' 站</span>';
       html.push('<button class="row'+(routeMode&&no?' instop':'')+'" data-id="'+s.id+'" style="--c:var('+b.c+')"><span class="stripe"></span><span class="nm">'+(todayBySite[s.id]?'<span class="star st-t" title="今日出車">★</span>':dLead('tomorrow',s)?'<span class="star st-m" title="明天出車">★</span>':'')+esc(s.name)+'</span><span class="loc">'+right+'</span>'+sub+'</button>')}
     html.push('</div>')}
+  if(filters.has('vendor')){const items=vendors.filter(v=>!q||[v.name,v.address,v.phone,v.note].some(x=>String(x||'').toLowerCase().includes(q))).sort((a,c)=>(c.lat??-99)-(a.lat??-99));any=true;
+    html.push('<div class="group"><h2>🏭 廠商 · '+items.length+(isAdmin()?'<button class="vadd" data-vact="add">＋ 新增廠商</button>':'')+'</h2>');
+    items.forEach(v=>{const no=route.indexOf(v.id)+1;html.push('<button class="row vrow'+(routeMode&&no?' instop':'')+'" data-vid="'+v.id+'" style="--c:#6D4AAE"><span class="stripe"></span><span class="nm">🏭 '+esc(v.name)+'</span><span class="loc">'+(routeMode&&no?'<span class="stopno">第 '+no+' 站</span>':v.lat==null?'未定位':'')+'</span><div class="sub">'+esc([v.phone,v.address].filter(Boolean).join(' · ')||'（沒有電話、地址）')+'</div></button>')});
+    if(!items.length)html.push('<div class="empty">還沒有廠商。'+(isAdmin()?'按「＋ 新增廠商」加入。':'')+'</div>');html.push('</div>')}
   if(!any)html.push('<div class="empty">'+(loaded?(sites.length?'沒有符合篩選條件的案場。點上方的分類可以切換顯示。':'試算表裡還沒有案場資料。'):'載入中…')+'</div>');
   $('pbody').innerHTML=(routeMode?routeHtml():'')+html.join('')}
 function navUrl(s){return s.lat!=null?'https://www.google.com/maps/search/?api=1&query='+s.lat+','+s.lng:(s.address?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(s.address):'')}
@@ -1710,9 +1729,9 @@ function renderDetail(){const s=sites.find(x=>x.id===selected);if(!s){selected=n
     '<div><span class="pill" style="--c:var('+b.c+');--cbg:var('+b.bg+')">'+b.label+'</span><h3>'+esc(s.name)+'</h3></div>'+
     (s.issue?'<div><div class="mono" style="color:var(--muted);margin-bottom:4px">'+(s.status==='issue'?'問題描述':'備註')+'</div><div class="'+(s.status==='issue'?'issuebox':'note')+'">'+esc(s.issue)+'</div></div>':'')+
     '<dl class="kv">'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('')+'</dl>'+
-    '<div class="actions">'+(nav?'<a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a>':'')+'<button class="btn" data-act="cpinfo">📋 複製資訊</button></div>'+
-    (canField()?adminDetailHtml(s):'')+(isAdmin()?'<div class="adminbox" id="quoteBox"><h4>報價單</h4><div class="foot">讀取中…</div></div>':'')+(canField()?'<div class="adminbox" id="histBox"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>':'')+reportsHtml(s)+'</div>';
-  if(isAdmin())fillQuotes(s);if(canField())fillHist(s)}
+    '<div class="actions">'+(nav?'<a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a>':'')+'<button class="btn" data-act="cpinfo">📋 複製資訊</button>'+(canField()?'<button class="btn" data-act="hist">🕘 施工紀錄（誰去過）</button>':'')+'</div>'+
+    (canField()?adminDetailHtml(s):'')+(isAdmin()?'<div class="adminbox" id="quoteBox"><h4>報價單</h4><div class="foot">讀取中…</div></div>':'')+reportsHtml(s)+'</div>';
+  if(isAdmin())fillQuotes(s)}
 // ---------- 滑鼠連動：列表 ↔ 地圖標記 ----------
 let hoverId=null;const pinHandles={};
 function setHover(id){
@@ -1731,7 +1750,10 @@ $('pbody').addEventListener('click',e=>{
   const a=e.target.closest('[data-r]');if(a)return routeAction(a.dataset.r,a.dataset.id);
   const dn=e.target.closest('[data-done]');if(dn){const id=dn.dataset.done;if(doneArm!==id){doneArm=id;renderList();clearTimeout(window.__dnT);window.__dnT=setTimeout(()=>{if(doneArm===id){doneArm=null;if(!selected)renderList()}},4000);return}
     doneArm=null;markDone(id);return}
+  const va=e.target.closest('[data-vact]');if(va){e.stopPropagation();return openVendorForm(null)}
+  const vr=e.target.closest('.vrow');if(vr)return routeMode?toggleStop(vr.dataset.vid):openVendor(vr.dataset.vid);
   const r=e.target.closest('.row');if(r)return routeMode?toggleStop(r.dataset.id):openDetail(r.dataset.id,true);
+  if(e.target.closest('[data-act="hist"]')){const s=sites.find(x=>x.id===selected);if(s)openHistModal(s);return}
   if(e.target.closest('[data-act="cpinfo"]')){const s=sites.find(x=>x.id===selected);if(s)copyInfo(s);return}
   if(e.target.closest('[data-act="back"]')){selected=null;render()}});
 // 複製案場資訊：電話每支一行、只留數字，貼到 LINE 會變藍色可以直接撥
@@ -1754,14 +1776,16 @@ async function markDone(id){const s=sites.find(x=>x.id===id);if(!s)return;const 
 function render(){renderChips();(selected&&!routeMode)?renderDetail():renderList();drawPins()}
 
 // ---------- 排路線：連線、估算路程、分享 ----------
-let routeMode=false,route=[],fromMe=false,myPos=null;
+let routeMode=false,route=[],fromMe=false,myPos=null,vendors=[];
+// 路線站點可以是案場或廠商
+const byId=id=>sites.find(x=>x.id===id)||vendors.find(x=>x.id===id);
 try{fromMe=localStorage.getItem('fulin-route-fromme')==='1'}catch(e){}
 const siteKey=s=>s.name+'@'+(s.lat!=null?s.lat.toFixed(4)+','+s.lng.toFixed(4):'');
-function saveRoute(){try{localStorage.setItem('fulin-route',JSON.stringify(route.map(id=>siteKey(sites.find(x=>x.id===id))).filter(Boolean)));localStorage.setItem('fulin-route-fromme',fromMe?'1':'0')}catch(e){}}
+function saveRoute(){try{localStorage.setItem('fulin-route',JSON.stringify(route.map(id=>{const x=byId(id);return x?siteKey(x):''}).filter(Boolean)));localStorage.setItem('fulin-route-fromme',fromMe?'1':'0')}catch(e){}}
 function restoreRoute(){try{const keys=JSON.parse(localStorage.getItem('fulin-route')||'[]');const used=new Set();
-  route=keys.map(k=>{const s=sites.find(x=>siteKey(x)===k&&!used.has(x.id));if(s){used.add(s.id);return s.id}}).filter(Boolean)}catch(e){}}
-function toggleStop(id){const s=sites.find(x=>x.id===id);if(!s)return;
-  if(s.lat==null){toast('這個案場沒有座標，無法加入路線');return}
+  route=keys.map(k=>{const s=sites.concat(vendors).find(x=>siteKey(x)===k&&!used.has(x.id));if(s){used.add(s.id);return s.id}}).filter(Boolean)}catch(e){}}
+function toggleStop(id){const s=byId(id);if(!s)return;
+  if(s.lat==null){toast((s.isVendor?'這個廠商':'這個案場')+'沒有座標，無法加入路線');return}
   const i=route.indexOf(id);i>=0?route.splice(i,1):route.push(id);saveRoute();render()}
 function km(a,b){const R=6371,r=Math.PI/180,dLa=(b[0]-a[0])*r,dLo=(b[1]-a[1])*r;
   const h=Math.sin(dLa/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
@@ -1769,7 +1793,7 @@ function km(a,b){const R=6371,r=Math.PI/180,dLa=(b[0]-a[0])*r,dLo=(b[1]-a[1])*r;
 function roadKm(a,b){return km(a,b)*1.35}
 function mins(k){return Math.max(5,Math.round(k/50*60/5)*5)}
 function fmtMin(m){const h=Math.floor(m/60),mm=m%60;return h?(h+' 小時'+(mm?' '+mm+' 分':'')):(mm+' 分')}
-function stopPts(){return route.map(id=>sites.find(x=>x.id===id)).filter(s=>s&&s.lat!=null)}
+function stopPts(){return route.map(byId).filter(s=>s&&s.lat!=null)}
 function legs(){const st=stopPts();const pts=st.map(s=>[s.lat,s.lng]);if(fromMe&&myPos)pts.unshift(myPos);
   const out=[];for(let i=1;i<pts.length;i++){const k=roadKm(pts[i-1],pts[i]);out.push({k,m:mins(k)})}return out}
 function drawRouteLine(){if(!M||!M.line)return;const pts=stopPts().map(s=>[s.lat,s.lng]);
@@ -1781,7 +1805,7 @@ function routeHtml(){const st=stopPts();const lg=legs();const off=(fromMe&&myPos
   h+='<ol class="stops">';
   if(fromMe&&myPos)h+='<li><span class="n me">起</span><span class="nm2">目前位置</span><span class="ops"></span></li>';
   st.forEach((s,i)=>{const l=lg[i-1+off];
-    h+='<li><span class="n">'+(i+1)+'</span><span class="nm2">'+esc(s.name)+'</span><span class="ops">'+
+    h+='<li><span class="n">'+(i+1)+'</span><span class="nm2">'+(s.isVendor?'🏭 ':'')+esc(s.name)+'</span><span class="ops">'+
       (i?'<button data-r="up" data-id="'+s.id+'" title="往前移" aria-label="往前移">↑</button>':'')+
       '<button data-r="rm" data-id="'+s.id+'" title="移除" aria-label="移除">✕</button></span>'+
       '<span class="leg">'+(l?'↳ 約 '+l.k.toFixed(0)+' 公里 · '+fmtMin(l.m):(i===0?'起點':''))+'</span></li>'});
@@ -1898,6 +1922,7 @@ async function load(){
 function fail(msg){const n=$('notice');n.className='notice err';n.textContent=msg;n.hidden=false;$('updated').textContent='未更新';loaded=true;render()}
 function applyData(){
   sites=DB.sites.map(s=>{const co=parseCoord(s.coord);return Object.assign({},s,{status:parseStatus(s.status),statusText:s.status,coordText:s.coord,lat:co?co[0]:null,lng:co?co[1]:null,stages:s.stages||[],mainDate:s.startDate||'',startDate:effStart(s)})});
+  vendors=(DB.vendors||[]).map(v=>{const co=parseCoord(v.coord);return Object.assign({},v,{isVendor:true,lat:co?co[0]:null,lng:co?co[1]:null})});
   loaded=true;restoreRoute();matchToday();
   const noLoc=sites.filter(x=>x.lat==null).length;const n=$('notice');n.className='notice';const dg=isAdmin()?dupGroups():[];
   n.innerHTML=(noLoc?noLoc+' 個案場沒有座標，只會出現在列表。':'')+(dg.length?(noLoc?'<br>':'')+'<button class="dupnote" id="dupBtn">⚠ 有 '+dg.length+' 組案場可能重複（同一個人），點這裡檢查合併</button>':'');n.hidden=!noLoc&&!dg.length;
@@ -1960,6 +1985,25 @@ function openModal(title,body,buttons,cb,wide){closeModal();modalCb=cb;
       try{done=await modalCb(b.dataset.m,bg,b)}catch(err){showErr(err.message)}
       b.disabled=false;b.textContent=old;if(done)closeModal()}});
   bg.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()})}
+// ---- 廠商：詳情、新增／修改、刪除 ----
+function openVendor(id){const v=vendors.find(x=>x.id===id);if(!v)return;const tel=String(v.phone||'').replace(/[^\d+]/g,'');
+  const nav=v.lat!=null?'https://www.google.com/maps/dir//'+v.lat.toFixed(5)+','+v.lng.toFixed(5):(v.address?'https://www.google.com/maps/dir//'+encodeURIComponent(v.address):'');
+  openModal('🏭 '+v.name,'<dl class="kv"><dt>電話</dt><dd>'+(tel?'<a class="mono" href="tel:'+esc(tel)+'">'+esc(v.phone)+'</a>':'—')+'</dd><dt>地址</dt><dd>'+esc(v.address||'—')+'</dd>'+(v.note?'<dt>備註</dt><dd>'+esc(v.note)+'</dd>':'')+(v.lat==null?'<dt>座標</dt><dd>尚未定位，地圖上不會顯示</dd>':'')+'</dl>'+
+    '<div class="actions" style="margin-top:12px">'+(nav?'<a class="btn primary" href="'+nav+'" target="_blank" rel="noopener">Google 地圖導航</a>':'')+(v.lat!=null?'<button class="btn" data-m="route">'+(route.includes(v.id)?'從路線移除':'＋ 加入路線')+'</button>':'')+'</div>',
+    (isAdmin()?[['刪除','del'],['編輯','edit']]:[]).concat([['關閉','close']]),async act=>{
+      if(act==='route'){if(!routeMode){routeMode=true}toggleStop(v.id);showTab('map');render();return true}
+      if(act==='edit'){setTimeout(()=>openVendorForm(v),0);return true}
+      if(act==='del'){if(!confirmStep('vdel'+v.id))return false;await api('vendor_delete',{id:v.id});route=route.filter(x=>x!==v.id);toast('已刪除廠商');await load();return true}
+      return true})}
+function openVendorForm(v){const isNew=!v;v=v||{};
+  openModal(isNew?'新增廠商':'編輯廠商','<div class="fld"><label for="vName">名稱 *</label><input id="vName" value="'+esc(v.name||'')+'" placeholder="例：大林建材行"></div>'+
+    '<div class="fld"><label for="vPhone">電話</label><input id="vPhone" type="tel" value="'+esc(v.phone||'')+'"></div>'+
+    '<div class="fld"><label for="vAddr">地址</label><input id="vAddr" value="'+esc(v.address||'')+'"></div>'+
+    '<div class="fld"><label for="vCoord">座標或 Google 地圖連結</label><input id="vCoord" value="'+esc(v.coord||'')+'" placeholder="留空會用地址自動查座標"></div>'+
+    '<div class="fld"><label for="vNote">備註</label><input id="vNote" value="'+esc(v.note||'')+'" placeholder="例：賣什麼、營業時間"></div><div class="merr" id="merr" hidden></div>',
+    [['取消','close'],[isNew?'新增':'儲存','save','primary']],async act=>{if(act!=='save')return true;
+      const f={id:v.id||'',name:val('vName'),phone:val('vPhone'),address:val('vAddr'),coord:val('vCoord'),note:val('vNote')};if(!f.name){showErr('請填廠商名稱');return false}
+      const d=(await api('vendor_save',{vendor:f})).data||{};toast((isNew?'已新增':'已更新')+'「'+f.name+'」'+(d.coord?'':'（沒查到座標，地圖上不會顯示）'));if(!filters.has('vendor'))filters.add('vendor');await load();return true})}
 function closeModal(){const m=$('modalBg');if(m)m.remove();modalCb=null}
 function showErr(msg){const e=$('merr');if(e){e.textContent=msg;e.hidden=!msg}else if(msg)toast(msg)}
 const val=id=>{const e=$(id);return e?e.value.trim():''};
@@ -2084,6 +2128,8 @@ async function fillQuotes(s){try{const q=await getQuotes();const box=$('quoteBox
         :'<div class="foot">資料夾裡沒找到檔名有「'+esc(coreName(s.name)||s.name)+'」的報價單，可以按「連結其他報價單」手動選。</div>')+
       '<div class="actions"><button class="btn" data-q="link">🔗 連結其他報價單</button>'+(q.folder?'<a class="btn" href="'+esc(q.folder)+'" target="_blank" rel="noopener">打開資料夾</a>':'')+'<button class="btn" data-q="refresh" title="資料夾有新檔案時按這裡">↻ 重新讀取</button></div>'}
   catch(err){const box=$('quoteBox');if(box)box.innerHTML='<h4>報價單</h4><div class="foot">'+esc(/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回 Apps Script 並重新部署。':err.message)+'</div>'}}
+// 地圖案場詳情：施工紀錄用跳出視窗看
+function openHistModal(s){openModal('🕘 '+s.name,'<div class="adminbox" id="mHist" style="margin-top:0"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>',[['關閉','close','primary']],()=>true,true);fillHist(s,'mHist')}
 // 排班裡點案場：施工紀錄（＋管理密碼看得到報價單）
 function openSiteInfo(s,label){if(!s){toast('「'+(label||'')+'」不在案場清單裡');return}
   openModal(s.name,'<div class="adminbox" id="mHist" style="margin-top:0"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>'+(isAdmin()?'<div class="adminbox" id="mQuote"><h4>報價單</h4><div class="foot">讀取中…</div></div>':''),
@@ -2116,7 +2162,7 @@ async function fillHist(s,boxId){boxId=boxId||'histBox';let list,partial=false;c
   catch(err){partial=true;// 後台還沒更新：先用網站上有的近期排班
     list=(DB.sched||[]).filter(c=>(c.siteIds||[]).includes(s.id)||crewSites(c).includes(s.name)).map(c=>({date:c.date,no:c.no,site:c.site,leader:c.leader,car:c.car,workers:c.workers,tasks:c.tasks,note:c.note})).sort((a,b)=>b.date.localeCompare(a.date))}
   const box=$(boxId);if(!box||(boxId==='histBox'&&selected!==s.id))return;
-  list=list.filter(x=>String(x.leader||'').trim()||String(x.car||'').trim()||(x.workers||[]).filter(Boolean).length||(x.tasks||[]).filter(Boolean).length); // 空白的那幾天（沒帶頭、沒車、沒人、沒施作）不顯示
+  list=list.filter(x=>String(x.leader||'').trim()); // 沒有帶頭的那幾天不顯示
   if(!list.length){box.innerHTML='<h4>施工紀錄</h4><div class="foot">還沒有排班紀錄。'+(partial?'（後台更新後可以看到全部歷史）':'')+'</div>';return}
   const days=[...new Set(list.map(x=>x.date))];const cnt={},last={};
   list.forEach(x=>[x.leader].concat(x.workers).filter(n=>n&&!SPECIAL.test(n)).forEach(n=>{cnt[n]=(cnt[n]||0)+1;if(!last[n])last[n]=x.date}));
@@ -2350,7 +2396,7 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
   while(days.length>35&&toDate(days[days.length-7]).getMonth()!==mo)days.splice(-7);
   const A=isAdmin();
   let h='<div class="mcal"><div class="mcalbar"><button class="btn" data-t="mprev">‹</button><b>'+y+' 年 '+(mo+1)+' 月</b><button class="btn" data-t="mnext">›</button>'+
-    (A?'<button class="btn primary" data-t="mplan">＋ 預定進場</button>':'')+'<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>雙擊空白處＝預定進場；拖曳綠色／藍色＝改日期；點日期數字＝編輯那天排班</em>':'')+'</span></div>'+
+    (A?'<span class="mtrash" id="mTrash" title="把月曆上的案場拖進來：取消預定、改回待安排">🗑 垃圾桶</span>':'')+(A?'<button class="btn primary" data-t="mplan">＋ 預定進場</button>':'')+'<span class="mlegend"><i class="ev"></i>已排班<i class="pl"></i>預定進場（還沒排）'+(A?'<em>雙擊空白處＝預定進場；拖曳綠色／藍色＝改日期；點日期數字＝編輯那天排班</em>':'')+'</span></div>'+
     '<div class="mgrid"><div class="mwd">日</div><div class="mwd">一</div><div class="mwd">二</div><div class="mwd">三</div><div class="mwd">四</div><div class="mwd">五</div><div class="mwd">六</div>';
   days.forEach(dd=>{const t=toDate(dd);const other=t.getMonth()!==mo;const wd=t.getDay();const crews=crewsOf(dd).filter(c=>String(c.leader||'').trim());const inSched=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inSched.add(l)));
     const plan=[];sites.forEach(s=>{if(s.status==='done'||inSched.has(s.name))return;planItems(s).forEach(it=>{if(it.d===dd)plan.push({s,it})})});
@@ -2370,6 +2416,24 @@ $('todayPage').addEventListener('drop',async e=>{const c=e.target.closest&&e.tar
 // 月曆拖曳綠色（已排班）到別天：整組搬過去（帶頭、車、工人、施作都跟著）
 function dayPayload(d,crews){const r=restOf(d);return {date:d,auto:true,restD:(r.drivers||[]).filter(Boolean),restW:(r.workers||[]).filter(Boolean),
   crews:crews.map(c=>({site:c.site,siteIds:c.siteIds||[],leader:c.leader||'',car:c.car||'',workers:(c.workers||[]).filter(Boolean),tasks:(c.tasks||[]).filter(Boolean),note:c.note||''}))}}
+// 月曆垃圾桶：藍框（預定）拖進來＝取消那次預定；綠色（已排班）拖進來＝從那天排班移除。案場都改回「待安排」（預定進場、沒有日期）
+$('todayPage').addEventListener('dragover',e=>{const t=e.target.closest&&e.target.closest('#mTrash');if(!t)return;e.preventDefault();t.classList.add('over')});
+$('todayPage').addEventListener('dragleave',e=>{const t=e.target.closest&&e.target.closest('#mTrash');if(t)t.classList.remove('over')});
+$('todayPage').addEventListener('drop',e=>{const t=e.target.closest&&e.target.closest('#mTrash');if(!t)return;e.preventDefault();e.stopPropagation();t.classList.remove('over');
+  const v=e.dataTransfer.getData('text/fulin-site'),cr=e.dataTransfer.getData('text/fulin-crew');
+  if(v){const [id,k]=v.split('|');trashPlan(id,k);return}
+  if(cr){const [d,no]=cr.split('|');trashCrew(d,+no)}},true);
+async function unplanSites(ids){for(const id of ids){const base=(DB.sites||[]).find(x=>x.id===id);if(!base||base.status==='已完工')continue;
+  localSite(id,{startDate:'',status:'預定進場'});try{await api('site_save',{site:Object.assign({},base,{startDate:'',status:'預定進場'})})}catch(err){toast('「'+base.name+'」沒存到：'+err.message)}}}
+async function trashPlan(id,k){const base=(DB.sites||[]).find(x=>x.id===id);if(!base)return;
+  if(k&&k!=='m'){const list=(base.stages||[]).filter((_,i)=>i!==+k);const gone=(base.stages||[])[+k];
+    if(!list.length&&!base.startDate){saveStages(id,[],'');localSite(id,{status:'預定進場'})}else saveStages(id,list,'');toast('已取消「'+base.name+'｜'+((gone&&gone.n)||'進場')+'」的預定');renderToday();return}
+  toast('「'+base.name+'」已移到垃圾桶，改回待安排');await unplanSites([id]);renderToday()}
+function trashCrew(d,no){const cw=crewsOf(d).find(c=>c.no===no);if(!cw)return;const nm=crewSites(cw).join('、')||cw.leader||'這一組';
+  openModal('移到垃圾桶','<div class="foot" style="font-size:15px">要把「<b>'+esc(nm)+'</b>」從 '+esc(mdw(d))+' 的排班移除嗎？<br>移除後這些案場會改回「待安排」，之後可以再排。</div>',[['取消','close'],['移除','ok','primary']],async act=>{if(act!=='ok')return true;
+    const rest=crewsOf(d).filter(c=>c!==cw);const pa=dayPayload(d,rest);const old=(DB.sched||[]).slice();localSched(pa);renderToday();
+    try{await api('sched_save',pa)}catch(err){DB.sched=old;matchToday();renderToday();toast('沒移除成功：'+err.message);return true}
+    const ids=crewSites(cw).map(l=>{const s=siteMatch(cw,l);return s&&s.id}).filter(Boolean);await unplanSites(ids);toast('已從 '+mdw(d)+' 移除，案場改回待安排');renderToday();load();return true})}
 async function moveCrew(from,no,to){if(from===to)return;const A=crewsOf(from);const cw=A.find(c=>c.no===no);if(!cw)return;
   const B=crewsOf(to);const ppl=c=>[c.leader,c.car].concat(c.workers||[]).filter(Boolean);const busy=new Set();B.forEach(c=>ppl(c).forEach(x=>busy.add(x)));const clash=ppl(cw).filter(x=>busy.has(x));
   const pa=dayPayload(from,A.filter(c=>c!==cw)),pb=dayPayload(to,B.concat([cw]));const old=(DB.sched||[]).slice();
