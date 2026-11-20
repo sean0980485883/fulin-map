@@ -1453,6 +1453,12 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 /* 月曆垃圾桶 */
 .mtrash{display:inline-flex;align-items:center;gap:4px;border:2px dashed #C0392B;color:#C0392B;border-radius:10px;padding:5px 12px;font-weight:700;font-size:14px;background:#FFF5F4;user-select:none}
 .mtrash.over{background:#C0392B;color:#fff;transform:scale(1.08)}
+
+/* 施工紀錄圖片：不管哪個配色都用白底深字 */
+.himg,.himg h4,.himg b,.himg div{color:#1C2A33!important}.himg small,.himg .foot{color:#6B7A80!important}
+.himg .hppl i{background:#F4F6F8!important;color:#1C2A33!important;border:1px solid #D6DDE2!important}.himg .hppl i b{color:#0B7A55!important}
+.himg .hcar{background:#FFF3C4!important;color:#5A4300!important}.himg .hd,.himg .hd small{color:#1F4FB0!important}
+.himg .hn{color:#C0392B!important}.himg .ht{color:#4A5A63!important}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2129,7 +2135,23 @@ async function fillQuotes(s){try{const q=await getQuotes();const box=$('quoteBox
       '<div class="actions"><button class="btn" data-q="link">🔗 連結其他報價單</button>'+(q.folder?'<a class="btn" href="'+esc(q.folder)+'" target="_blank" rel="noopener">打開資料夾</a>':'')+'<button class="btn" data-q="refresh" title="資料夾有新檔案時按這裡">↻ 重新讀取</button></div>'}
   catch(err){const box=$('quoteBox');if(box)box.innerHTML='<h4>報價單</h4><div class="foot">'+esc(/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回 Apps Script 並重新部署。':err.message)+'</div>'}}
 // 地圖案場詳情：施工紀錄用跳出視窗看
-function openHistModal(s){openModal('🕘 '+s.name,'<div class="adminbox" id="mHist" style="margin-top:0"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>',[['關閉','close','primary']],()=>true,true);fillHist(s,'mHist')}
+function openHistModal(s){openModal('🕘 '+s.name,'<div class="adminbox" id="mHist" style="margin-top:0"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>',[['📷 存成圖片','img'],['關閉','close','primary']],async act=>{if(act==='img'){await saveHistImage(s);return false}return true},true);fillHist(s,'mHist')}
+// 施工紀錄存成圖片：全部日期都放進去，上面加案名
+async function saveHistImage(s){if(!window.html2canvas){toast('圖片功能載入失敗，請重新整理');return}
+  const was=!!histAll[s.id];histAll[s.id]=true;await fillHist(s,'mHist');const src=$('mHist');if(!src)return;
+  const box=document.createElement('div');box.style.cssText='position:fixed;left:-99999px;top:0;width:720px;background:#fff;padding:18px 20px;color:#1C2A33';box.className='himg';
+  box.innerHTML='<div style="font-size:22px;font-weight:800;margin-bottom:4px">🕘 '+esc(s.name)+'</div><div style="font-size:13px;color:#6B7A80;margin-bottom:8px">富林組合屋 施工紀錄　'+esc(mdw(DB.today))+' 產生</div>'+src.innerHTML;
+  box.querySelectorAll('[data-h="more"]').forEach(x=>x.remove());document.body.appendChild(box);
+  try{const cv=await html2canvas(box,{scale:2,backgroundColor:'#ffffff'});const blob=await new Promise(r=>cv.toBlob(r,'image/png'));await shareImage(blob,'施工紀錄_'+s.name.replace(/[\\/:*?"<>|\s]+/g,'_')+'.png')}
+  catch(e){toast('產生圖片失敗')}finally{box.remove();if(!was){histAll[s.id]=false;fillHist(s,'mHist')}}}
+// 圖片分享／下載（手機：分享選單可存相簿或傳 LINE；電腦：直接下載）
+async function shareImage(blob,name){const file=new File([blob],name,{type:'image/png'});
+  // 手機：先預覽，再按按鈕分享（等太久直接分享會被手機擋掉）
+  if(navigator.canShare&&navigator.canShare({files:[file]})&&window.matchMedia('(pointer:coarse)').matches){const url=URL.createObjectURL(blob);
+    openModal('圖片','<div class="foot" style="font-size:15px;margin-bottom:8px">按「📲 存到相簿／分享」→ 選「<b>儲存影像</b>」存進相簿，或直接傳 LINE。也可以<b>長按圖片</b>→「加入照片」。</div><img src="'+url+'" alt="" style="width:100%;border:1px solid var(--line);border-radius:8px">',
+      [['📲 存到相簿／分享','share','primary'],['關閉','close']],async act=>{if(act==='share'){try{await navigator.share({files:[file]})}catch(e){if(e.name!=='AbortError')toast('請長按圖片 →「加入照片」')}return false}return true},true);return}
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return}catch(e){if(e.name==='AbortError')return}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();toast('已下載圖片')}
 // 排班裡點案場：施工紀錄（＋管理密碼看得到報價單）
 function openSiteInfo(s,label){if(!s){toast('「'+(label||'')+'」不在案場清單裡');return}
   openModal(s.name,'<div class="adminbox" id="mHist" style="margin-top:0"><h4>施工紀錄</h4><div class="foot">讀取中…</div></div>'+(isAdmin()?'<div class="adminbox" id="mQuote"><h4>報價單</h4><div class="foot">讀取中…</div></div>':''),
