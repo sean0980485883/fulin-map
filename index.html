@@ -2258,6 +2258,10 @@ let schedDate='',schedView=(window.matchMedia('(max-width:760px)').matches?'card
 const crewsOf=d=>(DB.sched||[]).filter(c=>c.date===d).sort((a,b)=>a.no-b.no);
 // 進場階段：一個案場可以有好幾次進場（化糞池、水泥板模、組合屋進場…）
 const STAGE_NAMES=['化糞池','水泥板模','組合屋進場'];
+// 階段按鈕：固定三個＋所有案場用過的自訂階段＋這台裝置新增過的，都會一直留在上面
+function stageNames(){const out=STAGE_NAMES.slice();const add=n=>{n=String(n||'').trim();if(n&&!out.includes(n))out.push(n)};
+  (DB.sites||[]).forEach(x=>(x.stages||[]).forEach(st=>add(st.n)));try{JSON.parse(localStorage.getItem('fulin-stages')||'[]').forEach(add)}catch(e){}return out}
+function rememberStage(n){try{const a=JSON.parse(localStorage.getItem('fulin-stages')||'[]');if(!a.includes(n)){a.push(n);localStorage.setItem('fulin-stages',JSON.stringify(a))}}catch(e){}}
 // 地圖「7 天內／待安排」用最近一個還沒到的日期；都過了就用最後一個
 function effStart(s){const ds=(s.stages||[]).map(x=>x.d).concat(s.startDate?[s.startDate]:[]).filter(Boolean).sort();if(!ds.length)return '';const t=DB.today||ymd(new Date());return ds.find(d=>d>=t)||ds[ds.length-1]}
 // 月曆藍框：原本的進場日（沒有同一天的階段時）＋每個階段
@@ -2452,7 +2456,7 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
   p.innerHTML='<div class="mph"><button class="x" data-p="close" aria-label="關閉">✕</button><b>預定進場</b><button class="btn primary" data-p="save" disabled>儲存</button></div>'+
     '<input id="mpName" class="mpname" placeholder="案場名稱（必填）" autocomplete="off">'+
     '<label class="mpdate">進場日 <input type="date" id="mpDate" value="'+day+'"></label>'+
-    '<div class="mpstage" id="mpStage"><span>階段</span>'+[''].concat(STAGE_NAMES).map(n=>'<button type="button" data-p="stg" data-v="'+esc(n)+'"'+(n?'':' class="on"')+'>'+(n?esc(n):'不分')+'</button>').join('')+'<button type="button" data-p="stgx">＋自訂</button></div>'+
+    '<div class="mpstage" id="mpStage"><span>階段</span>'+[''].concat(stageNames()).map(n=>'<button type="button" data-p="stg" data-v="'+esc(n)+'"'+(n?'':' class="on"')+'>'+(n?esc(n):'不分')+'</button>').join('')+'<button type="button" data-p="stgx">＋自訂</button></div>'+
     '<div class="mplist" id="mpList"></div>';
   document.body.appendChild(p);document.body.classList.add('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'));const cell=document.querySelector('.mday[data-day="'+day+'"]');if(cell)cell.classList.add('pick');
   let pick=null,stg='';const inp=$('mpName'),list=$('mpList'),sv=p.querySelector('[data-p=save]');
@@ -2470,7 +2474,7 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
   p.addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const t=b.dataset.p;
     if(t==='close')closePlan();
     else if(t==='stg'){stg=b.dataset.v;markStg()}
-    else if(t==='stgx'){const n=(prompt('階段名稱（例如：補修、驗收）')||'').trim().slice(0,20);if(n){stg=n;if(!p.querySelector('[data-p=stg][data-v="'+CSS.escape(n)+'"]')){const nb=document.createElement('button');nb.type='button';nb.dataset.p='stg';nb.dataset.v=n;nb.textContent=n;b.before(nb)}markStg()}}
+    else if(t==='stgx'){const n=(prompt('階段名稱（例如：補修、驗收）')||'').trim().slice(0,20);if(n){stg=n;rememberStage(n);if(!p.querySelector('[data-p=stg][data-v="'+CSS.escape(n)+'"]')){const nb=document.createElement('button');nb.type='button';nb.dataset.p='stg';nb.dataset.v=n;nb.textContent=n;b.before(nb)}markStg()}}
     else if(t==='pick'){pick=b.dataset.id;const x=sites.find(y=>y.id===pick);inp.value=x?x.name:'';draw();sv.focus()}
     else if(t==='new'){const nm=inp.value.trim(),dd=$('mpDate').value||day;closePlan();openSiteModal(null);setTimeout(()=>{if($('fName'))$('fName').value=nm;if($('fDate'))$('fDate').value=dd;if($('fSt'))$('fSt').value='預定進場'},0)}
     else if(t==='save'&&pick){const dd=$('mpDate').value||day;closePlan();if(stg)setStage(pick,stg,dd);else setStartDate(pick,dd)}});
