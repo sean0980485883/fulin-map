@@ -1459,6 +1459,11 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 .himg .hppl i{background:#F4F6F8!important;color:#1C2A33!important;border:1px solid #D6DDE2!important}.himg .hppl i b{color:#0B7A55!important}
 .himg .hcar{background:#FFF3C4!important;color:#5A4300!important}.himg .hd,.himg .hd small{color:#1F4FB0!important}
 .himg .hn{color:#C0392B!important}.himg .ht{color:#4A5A63!important}
+
+/* 預定進場清單：已安排的用紅框 */
+.mpi.done{border:2px solid #D93025!important;background:#FFF6F5!important}
+.mpdone{font-style:normal;font-size:11px;font-weight:700;color:#fff;background:#D93025;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+.mpi[draggable=true]{cursor:grab}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2375,11 +2380,12 @@ function renderToday(){const el=$('todayPage');if(!$('v-today').hidden)syncTabs(
     '<div class="actions" style="margin-left:auto">'+(isAdmin()?'<button class="btn primary" data-t="edit">編輯這天排班</button>':'')+'<button class="btn" data-t="img">存成圖片</button><button class="btn" data-t="share">分享文字</button>'+(isPhone()?'<button class="btn" data-t="navcopyall" data-d="'+d+'">🔗 全部複製</button>':'')+'</div></div>'+
     (meName&&schedView!=='week'&&schedView!=='month'?meBanner(d):'')+
     (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':schedView==='week'?weekHtml(d):schedView==='month'?monthHtml(d):cardsHtml(d))+
-    '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>'}
+    '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>';
+  if(schedView==='month')setTimeout(dockPlan,0)}
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;if(t==='wvtheme'){wvTheme=b.dataset.v;try{localStorage.setItem('fulin-wvtheme',wvTheme)}catch(x){}renderToday();return}if(t==='navcopyall'){copyLink(allShareText(b.dataset.d));return}if(t==='navcopy'){const c=crewsOf(b.dataset.d).find(x=>x.no===+b.dataset.no);if(c)copyLink(crewShareText(c));return}
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
-  else if(t==='board'||t==='cards'||t==='week'||t==='month'){schedView=t;renderToday()}else if(t==='mprev'||t==='mnext'){const x=toDate(schedDate);x.setDate(1);x.setMonth(x.getMonth()+(t==='mprev'?-1:1));schedDate=ymd(x);renderToday();return}else if(t==='mday'){const v=b.dataset.v,ed=isAdmin()&&b.dataset.edit;if(e.detail>1){clearTimeout(mdayT);return}clearTimeout(mdayT);mdayT=setTimeout(()=>{if($('mplan'))return;schedDate=v;if(ed){openSchedEditor();return}schedView=isPhone()?'cards':'board';renderToday()},260);return}else if(t==='mplan'){openPlan(schedDate);return}else if(t==='msite'){goMap(b.dataset.id);return}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
+  else if(t==='board'||t==='cards'||t==='week'||t==='month'){schedView=t;renderToday()}else if(t==='mprev'||t==='mnext'){const x=toDate(schedDate);x.setDate(1);x.setMonth(x.getMonth()+(t==='mprev'?-1:1));schedDate=ymd(x);renderToday();return}else if(t==='mday'){const v=b.dataset.v,ed=isAdmin()&&b.dataset.edit;if(e.detail>1){clearTimeout(mdayT);return}clearTimeout(mdayT);mdayT=setTimeout(()=>{schedDate=v;if(ed){openSchedEditor();return}schedView=isPhone()?'cards':'board';renderToday()},260);return}else if(t==='mplan'){planHidden=false;openPlan(schedDate);return}else if(t==='msite'){return}else if(t==='gotoday'){schedDate=b.dataset.v;schedView=window.matchMedia('(max-width:760px)').matches?'cards':'board';renderToday()}else if(t==='map')goMap(b.dataset.id);else if(t==='quote')openQuotesModal(sites.find(x=>x.id===b.dataset.id));else if(t==='info')openSiteInfo(sites.find(x=>x.id===b.dataset.id));else if(t==='share')shareSched();else if(t==='img')saveBoardImage();else if(t==='edit')openSchedEditor()});
 $('todayPage').addEventListener('change',e=>{if(e.target.id==='sdPick'&&e.target.value){schedDate=e.target.value;renderToday()}
   if(e.target.id==='meSel'){meName=e.target.value;try{localStorage.setItem('fulin-me',meName)}catch(_){}renderToday()}});
 // 找人：這個人今天在哪一組（司機、泰籍工人手機上看最方便）
@@ -2439,6 +2445,7 @@ $('todayPage').addEventListener('dragstart',e=>{if(!isAdmin()||!e.target.closest
 $('todayPage').addEventListener('dragover',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||!(e.dataTransfer.types.includes('text/fulin-site')||e.dataTransfer.types.includes('text/fulin-crew')))return;e.preventDefault();document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));c.classList.add('drop')});
 $('todayPage').addEventListener('drop',async e=>{const c=e.target.closest&&e.target.closest('.mday');document.querySelectorAll('.mday.drop').forEach(x=>x.classList.remove('drop'));const cr=e.dataTransfer.getData('text/fulin-crew');if(c&&cr){e.preventDefault();const [fd,no]=cr.split('|');moveCrew(fd,+no,c.dataset.day);return}
   const v=e.dataTransfer.getData('text/fulin-site');if(!c||!v)return;e.preventDefault();const [id,k]=v.split('|');
+  if(k==='p'){const sg=window.__planStg&&window.__planStg();if(sg)setStage(id,sg,c.dataset.day);else setStartDate(id,c.dataset.day);setTimeout(()=>window.__planRedraw&&window.__planRedraw(),50);return}
   if(k&&k!=='m')moveStage(id,k,c.dataset.day);else setStartDate(id,c.dataset.day)});
 // 月曆拖曳綠色（已排班）到別天：整組搬過去（帶頭、車、工人、施作都跟著）
 function dayPayload(d,crews){const r=restOf(d);return {date:d,auto:true,restD:(r.drivers||[]).filter(Boolean),restW:(r.workers||[]).filter(Boolean),
@@ -2488,22 +2495,32 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
   function draw(){const q=norm(inp.value);
     const pool=sites.filter(x=>x.status!=='done');
     const hit=q?sites.filter(x=>norm(x.name+x.owner+x.contact+x.address+x.phone).includes(q)).sort((a,b)=>(a.status==='done')-(b.status==='done')).slice(0,30):pool.filter(x=>!x.startDate||x.startDate>=DB.today).sort((a,b)=>(a.startDate||'9').localeCompare(b.startDate||'9')).slice(0,30);
-    list.innerHTML=(q?'':'<div class="mpcap">還沒完工的案場（點一下選）</div>')+hit.map(x=>'<button class="mpi'+(pick===x.id?' on':'')+'" data-p="pick" data-id="'+x.id+'"><b>'+esc(x.name)+'</b><small>'+esc(x.statusText||'')+(x.startDate?'｜進場 '+mdw(x.startDate):'｜還沒定進場日')+(x.lat==null?'｜沒座標':'')+'</small></button>').join('')+
+    // 已經有日期（預定或排班）的案場用紅框標「已安排」；還沒安排的排在最上面。可以直接拖到左邊月曆的某一天
+    const planOf=x=>{const ds=planItems(x).map(it=>it.d).filter(d=>d>=DB.today);(DB.sched||[]).forEach(c=>{if(c.date>=DB.today&&(crewSites(c).includes(x.name)||(c.siteIds||[]).includes(x.id)))ds.push(c.date)});return ds.sort()[0]||''};
+    const rows=hit.map(x=>({x,pd:planOf(x)}));if(!q)rows.sort((a,b)=>(!!a.pd-!!b.pd)||(a.pd||'').localeCompare(b.pd||''));
+    list.innerHTML=(q?'':'<div class="mpcap">還沒完工的案場（點一下選，或直接拖到月曆上）</div>')+rows.map(({x,pd})=>'<button class="mpi'+(pick===x.id?' on':'')+(pd?' done':'')+'" data-p="pick" data-id="'+x.id+'" draggable="true"><b>'+esc(x.name)+(pd?'<em class="mpdone">已安排 '+esc(mdw(pd))+'</em>':'')+'</b><small>'+esc(x.statusText||'')+(x.lat==null?'｜沒座標':'')+'</small></button>').join('')+
       (q&&!hit.some(x=>norm(x.name)===q)?'<button class="mpi new" data-p="new"><b>＋ 新增案場「'+esc(inp.value.trim())+'」</b><small>會打開新增表單，可以補地址／電話</small></button>':'')+
       (!hit.length&&!q?'<div class="mpcap">沒有案場</div>':'');
     sv.disabled=!pick}
   inp.addEventListener('input',()=>{const x=pick&&sites.find(y=>y.id===pick);if(!x||x.name!==inp.value)pick=null;draw()});
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const f=list.querySelector('.mpi');if(pick)sv.click();else if(f)f.click()}else if(e.key==='Escape')closePlan()});
   p.addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const t=b.dataset.p;
-    if(t==='close')closePlan();
+    if(t==='close'){planHidden=true;closePlan()}
     else if(t==='stg'){stg=b.dataset.v;markStg()}
     else if(t==='stgx'){const n=(prompt('階段名稱（例如：補修、驗收）')||'').trim().slice(0,20);if(n){stg=n;rememberStage(n);if(!p.querySelector('[data-p=stg][data-v="'+CSS.escape(n)+'"]')){const nb=document.createElement('button');nb.type='button';nb.dataset.p='stg';nb.dataset.v=n;nb.textContent=n;b.before(nb)}markStg()}}
     else if(t==='pick'){pick=b.dataset.id;const x=sites.find(y=>y.id===pick);inp.value=x?x.name:'';draw();sv.focus()}
     else if(t==='new'){const nm=inp.value.trim(),dd=$('mpDate').value||day;closePlan();openSiteModal(null);setTimeout(()=>{if($('fName'))$('fName').value=nm;if($('fDate'))$('fDate').value=dd;if($('fSt'))$('fSt').value='預定進場'},0)}
-    else if(t==='save'&&pick){const dd=$('mpDate').value||day;closePlan();if(stg)setStage(pick,stg,dd);else setStartDate(pick,dd)}});
+    else if(t==='save'&&pick){const dd=$('mpDate').value||day;if(stg)setStage(pick,stg,dd);else setStartDate(pick,dd);pick=null;inp.value='';setTimeout(draw,50)}});
+  // 從清單拖到月曆某一天＝預定那天（用目前選的階段）
+  list.addEventListener('dragstart',e=>{const b=e.target.closest('.mpi[data-id]');if(!b)return;e.dataTransfer.setData('text/fulin-site',b.dataset.id+'|p');e.dataTransfer.effectAllowed='move'});
+  window.__planStg=()=>stg;window.__planRedraw=()=>{if($('mplan'))draw()};
   draw();setTimeout(()=>inp.focus(),0)}
+// 月曆（電腦）右側固定顯示「預定進場」；按 ✕ 收起後，按「＋ 預定進場」或雙擊日期再打開
+let planHidden=false;
+function dockPlan(){if(schedView!=='month'||schedEdit||!isAdmin()||planHidden||$('mplan')||!window.matchMedia('(min-width:761px)').matches)return;openPlan(schedDate||DB.today)}
 function closePlan(){const p=$('mplan');if(p)p.remove();document.body.classList.remove('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'))}
-$('todayPage').addEventListener('dblclick',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||e.target.closest('.mev,.mpl'))return;e.preventDefault();openPlan(c.dataset.day)});
+$('todayPage').addEventListener('dblclick',e=>{const m=e.target.closest&&e.target.closest('.mpl');if(m){e.preventDefault();goMap(m.dataset.id);return}
+  const c=e.target.closest&&e.target.closest('.mday');if(!c||e.target.closest('.mev'))return;e.preventDefault();planHidden=false;openPlan(c.dataset.day)});
 // 一週總覽：週一到週日，每一天每一組去哪裡
 function weekHtml(d){const mon=mondayOf(d);const days=[0,1,2,3,4,5,6].map(k=>addDays(mon,k));const n=meName;
   const leaders=[];days.forEach(x=>crewsOf(x).forEach(c=>{const k=c.leader||'（未填帶頭）';if(!leaders.includes(k))leaders.push(k)}));
