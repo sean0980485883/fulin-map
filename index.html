@@ -1464,6 +1464,16 @@ html body .hday.t{background:#16A34A;color:#fff;border:0}html body .hday.m{backg
 .mpi.done{border:2px solid #D93025!important;background:#FFF6F5!important}
 .mpdone{font-style:normal;font-size:11px;font-weight:700;color:#fff;background:#D93025;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px}
 .mpi[draggable=true]{cursor:grab}
+
+/* 月曆日期靠左 */
+.mdh{flex-direction:row!important;align-items:baseline!important;justify-content:flex-start!important;gap:6px;padding:3px 6px!important}
+.mday.today .mdh b{display:inline-grid!important}
+/* 預定進場面板：當天已排定 */
+.mpday{border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:rgba(127,127,127,.05);max-height:30vh;overflow:auto;flex:none}
+.mpdh{font-size:13px;font-weight:700;margin-bottom:4px}.mpdh b{color:#D93025}
+.mpdi{font-size:13px;line-height:1.4;padding:3px 6px;border-radius:6px;margin-top:3px}.mpdi b{margin-right:6px}
+.mpdi.ev{background:#E9F7EF;color:#14532D}.mpdi.pl{background:#EEF4FF;color:#1F4FB0;border:1px solid #BFD3F7}.mpdi.none{color:var(--muted)}
+.mpi.done b{color:#1C2A33!important}.mpi.done small{color:#6B5A55!important}
 </style>
 <script>(function(){var t='',k='';try{t=localStorage.getItem('fulin-theme')||'';k=localStorage.getItem('fulin-theme-keep')||''}catch(e){}if(t==='normal')t='navy';if(t==='hw'&&new Date()>=new Date('2026-11-03T00:00:00+08:00')&&!k)t='';if(!t)t=new Date()<new Date('2026-11-03T00:00:00+08:00')?'hw':'navy';if(t!=='navy')document.documentElement.classList.add(t)})();</script>
 </head>
@@ -2383,7 +2393,13 @@ function renderToday(){const el=$('todayPage');if(!$('v-today').hidden)syncTabs(
     '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>';
   if(schedView==='month')setTimeout(dockPlan,0)}
 // 月曆＋右側預定進場開著：單擊名字或空白處＝把右側的進場日改成那一天（點日期數字還是編輯那天排班）
-function setPlanDate(d){const i=$('mpDate');if(!i||!d)return;i.value=d;document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'));const c=document.querySelector('.mday[data-day="'+d+'"]');if(c)c.classList.add('pick')}
+// 右側面板：顯示選的那一天已經排定的工程（已排班＋預定進場）
+function planDay(){const box=$('mpDay'),i=$('mpDate');if(!box||!i)return;const d=i.value;if(!d){box.innerHTML='';return}
+  const crews=crewsOf(d).filter(c=>crewSites(c).length&&String(c.leader||'').trim());const inS=new Set();crews.forEach(c=>crewSites(c).forEach(l=>inS.add(l)));
+  const plans=[];sites.forEach(x=>{if(x.status==='done'||inS.has(x.name))return;planItems(x).forEach(it=>{if(it.d===d)plans.push({x,it})})});
+  box.innerHTML='<div class="mpdh">'+esc(mdw(d))+' 已排定 <b>'+(crews.length+plans.length)+'</b></div>'+
+    (crews.length||plans.length?crews.map(c=>'<div class="mpdi ev"><b>'+esc(c.leader)+'</b>'+esc(crewSites(c).join('、'))+'</div>').join('')+plans.map(({x,it})=>'<div class="mpdi pl"><b>預定</b>'+esc(x.name)+(it.n?'｜'+esc(it.n):'')+'</div>').join(''):'<div class="mpdi none">這天還沒有排任何工程</div>')}
+function setPlanDate(d){const i=$('mpDate');if(!i||!d)return;i.value=d;setTimeout(planDay,0);document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'));const c=document.querySelector('.mday[data-day="'+d+'"]');if(c)c.classList.add('pick')}
 $('todayPage').addEventListener('click',e=>{if(!$('mplan')||schedView!=='month')return;if(e.target.closest('.mdh,#mTrash,.mcalbar'))return;
   const cell=e.target.closest('.mday');if(!cell)return;if(e.target.closest('.mev,.mpl')||e.target===cell||cell.contains(e.target)){e.stopPropagation();setPlanDate(cell.dataset.day)}},true);
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;if(t==='wvtheme'){wvTheme=b.dataset.v;try{localStorage.setItem('fulin-wvtheme',wvTheme)}catch(x){}renderToday();return}if(t==='navcopyall'){copyLink(allShareText(b.dataset.d));return}if(t==='navcopy'){const c=crewsOf(b.dataset.d).find(x=>x.no===+b.dataset.no);if(c)copyLink(crewShareText(c));return}
@@ -2491,6 +2507,7 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
     '<input id="mpName" class="mpname" placeholder="案場名稱（必填）" autocomplete="off">'+
     '<label class="mpdate">進場日 <input type="date" id="mpDate" value="'+day+'"></label>'+
     '<div class="mpstage" id="mpStage"><span>階段</span>'+[''].concat(stageNames()).map(n=>'<button type="button" data-p="stg" data-v="'+esc(n)+'"'+(n?'':' class="on"')+'>'+(n?esc(n):'不分')+'</button>').join('')+'<button type="button" data-p="stgx">＋自訂</button></div>'+
+    '<div class="mpday" id="mpDay"></div>'+
     '<div class="mplist" id="mpList"></div>';
   document.body.appendChild(p);document.body.classList.add('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'));const cell=document.querySelector('.mday[data-day="'+day+'"]');if(cell)cell.classList.add('pick');
   let pick=null,stg='';const inp=$('mpName'),list=$('mpList'),sv=p.querySelector('[data-p=save]');
@@ -2514,10 +2531,11 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
     else if(t==='stgx'){const n=(prompt('階段名稱（例如：補修、驗收）')||'').trim().slice(0,20);if(n){stg=n;rememberStage(n);if(!p.querySelector('[data-p=stg][data-v="'+CSS.escape(n)+'"]')){const nb=document.createElement('button');nb.type='button';nb.dataset.p='stg';nb.dataset.v=n;nb.textContent=n;b.before(nb)}markStg()}}
     else if(t==='pick'){pick=b.dataset.id;const x=sites.find(y=>y.id===pick);inp.value=x?x.name:'';draw();sv.focus()}
     else if(t==='new'){const nm=inp.value.trim(),dd=$('mpDate').value||day;closePlan();openSiteModal(null);setTimeout(()=>{if($('fName'))$('fName').value=nm;if($('fDate'))$('fDate').value=dd;if($('fSt'))$('fSt').value='預定進場'},0)}
-    else if(t==='save'&&pick){const dd=$('mpDate').value||day;if(stg)setStage(pick,stg,dd);else setStartDate(pick,dd);pick=null;inp.value='';setTimeout(draw,50)}});
+    else if(t==='save'&&pick){const dd=$('mpDate').value||day;if(stg)setStage(pick,stg,dd);else setStartDate(pick,dd);pick=null;inp.value='';setTimeout(()=>{draw();planDay()},50)}});
   // 從清單拖到月曆某一天＝預定那天（用目前選的階段）
   list.addEventListener('dragstart',e=>{const b=e.target.closest('.mpi[data-id]');if(!b)return;e.dataTransfer.setData('text/fulin-site',b.dataset.id+'|p');e.dataTransfer.effectAllowed='move'});
-  window.__planStg=()=>stg;window.__planRedraw=()=>{if($('mplan'))draw()};
+  window.__planStg=()=>stg;window.__planRedraw=()=>{if($('mplan')){draw();planDay()}};
+  $('mpDate').addEventListener('input',()=>{setPlanDate($('mpDate').value)});planDay();
   draw();setTimeout(()=>inp.focus(),0)}
 // 月曆（電腦）右側固定顯示「預定進場」；按 ✕ 收起後，按「＋ 預定進場」或雙擊日期再打開
 let planHidden=false;
