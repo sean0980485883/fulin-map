@@ -2523,10 +2523,7 @@ function openPlan(day){if(!isAdmin()){toast('要先登入管理才能預定');re
 let planHidden=false;
 function dockPlan(){if(schedView!=='month'||schedEdit||!isAdmin()||planHidden||$('mplan')||!window.matchMedia('(min-width:761px)').matches)return;openPlan(schedDate||DB.today)}
 function closePlan(){const p=$('mplan');if(p)p.remove();document.body.classList.remove('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'))}
-$('todayPage').addEventListener('dblclick',e=>{const m=e.target.closest&&e.target.closest('.mpl');if(m){e.preventDefault();goMap(m.dataset.id);return}
-  // 雙擊綠色裡的案場名字：跳到地圖上的那個案場
-  const sg=e.target.closest&&e.target.closest('.mseg');if(sg){e.preventDefault();clearTimeout(mdayT);const ev=sg.closest('.mev');const cw=ev&&crewsOf(ev.dataset.v).find(c=>c.no===+ev.dataset.no);const st=cw&&siteMatch(cw,sg.dataset.l);if(st)goMap(st.id);else toast('「'+sg.dataset.l+'」不在案場清單裡');return}
-  const c=e.target.closest&&e.target.closest('.mday');if(!c||e.target.closest('.mev'))return;e.preventDefault();planHidden=false;openPlan(c.dataset.day)});
+$('todayPage').addEventListener('dblclick',e=>{const c=e.target.closest&&e.target.closest('.mday');if(!c||e.target.closest('.mev,.mpl'))return;e.preventDefault();planHidden=false;openPlan(c.dataset.day)});
 // 一週總覽：週一到週日，每一天每一組去哪裡
 function weekHtml(d){const mon=mondayOf(d);const days=[0,1,2,3,4,5,6].map(k=>addDays(mon,k));const n=meName;
   const leaders=[];days.forEach(x=>crewsOf(x).forEach(c=>{const k=c.leader||'（未填帶頭）';if(!leaders.includes(k))leaders.push(k)}));
