@@ -2382,6 +2382,10 @@ function renderToday(){const el=$('todayPage');if(!$('v-today').hidden)syncTabs(
     (schedView==='board'?'<div class="boardwrap">'+boardHtml(d)+'</div>':schedView==='week'?weekHtml(d):schedView==='month'?monthHtml(d):cardsHtml(d))+
     '<div class="foot">排班資料存在「富林系統資料庫」。存成圖片可以直接傳到 LINE 群組。</div>';
   if(schedView==='month')setTimeout(dockPlan,0)}
+// 月曆＋右側預定進場開著：單擊名字或空白處＝把右側的進場日改成那一天（點日期數字還是編輯那天排班）
+function setPlanDate(d){const i=$('mpDate');if(!i||!d)return;i.value=d;document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'));const c=document.querySelector('.mday[data-day="'+d+'"]');if(c)c.classList.add('pick')}
+$('todayPage').addEventListener('click',e=>{if(!$('mplan')||schedView!=='month')return;if(e.target.closest('.mdh,#mTrash,.mcalbar'))return;
+  const cell=e.target.closest('.mday');if(!cell)return;if(e.target.closest('.mev,.mpl')||e.target===cell||cell.contains(e.target)){e.stopPropagation();setPlanDate(cell.dataset.day)}},true);
 $('todayPage').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(!b)return;const t=b.dataset.t;if(t==='wvtheme'){wvTheme=b.dataset.v;try{localStorage.setItem('fulin-wvtheme',wvTheme)}catch(x){}renderToday();return}if(t==='navcopyall'){copyLink(allShareText(b.dataset.d));return}if(t==='navcopy'){const c=crewsOf(b.dataset.d).find(x=>x.no===+b.dataset.no);if(c)copyLink(crewShareText(c));return}
   if(t==='wprev'||t==='wnext'){schedDate=addDays(schedDate,t==='wprev'?-7:7);renderToday();return}
   if(t==='prev'){schedDate=addDays(schedDate,-1);renderToday()}else if(t==='next'){schedDate=addDays(schedDate,1);renderToday()}else if(t==='today'){schedDate=DB.today;renderToday()}else if(t==='day'){schedDate=b.dataset.v;renderToday()}
@@ -2435,7 +2439,7 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
     const plan=[];sites.forEach(s=>{if(s.status==='done'||inSched.has(s.name))return;planItems(s).forEach(it=>{if(it.d===dd)plan.push({s,it})})});
     h+='<div class="mday'+(other?' other':'')+(dd===DB.today?' today':'')+(dd===d?' sel':'')+'" data-day="'+dd+'">'+
       '<button class="mdh" data-t="mday" data-v="'+dd+'"'+(A?' data-edit="1" title="編輯這天排班"':'')+'><b class="'+(wd===0?'sun':wd===6?'sat':'')+'">'+t.getDate()+'</b><small>'+lunar(dd)+'</small></button>'+
-      crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev segs" data-t="mday" data-v="'+dd+'" data-no="'+c.no+'"'+(A?' draggable="true"':'')+' title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+crewSites(c).map(l=>'<span class="mseg" style="--sc:'+lineColor(c,l)+'">'+esc(l)+'</span>').join('')+(c.leader?'<small class="mlead">'+esc(c.leader)+'</small>':'')+'</button>').join('')+
+      crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev segs" data-t="mday" data-v="'+dd+'" data-no="'+c.no+'"'+(A?' draggable="true"':'')+' title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+crewSites(c).map(l=>'<span class="mseg" data-l="'+esc(l)+'" style="--sc:'+lineColor(c,l)+'">'+esc(l)+'</span>').join('')+(c.leader?'<small class="mlead">'+esc(c.leader)+'</small>':'')+'</button>').join('')+
       plan.map(({s,it})=>'<button class="mpl" data-t="msite" data-id="'+s.id+'" data-k="'+it.k+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+(it.n?'<small>｜'+esc(it.n)+'</small>':'')+'</button>').join('')+
       '</div>'});
   return h+'</div></div>'}
@@ -2520,6 +2524,8 @@ let planHidden=false;
 function dockPlan(){if(schedView!=='month'||schedEdit||!isAdmin()||planHidden||$('mplan')||!window.matchMedia('(min-width:761px)').matches)return;openPlan(schedDate||DB.today)}
 function closePlan(){const p=$('mplan');if(p)p.remove();document.body.classList.remove('planning');document.querySelectorAll('.mday.pick').forEach(x=>x.classList.remove('pick'))}
 $('todayPage').addEventListener('dblclick',e=>{const m=e.target.closest&&e.target.closest('.mpl');if(m){e.preventDefault();goMap(m.dataset.id);return}
+  // 雙擊綠色裡的案場名字：跳到地圖上的那個案場
+  const sg=e.target.closest&&e.target.closest('.mseg');if(sg){e.preventDefault();clearTimeout(mdayT);const ev=sg.closest('.mev');const cw=ev&&crewsOf(ev.dataset.v).find(c=>c.no===+ev.dataset.no);const st=cw&&siteMatch(cw,sg.dataset.l);if(st)goMap(st.id);else toast('「'+sg.dataset.l+'」不在案場清單裡');return}
   const c=e.target.closest&&e.target.closest('.mday');if(!c||e.target.closest('.mev'))return;e.preventDefault();planHidden=false;openPlan(c.dataset.day)});
 // 一週總覽：週一到週日，每一天每一組去哪裡
 function weekHtml(d){const mon=mondayOf(d);const days=[0,1,2,3,4,5,6].map(k=>addDays(mon,k));const n=meName;
