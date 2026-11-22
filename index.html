@@ -911,6 +911,7 @@ select option{background:#1C2A38;color:var(--ink)}
 .albgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
 .albgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:rgba(255,255,255,.05)}
 /* 看照片：上一張／下一張 */
+html body .toast{z-index:9500}
 .phv{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;touch-action:pan-y;user-select:none}
 .phv img{max-width:calc(100% - 140px);max-height:calc(100% - 110px);object-fit:contain;border-radius:6px;box-shadow:0 6px 30px rgba(0,0,0,.6)}
 .phv .lbb{position:absolute;top:50%;transform:translateY(-50%);width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-size:30px;line-height:1;cursor:pointer;display:grid;place-items:center}
@@ -919,6 +920,7 @@ select option{background:#1C2A38;color:var(--ink)}
 .phv .lbtop{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;padding:12px 16px;color:#fff;font-size:16px;font-weight:700}
 .phv .lbtop a,.phv .lbtop button{margin-left:auto;color:#fff;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);border-radius:10px;padding:6px 12px;font-size:14px;text-decoration:none;cursor:pointer;font-family:inherit}
 .phv .lbtop button{margin-left:0;font-size:20px;padding:2px 12px}
+.phv .lbtop .lbdel{margin-left:auto;font-size:14px;padding:6px 12px;border-color:rgba(255,120,120,.6);color:#FFB4B4}.phv .lbtop .lbdel+.lbo{margin-left:0}.phv .lbtop .lbdel:disabled{opacity:.5}
 .phv .lbload{position:absolute;color:#fff;opacity:.7;font-size:14px}
 @media (max-width:760px){.phv img{max-width:100%;max-height:calc(100% - 140px)}.phv .lbb{top:auto;bottom:24px;transform:none}.phv .lbp{left:calc(50% - 80px)}.phv .lbn{right:calc(50% - 80px)}}
 
@@ -2293,7 +2295,7 @@ window.addEventListener('beforeunload',e=>{if(upBusy){e.preventDefault();e.retur
 // ---- 看照片：點縮圖直接放大，可以按上一張／下一張（鍵盤左右鍵、手機左右滑也可以） ----
 function openLightbox(ids,i){const old=document.querySelector('.phv');if(old)old.remove();
   const el=document.createElement('div');el.className='phv';
-  el.innerHTML='<div class="lbtop"><span class="lbc"></span><a class="lbo" target="_blank" rel="noopener">在雲端硬碟打開</a><button class="phv-x" aria-label="關閉">✕</button></div><span class="lbload">讀取中…</span><img alt=""><button class="lbb lbp" aria-label="上一張">‹</button><button class="lbb lbn" aria-label="下一張">›</button>';
+  el.innerHTML='<div class="lbtop"><span class="lbc"></span><button class="lbdel">🗑 刪除</button><a class="lbo" target="_blank" rel="noopener">在雲端硬碟打開</a><button class="phv-x" aria-label="關閉">✕</button></div><span class="lbload">讀取中…</span><img alt=""><button class="lbb lbp" aria-label="上一張">‹</button><button class="lbb lbn" aria-label="下一張">›</button>';
   document.body.appendChild(el);const img=el.querySelector('img'),ld=el.querySelector('.lbload');
   const show=k=>{i=Math.max(0,Math.min(ids.length-1,k));const id=ids[i];ld.style.display='';img.style.opacity='.3';
     img.onload=()=>{ld.style.display='none';img.style.opacity=''};img.src='https://drive.google.com/thumbnail?id='+encodeURIComponent(id)+'&sz=w2000';
@@ -2303,7 +2305,16 @@ function openLightbox(ids,i){const old=document.querySelector('.phv');if(old)old
   const close=()=>{el.remove();document.removeEventListener('keydown',key,true)};
   const key=e=>{if(e.key==='ArrowRight'){e.preventDefault();e.stopPropagation();show(i+1)}else if(e.key==='ArrowLeft'){e.preventDefault();e.stopPropagation();show(i-1)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();close()}};
   document.addEventListener('keydown',key,true);
-  el.addEventListener('click',e=>{if(e.target.closest('.lbp'))show(i-1);else if(e.target.closest('.lbn'))show(i+1);else if(e.target.closest('.phv-x')||e.target===el)close()});
+  el.addEventListener('click',e=>{if(e.target.closest('.lbp'))show(i-1);else if(e.target.closest('.lbn'))show(i+1);else if(e.target.closest('.lbdel'))delPhoto();else if(e.target.closest('.phv-x')||e.target===el)close()});
+  const delPhoto=async()=>{const id=ids[i];if(!id||!confirm('確定要刪除這張照片嗎？\n雲端硬碟的檔案會移到垃圾桶，30 天內還可以救回來。'))return;
+    const b=el.querySelector('.lbdel');b.disabled=true;b.textContent='刪除中…';
+    try{await api('photo_delete',{id});
+      document.querySelectorAll('a[data-lb]').forEach(a=>{if(a.dataset.lb===id){const g=a.closest('.albg');a.remove();if(g&&!g.querySelector('a[data-lb]'))g.remove()}});
+      (DB.reports||[]).forEach(r=>{if(Array.isArray(r.photos))r.photos=r.photos.filter(x=>x!==id)});
+      const h=document.querySelector('.albh');if(h&&h.firstChild&&h.firstChild.nodeType===3)h.firstChild.textContent='共 '+document.querySelectorAll('.album a[data-lb]').length+' 張照片';
+      ids.splice(i,1);toast('照片已刪除');if(!ids.length){close();return}show(Math.min(i,ids.length-1))}
+    catch(err){toast(/未知的動作/.test(err.message)?'後台還沒更新：請把新版 富林系統.gs 貼回並部署新版本':'刪除失敗：'+err.message)}
+    finally{b.disabled=false;b.textContent='🗑 刪除'}};
   let sx=null;el.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});
   el.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>50)show(i+(dx<0?1:-1))});
   show(i)}
