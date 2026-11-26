@@ -910,6 +910,9 @@ select option{background:#1C2A38;color:var(--ink)}
 .albt{font-size:13px;color:var(--muted);margin-bottom:6px}.albt span{display:block;color:var(--ink);margin-top:2px}
 .albgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
 .albgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:rgba(255,255,255,.05)}
+/* 月曆預定進場：名字後面的檔案按鈕 */
+.mqf{display:inline-block;margin:0 2px 0 4px;padding:0 3px;border-radius:5px;font-size:13px;line-height:1.3;cursor:pointer;vertical-align:1px;background:rgba(255,255,255,.7);border:1px solid rgba(31,99,224,.35)}
+.mqf:hover{background:#fff;border-color:#1F63E0}
 /* 看照片：上一張／下一張 */
 html body .toast{z-index:9500}
 .phv{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;touch-action:pan-y;user-select:none}
@@ -2320,6 +2323,9 @@ function openLightbox(ids,i){const old=document.querySelector('.phv');if(old)old
   show(i)}
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[data-lb]');if(!a||e.metaKey||e.ctrlKey)return;e.preventDefault();
   const box=a.closest('.album,.reports,.thumbs')||a.parentNode;const all=[...box.querySelectorAll('a[data-lb]')];openLightbox(all.map(x=>x.dataset.lb),all.indexOf(a))},true);
+// 月曆上名字後面的 📄：直接打開這個案場的報價單／檔案
+document.addEventListener('click',e=>{const q=e.target.closest&&e.target.closest('.mqf');if(!q)return;e.preventDefault();e.stopPropagation();openQuotesModal(sites.find(x=>x.id===q.dataset.qf))},true);
+document.addEventListener('dblclick',e=>{if(e.target.closest&&e.target.closest('.mqf')){e.preventDefault();e.stopPropagation()}},true);
 // ---- 案場相簿：這個案場全部的照片 ----
 async function openAlbum(s){openModal('相簿：'+s.name,'<div class="foot" id="albBody">讀取照片中…</div>',[['關閉','close','primary']],()=>true,true);
   try{const d=(await api('site_photos',{siteId:s.id})).data;const box=$('albBody');if(!box)return;const n=d.list.reduce((a,x)=>a+x.photos.length,0);
@@ -2497,7 +2503,7 @@ function monthHtml(d){const x=toDate(d);const y=x.getFullYear(),mo=x.getMonth();
     h+='<div class="mday'+(other?' other':'')+(dd===DB.today?' today':'')+(dd===d?' sel':'')+'" data-day="'+dd+'">'+
       '<button class="mdh" data-t="mday" data-v="'+dd+'"'+(A?' data-edit="1" title="編輯這天排班"':'')+'><b class="'+(wd===0?'sun':wd===6?'sat':'')+'">'+t.getDate()+'</b><small>'+lunar(dd)+'</small></button>'+
       crews.filter(c=>crewSites(c).length).map(c=>'<button class="mev segs" data-t="mday" data-v="'+dd+'" data-no="'+c.no+'"'+(A?' draggable="true"':'')+' title="'+esc(crewSites(c).join('、')+(c.leader?'｜'+c.leader:''))+'">'+crewSites(c).map(l=>'<span class="mseg" data-l="'+esc(l)+'" style="--sc:'+lineColor(c,l)+'">'+esc(l)+'</span>').join('')+(c.leader?'<small class="mlead">'+esc(c.leader)+'</small>':'')+'</button>').join('')+
-      plan.map(({s,it})=>'<button class="mpl" data-t="msite" data-id="'+s.id+'" data-k="'+it.k+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+(it.n?'<small>｜'+esc(it.n)+'</small>':'')+'</button>').join('')+
+      plan.map(({s,it})=>'<button class="mpl" data-t="msite" data-id="'+s.id+'" data-k="'+it.k+'"'+(A?' draggable="true"':'')+' title="預定進場，還沒排班">'+esc(s.name)+(A?'<span class="mqf" data-qf="'+s.id+'" title="看報價單／檔案">📄</span>':'')+(it.n?'<small>｜'+esc(it.n)+'</small>':'')+'</button>').join('')+
       '</div>'});
   return h+'</div></div>'}
 // 拖曳「預定進場」到別天：改進場日
